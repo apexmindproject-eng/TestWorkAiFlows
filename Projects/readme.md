@@ -1,6 +1,6 @@
 # TestWorkAiFlows / Projects
 
-Short README for this repository.
+Short README
 
 ## Description
 A simple project placeholder for TestWorkAiFlows. Use this repository to store and run small test projects, experiments, and sample code.
