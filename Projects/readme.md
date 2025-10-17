@@ -38,4 +38,4 @@ A simple project placeholder for TestWorkAiFlows. Use this repository to store a
 Specify a license (e.g., MIT) in a LICENSE file.
 
 ## Contact
-Project maintainer: add contact info or GitHub profile link here.
+Project maintainer: add contact info or GitHub profile link here
