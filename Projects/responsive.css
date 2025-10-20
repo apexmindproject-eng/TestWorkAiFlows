@@ -1,0 +1,132 @@
+/* Responsive Styles for EarthCarePortal */
+
+/* Base style adjustments for small devices */
+body {
+  font-size: 16px;
+  line-height: 1.4;
+  padding: 0 1em;
+}
+
+header, nav, footer {
+  padding: 1em 0;
+}
+
+header img#logo,
+header img.logo {
+  max-width: 150px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+nav ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  padding: 0;
+  margin: 1em 0;
+  list-style: none;
+  text-align: center;
+}
+
+nav ul li a {
+  display: block;
+  padding: 0.5em;
+  font-weight: bold;
+  color: #2c3e50;
+  text-decoration: none;
+}
+
+nav ul li a.active,
+nav ul li a[aria-current="page"] {
+  color: #27ae60;
+}
+
+/* Main content responsiveness */
+main {
+  max-width: 100%;
+}
+
+section#about-intro,
+section.features,
+section.resources-intro,
+section.downloadable-resources,
+section.external-links,
+section.gallery,
+section.about-portal {
+  padding: 1em 0;
+}
+
+.illustration {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1em auto;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1em;
+  justify-items: center;
+}
+
+.gallery-item {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+}
+
+/* Buttons */
+.btn-primary,
+.btn-secondary {
+  display: inline-block;
+  padding: 0.5em 1em;
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* Responsive adjustments for tablets and up */
+@media (min-width: 600px) {
+  nav ul {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  nav ul li {
+    margin: 0 0.5em;
+  }
+
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  header img#logo,
+  header img.logo {
+    max-width: 180px;
+  }
+}
+
+/* Responsive adjustments for desktops and up */
+@media (min-width: 900px) {
+  body {
+    padding: 0 3em;
+  }
+
+  nav ul {
+    justify-content: flex-start;
+  }
+
+  .gallery-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  header, footer {
+    padding: 2em 0;
+  }
+
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+}
