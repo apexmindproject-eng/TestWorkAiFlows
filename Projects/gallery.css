@@ -1,0 +1,92 @@
+/* Gallery Page Styles */
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f9f9f9;
+  margin: 0;
+  padding: 0;
+  color: #333;
+}
+
+header {
+  background-color: #222;
+  padding: 20px;
+  text-align: center;
+}
+
+#logo {
+  height: 60px;
+}
+
+nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0 0;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+nav ul li a {
+  color: #ddd;
+  text-decoration: none;
+  font-weight: bold;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+nav ul li a:hover,
+nav ul li a.active {
+  background-color: #e03b3b;
+  color: white;
+}
+
+main {
+  max-width: 960px;
+  margin: 30px auto;
+  padding: 0 15px;
+}
+
+main h1 {
+  text-align: center;
+  margin-bottom: 25px;
+  font-size: 2em;
+  color: #222;
+}
+
+#gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(280px, 1fr));
+  gap: 15px;
+}
+
+.gallery-item {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.gallery-item:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.gallery-item img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+  height: 180px;
+}
+
+footer {
+  background-color: #222;
+  color: #ccc;
+  text-align: center;
+  padding: 12px 0;
+  margin-top: 40px;
+  font-size: 0.9em;
+}
