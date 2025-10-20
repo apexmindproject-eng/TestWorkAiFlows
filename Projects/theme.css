@@ -1,0 +1,165 @@
+/* Theme styles for United Self Defense Academy */
+
+/* General colors */
+:root {
+  --primary-color: #2a2f45;
+  --secondary-color: #f6b93b;
+  --accent-color: #eb3b5a;
+  --text-color: #2f3640;
+  --background-color: #f5f6fa;
+  --header-background: #2a2f45;
+  --footer-background: #1e222a;
+  --link-color: #f6b93b;
+  --link-hover-color: #eb3b5a;
+}
+
+/* Body and global */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  margin: 0;
+  padding: 0;
+}
+
+/* Header styles */
+header {
+  background-color: var(--header-background);
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+header img#logo, header img.logo {
+  height: 50px;
+  width: auto;
+}
+
+nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+nav ul li {
+  margin-left: 1.5rem;
+}
+
+nav ul li:first-child {
+  margin-left: 0;
+}
+
+nav ul li a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  transition: background-color 0.3s ease;
+}
+
+nav ul li a:hover,
+nav ul li a.active {
+  background-color: var(--secondary-color);
+  color: var(--header-background);
+}
+
+/* Main headings */
+h1, h2, h3 {
+  color: var(--primary-color);
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+h2 {
+  font-size: 2rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Links */
+a {
+  color: var(--link-color);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover,
+a:focus {
+  color: var(--link-hover-color);
+  text-decoration: underline;
+}
+
+/* Buttons */
+button {
+  background-color: var(--accent-color);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover,
+button:focus {
+  background-color: var(--secondary-color);
+  color: var(--header-background);
+}
+
+/* Footer */
+footer {
+  background-color: var(--footer-background);
+  color: #ccc;
+  text-align: center;
+  padding: 1rem 2rem;
+  font-size: 0.9rem;
+}
+
+/* Images max width */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Utility clearfix */
+.clearfix::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+/* Form inputs and textarea default styling */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 1rem;
+  margin-top: 0.25rem;
+  transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+textarea:focus {
+  border-color: var(--secondary-color);
+  outline: none;
+}
