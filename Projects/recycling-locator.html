@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recycling Locator - EarthCarePortal</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="locator.css" />
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <img src="earthcare-logo.png" alt="EarthCarePortal Logo" id="logo" />
+      <nav>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="recycling-guides.html">Recycling Guides</a></li>
+          <li><a href="interactive-quiz.html">Quiz</a></li>
+          <li><a href="resources.html">Resources</a></li>
+          <li><a href="gallery.html">Gallery</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="locator-hero">
+      <h1>Find Local Recycling Centers</h1>
+      <p>Use our interactive map below to locate recycling centers near you and learn how to recycle properly in your area.</p>
+    </section>
+
+    <section class="locator-map-section">
+      <div id="map-container">
+        <!-- Interactive Map will render here -->
+      </div>
+      <aside class="locator-info">
+        <h2>How to Use</h2>
+        <p>Enter your address or allow location access to find the nearest recycling facilities along with information on accepted materials.</p>
+        <input type="text" id="location-input" placeholder="Enter your address or zip code" />
+        <button id="locate-btn">Locate</button>
+        <div id="location-results"></div>
+      </aside>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2024 EarthCarePortal. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="map-locator.js"></script>
+</body>
+</html>
