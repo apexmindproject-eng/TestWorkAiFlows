@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KittensCorner - Gallery</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="layout.css">
+    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="gallery.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <header>
+        <img src="kittens-logo.png" alt="KittensCorner Logo" id="logo">
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="gallery.html" class="active">Gallery</a></li>
+                <li><a href="fun-facts.html">Fun Facts</a></li>
+                <li><a href="care-tips.html">Care Tips</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="gallery-section">
+            <h1>Adorable Kitten Gallery</h1>
+            <div class="gallery-container">
+                <img src="kitten-1.jpg" alt="Cute kitten 1" class="gallery-thumbnail" tabindex="0">
+                <img src="kitten-2.jpg" alt="Cute kitten 2" class="gallery-thumbnail" tabindex="0">
+                <img src="kitten-3.jpg" alt="Cute kitten 3" class="gallery-thumbnail" tabindex="0">
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 KittensCorner. All rights reserved.</p>
+    </footer>
+
+    <script src="utils.js"></script>
+    <script src="domHelpers.js"></script>
+    <script src="image-loader.js"></script>
+    <script src="gallery.js"></script>
+</body>
+</html>
