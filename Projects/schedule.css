@@ -1,0 +1,140 @@
+body {
+  font-family: Arial, sans-serif;
+  background-color: #fefefe;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background-color: #003366;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+header #logo {
+  height: 50px;
+}
+
+nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+nav ul li {
+  margin-left: 20px;
+}
+
+nav ul li a {
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: bold;
+  padding: 5px 10px;
+}
+
+nav ul li a:hover,
+nav ul li a.active {
+  background-color: #00509e;
+  border-radius: 4px;
+}
+
+main {
+  max-width: 1000px;
+  margin: 20px auto;
+  padding: 0 15px;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.hero-image {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.hero h1 {
+  margin-top: 15px;
+  font-size: 2.5em;
+  color: #003366;
+}
+
+.hero p {
+  font-size: 1.2em;
+  margin-top: 10px;
+  color: #555;
+}
+
+.schedule-details {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px #ccc;
+  margin-bottom: 40px;
+}
+
+.schedule-details h2 {
+  color: #003366;
+  border-bottom: 2px solid #003366;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead {
+  background-color: #003366;
+  color: #fff;
+}
+
+th, td {
+  text-align: left;
+  padding: 12px 15px;
+  border-bottom: 1px solid #ddd;
+}
+
+tbody tr:hover {
+  background-color: #f5f9ff;
+}
+
+.enrollment-info {
+  background-color: #f0f4f8;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 1.1em;
+  color: #003366;
+}
+
+.enrollment-info h2 {
+  margin-bottom: 15px;
+}
+
+.enrollment-info a {
+  color: #00509e;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.enrollment-info a:hover {
+  text-decoration: underline;
+}
+
+footer {
+  background-color: #003366;
+  color: #ffffff;
+  text-align: center;
+  padding: 15px 10px;
+  font-size: 0.9em;
+  margin-top: 50px;
+}
