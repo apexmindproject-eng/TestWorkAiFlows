@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Volunteer - EarthCarePortal</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="theme.css" />
+    <link rel="stylesheet" href="responsive.css" />
+</head>
+<body>
+    <header>
+        <img src="earthcare-logo.png" alt="EarthCarePortal Logo" />
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="recycling-guides.html">Recycling Guides</a></li>
+                <li><a href="tips-for-home.html">Tips for Home</a></li>
+                <li><a href="school-programs.html">School Programs</a></li>
+                <li><a href="interactive-quiz.html">Interactive Quiz</a></li>
+                <li><a href="recycling-locator.html">Recycling Locator</a></li>
+                <li><a href="resources.html">Resources</a></li>
+                <li><a href="gallery.html">Gallery</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="volunteer.html" aria-current="page">Volunteer</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <h1>Volunteer with EarthCarePortal</h1>
+        <p>Join us in promoting recycling and sustainable practices to protect our planet. Your time and effort are invaluable for our community programs, events, and educational outreach.</p>
+
+        <section id="volunteer-form-section">
+            <h2>Volunteer Sign-up Form</h2>
+            <form id="volunteer-form" action="#" method="post">
+                <label for="fullName">Full Name:</label>
+                <input type="text" id="fullName" name="fullName" required />
+
+                <label for="email">Email Address:</label>
+                <input type="email" id="email" name="email" required />
+
+                <label for="phone">Phone Number:</label>
+                <input type="tel" id="phone" name="phone" />
+
+                <label for="availability">Availability (days/hours):</label>
+                <textarea id="availability" name="availability" rows="3" placeholder="e.g., weekends, weekday evenings" required></textarea>
+
+                <label for="areas">Areas of Interest:</label>
+                <select id="areas" name="areas" multiple size="4" required>
+                    <option value="community-events">Community Events</option>
+                    <option value="education">Education & Workshops</option>
+                    <option value="social-media">Social Media & Outreach</option>
+                    <option value="fundraising">Fundraising</option>
+                </select>
+
+                <button type="submit">Submit</button>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 EarthCarePortal. All rights reserved.</p>
+    </footer>
+
+    <script src="form-validation.js"></script>
+</body>
+</html>
