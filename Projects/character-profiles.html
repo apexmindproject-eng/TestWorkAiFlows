@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Character Profiles - Zombie Media Encyclopedia</title>
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="layout.css" />
+<link rel="stylesheet" href="typography.css" />
+<link rel="stylesheet" href="responsive.css" />
+<link rel="stylesheet" href="profile.css" />
+<script defer src="main.js"></script>
+<script defer src="profile-interactions.js"></script>
+</head>
+<body>
+<header>
+<div class="logo">
+<img src="zombiepedia-logo.png" alt="Zombie Media Encyclopedia Logo" />
+<h1>Zombie Media Encyclopedia</h1>
+</div>
+<nav>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="about.html">About</a></li>
+<li><a href="zombie-shows.html">Zombie Shows</a></li>
+<li><a href="character-profiles.html" class="active">Character Profiles</a></li>
+<li><a href="timeline.html">Timeline</a></li>
+<li><a href="contact.html">Contact</a></li>
+</ul>
+</nav>
+<div class="search-bar">
+<input type="search" id="profileSearch" name="profileSearch" placeholder="Search characters..." />utton id="searchButton" aria-label="Search">
+<img src="search-icon.png" alt="Search Icon" />
+</button>
+</div>
+</header>
+<main>
+<section class="profile-list">
+<h2>Zombie Character Profiles</h2>
+<div id="profilesContainer">
+<!-- Profiles will be dynamically loaded here by profile-interactions.js -->
+</div>
+</section>
+</main>
+<footer>
+<p>© 2024 Zombie Media Encyclopedia. All rights reserved.</p>
+</footer>
+</body>
+</html>
