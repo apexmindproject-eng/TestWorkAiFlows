@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Quiz - EarthCarePortal</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="quiz.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+</head>
+<body>
+<header>
+    <div class="container">
+        <img src="earthcare-logo.png" alt="EarthCarePortal Logo" class="logo">
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="recycling-guides.html">Recycling Guides</a></li>
+                <li><a href="interactive-quiz.html" aria-current="page">Interactive Quiz</a></li>
+                <li><a href="recycling-locator.html">Recycling Locator</a></li>
+                <li><a href="resources.html">Resources</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+        </nav>
+    </div>
+</header>
+<main class="quiz-main">
+    <section class="quiz-intro container">
+        <h1>Test Your Recycling Knowledge</h1>
+        <p>Take our interactive quiz to learn more about recycling and sustainability. See how much you already know and discover new tips to help protect our planet!</p>
+        <img src="quiz-thumbnail.jpg" alt="Quiz Illustration" class="quiz-thumbnail">
+    </section>
+    <section class="quiz-section container" aria-label="Interactive recycling quiz">
+        <form id="recyclingQuiz" aria-live="polite">
+            <div class="question" id="question1">
+                <p>1. Which of the following materials can typically be recycled?</p>
+                <label><input type="checkbox" name="q1" value="paper">Paper</label><br>
+                <label><input type="checkbox" name="q1" value="plastic">Plastic</label><br>
+                <label><input type="checkbox" name="q1" value="glass">Glass</label><br>
+                <label><input type="checkbox" name="q1" value="food">Food Waste</label>
+            </div>
+            <div class="question" id="question2">
+                <p>2. What is the most important step before recycling plastic containers?</p>
+                <label><input type="radio" name="q2" value="cleaning">Clean them out</label><br>
+                <label><input type="radio" name="q2" value="crushing">Crush them</label><br>
+                <label><input type="radio" name="q2" value="label">Remove labels</label>
+            </div>
+            <div class="question" id="question3">
+                <p>3. Which of these items should NOT be placed in a curbside recycling bin?</p>
+                <label><input type="radio" name="q3" value="aluminum_can">Aluminum Cans</label><br>
+                <label><input type="radio" name="q3" value="plastic_bag">Plastic Bags</label><br>
+                <label><input type="radio" name="q3" value="newspaper">Newspapers</label>
+            </div>
+            <div class="question" id="question4">
+                <p>4. How long does it generally take for a plastic bottle to decompose in a landfill?</p>
+                <label><input type="radio" name="q4" value="1_year">1 year</label><br>
+                <label><input type="radio" name="q4" value="100_years">100 years</label><br>
+                <label><input type="radio" name="q4" value="450_years">450 years</label>
+            </div>
+            <button type="submit" id="submitQuiz">Submit Quiz</button>
+            <button type="button" id="resetQuiz">Reset</button>
+        </form>
+        <section id="quizResults" aria-live="polite" role="region" tabindex="0" class="quiz-results" hidden>
+            <h2>Your Results</h2>
+            <p id="scoreText"></p>
+            <p id="feedbackText"></p>
+        </section>
+    </section>
+</main>
+<footer>
+    <div class="container">
+        <p>&copy; 2024 EarthCarePortal. All rights reserved.</p>
+    </div>
+</footer>
+<script src="utils.js"></script>
+<script src="dom-helpers.js"></script>
+<script src="quiz.js"></script>
+</body>
+</html>
