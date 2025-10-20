@@ -1,0 +1,66 @@
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('enrollmentForm');
+
+  if (!form) return;
+
+  function isValidEmail(email) {
+    // Basic email pattern check
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  }
+
+  function isValidPhone(phone) {
+    // Simple pattern for phone numbers (digits, spaces, dashes, parentheses)
+    const re = /^[0-9\s\-()+]+$/;
+    return re.test(phone);
+  }
+
+  form.addEventListener('submit', function(event) {
+    let errors = [];
+
+    const fullName = form.fullName.value.trim();
+    const dob = form.dob.value;
+    const email = form.email.value.trim();
+    const phone = form.phone.value.trim();
+    const program = form.program.value;
+
+    // Full name validation
+    if (!fullName) {
+      errors.push('Full Name is required.');
+    }
+
+    // Date of birth validation
+    if (!dob) {
+      errors.push('Date of Birth is required.');
+    } else {
+      const dobDate = new Date(dob);
+      if (!(dobDate instanceof Date) || isNaN(dobDate.valueOf())) {
+        errors.push('Date of Birth is invalid.');
+      }
+    }
+
+    // Email validation
+    if (!email) {
+      errors.push('Email Address is required.');
+    } else if (!isValidEmail(email)) {
+      errors.push('Email Address is invalid.');
+    }
+
+    // Phone validation
+    if (!phone) {
+      errors.push('Phone Number is required.');
+    } else if (!isValidPhone(phone)) {
+      errors.push('Phone Number is invalid.');
+    }
+
+    // Program selection validation
+    if (!program) {
+      errors.push('Please select a program.');
+    }
+
+    if (errors.length > 0) {
+      event.preventDefault();
+      alert('Please fix the following errors before submitting:\n' + errors.join('\n'));
+    }
+  });
+});
