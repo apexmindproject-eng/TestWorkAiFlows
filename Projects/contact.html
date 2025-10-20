@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact Us - United Self Defense Academy</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="layout.css" />
+  <link rel="stylesheet" href="theme.css" />
+  <link rel="stylesheet" href="responsive.css" />
+  <link rel="stylesheet" href="contact.css" />
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+</head>
+<body>
+  <header>
+    <img src="usda-logo.png" alt="United Self Defense Academy Logo" class="logo" />
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="lineage.html">Lineage</a></li>
+        <li><a href="programs.html">Programs</a></li>
+        <li><a href="instructors.html">Instructors</a></li>
+        <li><a href="class-schedule.html">Class Schedule</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="enrollment.html">Enrollment</a></li>
+        <li><a href="contact.html" class="active">Contact</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section class="contact-hero">
+      <img src="hero-kenpo-banner.jpg" alt="Kenpo Karate Banner" class="hero-image" />
+      <h1>Contact Us</h1>
+      <p>We're here to answer your questions and provide more information.</p>
+    </section>
+
+    <section class="contact-form-section">
+      <h2>Get in Touch</h2>
+      <form id="contact-form" action="#" method="post">
+        <div class="form-group">
+          <label for="name">Name:</label>
+          <input type="text" id="name" name="name" required />
+        </div>
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" id="email" name="email" required />
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone:</label>
+          <input type="tel" id="phone" name="phone" />
+        </div>
+        <div class="form-group">
+          <label for="message">Message:</label>
+          <textarea id="message" name="message" rows="5" required></textarea>
+        </div>
+        <button type="submit">Send Message</button>
+      </form>
+    </section>
+
+    <section class="contact-info">
+      <h2>Contact Information</h2>
+      <p><strong>Address:</strong> 123 Self Defense Rd, Fight City, State, ZIP</p>
+      <p><strong>Phone:</strong> (123) 456-7890</p>
+      <p><strong>Email:</strong> info@unitedselfdefenseacademy.com</p>
+      <p><strong>Follow us:</strong>
+        <a href="#" aria-label="Facebook">Facebook</a> |
+        <a href="#" aria-label="Twitter">Twitter</a> |
+        <a href="#" aria-label="Instagram">Instagram</a>
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2024 United Self Defense Academy. All rights reserved.</p>
+  </footer>
+
+  <script src="contact.js"></script>
+</body>
+</html>
