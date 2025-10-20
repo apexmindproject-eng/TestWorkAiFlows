@@ -1,0 +1,163 @@
+/* General Styles */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f9f4;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background-color: #2e7d32;
+  display: flex;
+  align-items: center;
+  padding: 1rem 2rem;
+}
+
+header .logo {
+  height: 50px;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  margin-left: auto;
+  padding: 0;
+}
+
+nav ul li {
+  margin-left: 1.5rem;
+}
+
+nav ul li a {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+nav ul li a.active, nav ul li a:hover {
+  text-decoration: underline;
+}
+
+/* Main content styling */
+main {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.contact-intro {
+  margin-bottom: 2rem;
+}
+
+.contact-intro h1 {
+  color: #2e7d32;
+  margin-bottom: 0.5rem;
+}
+
+.contact-intro p {
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+/* Contact Form Styles */
+.contact-form-section {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 3rem;
+}
+
+form label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: bold;
+  color: #2e7d32;
+}
+
+form input[type="text"],
+form input[type="email"],
+form textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 2px solid #a5d6a7;
+  border-radius: 4px;
+  font-size: 1rem;
+  margin-bottom: 1.2rem;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+form input[type="text"]:focus,
+form input[type="email"]:focus,
+form textarea:focus {
+  border-color: #2e7d32;
+  outline: none;
+}
+
+form textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+form button {
+  background-color: #2e7d32;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1.1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+form button:hover {
+  background-color: #27632a;
+}
+
+/* Contact Information Section */
+.contact-info {
+  background-color: #e8f5e9;
+  padding: 1.5rem 2rem;
+  border-radius: 8px;
+  color: #2e7d32;
+}
+
+.contact-info h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.contact-info p {
+  margin: 0.3rem 0;
+  font-size: 1.1rem;
+}
+
+/* Footer */
+footer {
+  background-color: #2e7d32;
+  color: white;
+  text-align: center;
+  padding: 1rem 0;
+  margin-top: 3rem;
+  font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  nav ul {
+    flex-direction: column;
+    margin-left: 0;
+  }
+  nav ul li {
+    margin-left: 0;
+    margin-bottom: 0.7rem;
+  }
+  main {
+    padding: 0 1rem;
+  }
+  .contact-form-section, .contact-info {
+    padding: 1.5rem 1rem;
+  }
+}
