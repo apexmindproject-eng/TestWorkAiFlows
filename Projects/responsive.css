@@ -1,0 +1,83 @@
+/* Responsive Styles for Zombie Media Encyclopedia */
+
+@media (max-width: 1200px) {
+  header nav ul {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  header nav ul li {
+    margin: 0 10px 10px;
+  }
+}
+
+@media (max-width: 900px) {
+  header {
+    flex-direction: column;
+    align-items: center;
+  }
+  header nav ul {
+    padding: 0;
+    justify-content: center;
+  }
+  .search-bar {
+    margin-top: 10px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  .search-bar input[type="search"] {
+    width: 80%;
+    max-width: 300px;
+  }
+  main {
+    padding: 0 15px;
+  }
+}
+
+@media (max-width: 600px) {
+  header nav ul {
+    flex-direction: column;
+    align-items: center;
+  }
+  header nav ul li {
+    margin: 8px 0;
+  }
+  .logo img, header .logo h1 {
+    text-align: center;
+    margin: 0 auto;
+  }
+  .featured-content article,
+  .profile-list #profilesContainer > * {
+    width: 100% !important;
+  }
+  .featured-content article img {
+    width: 100%;
+    height: auto;
+  }
+  .contact-form label,
+  .contact-form input,
+  .contact-form textarea,
+  .contact-form button {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .contact-form button {
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 400px) {
+  header nav ul li a {
+    font-size: 14px;
+  }
+  .search-bar input[type="search"] {
+    width: 70%;
+  }
+  main h1, main h2 {
+    font-size: 1.4em;
+  }
+  footer p {
+    font-size: 12px;
+    text-align: center;
+  }
+}
