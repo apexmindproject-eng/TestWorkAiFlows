@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us - Cookie Encyclopedia</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="layout.css">
+</head>
+<body>
+  <header>
+    <img src="cookie-logo.png" alt="Cookie Encyclopedia Logo" id="logo">
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="history.html">History</a></li>
+        <li><a href="types-of-cookies.html">Types of Cookies</a></li>
+        <li><a href="recipe-library.html">Recipe Library</a></li>
+        <li><a href="baking-tips.html">Baking Tips</a></li>
+        <li><a href="contact.html" aria-current="page">Contact</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main>
+    <section class="contact-section">
+      <h1>Contact Us</h1>
+      <p>We would love to hear from you! Whether you have questions, feedback, or want to share your favorite cookie recipes, feel free to reach out.</p>
+      <form id="contact-form" action="#" method="post">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+
+        <label for="message">Message:</label>
+        <textarea id="message" name="message" rows="5" required></textarea>
+
+        <button type="submit">Send Message</button>
+      </form>
+    </section>
+  </main>
+  <footer>
+    <p>&copy; 2024 Cookie Encyclopedia. All rights reserved.</p>
+  </footer>
+  <script src="form-validation.js"></script>
+</body>
+</html>
