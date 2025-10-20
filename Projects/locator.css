@@ -1,0 +1,179 @@
+/* Locator Page Styles */
+
+body {
+  font-family: 'Arial', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f4faf7;
+  color: #2e3a2f;
+}
+
+header {
+  background-color: #3a7a3a;
+  padding: 20px 0;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+header .container {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#logo {
+  height: 50px;
+}
+
+nav ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+nav ul li {
+  margin-left: 25px;
+}
+
+nav ul li a {
+  color: #d4e4d1;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+nav ul li a:hover {
+  color: #a3c293;
+}
+
+main {
+  width: 90%;
+  max-width: 1200px;
+  margin: 40px auto 80px auto;
+}
+
+.locator-hero {
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #a3c293, #e8f1e7);
+  border-radius: 8px;
+  margin-bottom: 40px;
+}
+
+.locator-hero h1 {
+  font-size: 2.8rem;
+  margin-bottom: 15px;
+  color: #285227;
+}
+
+.locator-hero p {
+  font-size: 1.2rem;
+  color: #3d533d;
+}
+
+.locator-map-section {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+#map-container {
+  flex: 2;
+  min-height: 500px;
+  background-color: #e0f0d9;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(66, 133, 34, 0.15);
+  overflow: hidden;
+}
+
+.locator-info {
+  flex: 1;
+  background-color: #f2f9e6;
+  padding: 25px 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(102, 153, 51, 0.15);
+}
+
+.locator-info h2 {
+  font-size: 1.8rem;
+  color: #4a6c27;
+  margin-bottom: 15px;
+}
+
+.locator-info p {
+  font-size: 1rem;
+  color: #567d3a;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+#location-input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #a3c293;
+  border-radius: 6px;
+  font-size: 1rem;
+  margin-bottom: 15px;
+  transition: border-color 0.3s ease;
+}
+
+#location-input:focus {
+  outline: none;
+  border-color: #4a6c27;
+  background-color: #f9fff4;
+}
+
+#locate-btn {
+  width: 100%;
+  padding: 12px 0;
+  background-color: #3a7a3a;
+  color: #f4faf7;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#locate-btn:hover {
+  background-color: #4a9a4a;
+}
+
+#location-results {
+  margin-top: 25px;
+  font-size: 1rem;
+  color: #375a15;
+  min-height: 50px;
+}
+
+footer {
+  background-color: #3a7a3a;
+  color: #d4e4d1;
+  text-align: center;
+  padding: 20px 0;
+  box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+  position: relative;
+  bottom: 0;
+  width: 100%;
+}
+
+footer .container {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 880px) {
+  .locator-map-section {
+    flex-direction: column;
+  }
+
+  #map-container {
+    min-height: 350px;
+  }
+}
