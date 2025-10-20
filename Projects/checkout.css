@@ -1,0 +1,149 @@
+/* Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Container and layout */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header styling */
+header {
+  background-color: #f8f4f0;
+  border-bottom: 2px solid #ccc;
+  padding: 15px 0;
+}
+
+header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+header .logo img {
+  height: 50px;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 15px;
+}
+
+nav ul li a {
+  text-decoration: none;
+  color: #333;
+  font-weight: 600;
+  padding: 5px 10px;
+  transition: background-color 0.3s ease;
+}
+
+nav ul li a:hover,
+nav ul li a:focus {
+  background-color: #c2b9a9;
+  color: #fff;
+  border-radius: 3px;
+}
+
+/* Main checkout section */
+.checkout-section {
+  background-color: #fff;
+  padding: 30px;
+  margin-top: 30px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  border-radius: 8px;
+}
+
+.checkout-section h1 {
+  font-size: 2em;
+  margin-bottom: 20px;
+  color: #4a3c31;
+}
+
+#checkout-form {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+/* Fieldset styling */
+#checkout-form fieldset {
+  border: 1px solid #ddd;
+  padding: 20px;
+  border-radius: 6px;
+}
+
+#checkout-form legend {
+  font-weight: 700;
+  color: #5a4431;
+  padding: 0 10px;
+}
+
+/* Labels and inputs */
+#checkout-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #4a3c31;
+}
+
+#checkout-form input[type="text"],
+#checkout-form input[type="email"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #bbb;
+  border-radius: 5px;
+  font-size: 1em;
+  transition: border-color 0.3s ease;
+}
+
+#checkout-form input[type="text"]:focus,
+#checkout-form input[type="email"]:focus {
+  border-color: #7d6253;
+  outline: none;
+}
+
+/* Button styling */
+.btn-submit {
+  background-color: #7d6253;
+  color: #fff;
+  font-weight: 700;
+  padding: 14px 25px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.1em;
+  transition: background-color 0.3s ease;
+  align-self: flex-start;
+  margin-top: 10px;
+  letter-spacing: 0.05em;
+}
+
+.btn-submit:hover,
+.btn-submit:focus {
+  background-color: #5a4431;
+  outline: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .checkout-section {
+    padding: 20px 15px;
+  }
+
+  header .container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  nav ul {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
