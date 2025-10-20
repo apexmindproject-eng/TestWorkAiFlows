@@ -1,0 +1,91 @@
+body {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background-color: #fff;
+  color: #333;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background-color: #222;
+  padding: 20px 0;
+  text-align: center;
+}
+
+#site-logo {
+  max-width: 180px;
+  height: auto;
+}
+
+nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0 0;
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+}
+
+nav ul li {
+  display: inline;
+}
+
+nav ul li a {
+  text-decoration: none;
+  color: #ddd;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: color 0.3s ease;
+}
+
+nav ul li a:hover,
+nav ul li a[aria-current="page"] {
+  color: #ff6f61;
+}
+
+main {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.biography-article {
+  background: #f9f9f9;
+  padding: 30px 40px;
+  border-radius: 6px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+}
+
+.biography-article h1 {
+  font-size: 2.4rem;
+  margin-bottom: 20px;
+  color: #222;
+  border-bottom: 2px solid #ff6f61;
+  padding-bottom: 8px;
+}
+
+.biography-portrait {
+  float: right;
+  margin: 0 0 20px 30px;
+  max-width: 220px;
+  width: 100%;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.biography-content p {
+  margin-bottom: 18px;
+  font-size: 1.1rem;
+  color: #444;
+}
+
+footer {
+  background-color: #222;
+  color: #ccc;
+  text-align: center;
+  padding: 20px 10px;
+  font-size: 0.9rem;
+  margin-top: 60px;
+  border-top: 1px solid #333;
+}
