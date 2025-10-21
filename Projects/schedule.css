@@ -1,0 +1,178 @@
+/* Schedule Page Styles */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f9fafe;
+  color: #2c3e50;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background-color: #34495e;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+}
+
+header .logo img {
+  height: 40px;
+}
+
+nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 18px;
+}
+
+nav ul li a {
+  color: #ecf0f1;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+nav ul li a:hover,
+nav ul li a.active {
+  background-color: #1abc9c;
+  color: #fff;
+}
+
+main {
+  max-width: 1100px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+
+.schedule-overview {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.schedule-overview h1 {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+  color: #16a085;
+}
+
+.schedule-overview p {
+  font-size: 1.1rem;
+  color: #7f8c8d;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.calendar-section {
+  background-color: #fff;
+  border: 1px solid #dfe6e9;
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 40px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+#calendar {
+  width: 100%;
+  min-height: 350px;
+  /* The calendar interaction and display will be handled by calendar.js */
+}
+
+.shift-management {
+  background-color: #fff;
+  border: 1px solid #dfe6e9;
+  border-radius: 6px;
+  padding: 25px 30px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.shift-management h2 {
+  color: #34495e;
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #1abc9c;
+  padding-bottom: 8px;
+}
+
+.shift-management form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+}
+
+.shift-management label {
+  flex: 1 0 120px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.shift-management select,
+.shift-management input[type="date"],
+.shift-management input[type="time"] {
+  flex: 1 1 180px;
+  padding: 8px 12px;
+  border: 1px solid #bdc3c7;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.shift-management select:focus,
+.shift-management input[type="date"]:focus,
+.shift-management input[type="time"]:focus {
+  outline: none;
+  border-color: #1abc9c;
+  box-shadow: 0 0 5px rgba(26, 188, 156, 0.5);
+}
+
+.shift-management button[type="submit"] {
+  background-color: #1abc9c;
+  color: white;
+  border: none;
+  padding: 10px 26px;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.shift-management button[type="submit"]:hover {
+  background-color: #16a085;
+}
+
+footer {
+  background-color: #34495e;
+  padding: 15px 20px;
+  text-align: center;
+  color: #ecf0f1;
+  font-size: 0.9rem;
+  margin-top: 60px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  nav ul {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .shift-management form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .shift-management label,
+  .shift-management select,
+  .shift-management input[type="date"],
+  .shift-management input[type="time"],
+  .shift-management button[type="submit"] {
+    flex: 1 1 100%;
+    margin-bottom: 12px;
+  }
+  .shift-management button[type="submit"] {
+    margin-left: 0;
+  }
+}
