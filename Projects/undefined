@@ -1,0 +1,24 @@
+document.addEventListener('DOMContentLoaded', () => {
+  // Highlight the active navigation link based on the current URL
+  const navLinks = document.querySelectorAll('nav ul li a');
+  const currentPath = window.location.pathname.split('/').pop();
+  navLinks.forEach(link => {
+    if (link.getAttribute('href') === currentPath) {
+      link.classList.add('active');
+    }
+  });
+
+  // Global event listener for forms with novalidate attribute to handle validation UI
+  const forms = document.querySelectorAll('form[novalidate]');
+  forms.forEach(form => {
+    form.addEventListener('submit', event => {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+        form.classList.add('was-validated');
+      }
+    }, false);
+  });
+
+  // Common utility functions could be added here for the app-wide use
+});
