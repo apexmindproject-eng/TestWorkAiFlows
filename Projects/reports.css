@@ -1,0 +1,167 @@
+/* Reports page styles */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f9fafb;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background-color: #004080;
+  color: white;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+header .logo {
+  height: 40px;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  margin: 0;
+  padding: 0;
+}
+
+nav ul li {
+  margin-left: 1.5rem;
+}
+
+nav ul li a {
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+}
+
+nav ul li a.active,
+nav ul li a:hover {
+  background-color: #0073e6;
+}
+
+main {
+  max-width: 960px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+main h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #004080;
+  padding-bottom: 0.5rem;
+}
+
+#reports-overview p {
+  font-size: 1.125rem;
+  margin-bottom: 2rem;
+  color: #555;
+}
+
+#report-filters {
+  background-color: white;
+  border: 1px solid #ddd;
+  padding: 1rem 2rem;
+  border-radius: 6px;
+  margin-bottom: 2rem;
+}
+
+#report-filters h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #004080;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+#reportFilterForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  align-items: center;
+}
+
+#reportFilterForm label {
+  flex: 1 0 6rem;
+  font-weight: 600;
+}
+
+#reportFilterForm input[type="date"],
+#reportFilterForm select {
+  flex: 1 0 12rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+#reportFilterForm button {
+  background-color: #004080;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: background-color 0.3s ease;
+  flex: 1 0 8rem;
+}
+
+#reportFilterForm button:hover {
+  background-color: #0066cc;
+}
+
+#reports-results {
+  background-color: white;
+  border: 1px solid #ddd;
+  padding: 1rem 2rem;
+  border-radius: 6px;
+}
+
+#reports-results h2 {
+  color: #004080;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+#reportContent {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+#reportContent table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#reportContent th,
+#reportContent td {
+  border: 1px solid #ccc;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+#reportContent th {
+  background-color: #e0e7f0;
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+footer {
+  text-align: center;
+  padding: 1rem 0;
+  background-color: #004080;
+  color: white;
+  margin-top: 3rem;
+  font-size: 0.9rem;
+}
