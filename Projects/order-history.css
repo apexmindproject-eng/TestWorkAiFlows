@@ -1,0 +1,183 @@
+/* General container style */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header styles focus on layout, handled globally */
+
+/* Order History Section */
+.order-history-section {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.1);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.order-history-section h1 {
+  margin-bottom: 20px;
+  font-weight: 700;
+  font-size: 2rem;
+  color: #2c3e50;
+}
+
+/* Filter Bar */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-bar label {
+  font-weight: 600;
+  color: #34495e;
+}
+
+.filter-bar input[type="date"] {
+  padding: 6px 10px;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  font-size: 1rem;
+  color: #2c3e50;
+  background-color: #fff;
+  transition: border-color 0.3s ease;
+}
+
+.filter-bar input[type="date"]:focus {
+  outline: none;
+  border-color: #2980b9;
+}
+
+.filter-bar span {
+  font-weight: 600;
+  color: #34495e;
+}
+
+.filter-bar button {
+  background-color: #2980b9;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.filter-bar button:hover {
+  background-color: #1c5980;
+}
+
+/* Table styles */
+.order-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1rem;
+  color: #2c3e50;
+}
+
+.order-history-table thead tr {
+  background-color: #2980b9;
+  color: white;
+  text-align: left;
+}
+
+.order-history-table th,
+.order-history-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #ddd;
+}
+
+.order-history-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.order-history-table tbody tr:hover {
+  background-color: #eef7fb;
+}
+
+/* Status column styling for clarity */
+.order-history-table td:nth-child(4) {
+  font-weight: 600;
+}
+
+/* Status label colors example */
+.status-pending {
+  color: #e67e22;
+  font-weight: 700;
+}
+.status-approved {
+  color: #27ae60;
+  font-weight: 700;
+}
+.status-canceled {
+  color: #c0392b;
+  font-weight: 700;
+}
+
+/* Details button/link */
+.order-history-table td:last-child a {
+  color: #2980b9;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.order-history-table td:last-child a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .order-history-table thead {
+    display: none;
+  }
+
+  .order-history-table,
+  .order-history-table tbody,
+  .order-history-table tr,
+  .order-history-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .order-history-table tr {
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 10px;
+  }
+
+  .order-history-table td {
+    text-align: right;
+    padding-left: 50%;
+    position: relative;
+    border: none;
+    border-bottom: 1px solid #eee;
+  }
+
+  .order-history-table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 15px;
+    width: 45%;
+    padding-left: 15px;
+    font-weight: 600;
+    text-align: left;
+    color: #34495e;
+  }
+
+  .order-history-table td:last-child {
+    border-bottom: 0;
+  }
+}
+
+/* Footer styles handled globally */
