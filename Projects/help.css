@@ -1,0 +1,136 @@
+/* General body and layout */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f7f9fc;
+  color: #333;
+  margin: 0;
+  padding: 20px;
+}
+
+/* Header styles */
+header {
+  background-color: #004080;
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+header .logo img {
+  height: 40px;
+  vertical-align: middle;
+}
+
+header h1 {
+  font-size: 1.5rem;
+  margin-left: 10px;
+}
+
+/* Navigation in header */
+nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+nav ul li {
+  margin-left: 15px;
+}
+
+nav ul li a {
+  text-decoration: none;
+  color: white;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+nav ul li a:hover,
+nav ul li a.active {
+  background-color: #3366cc;
+}
+
+/* Main Help content */
+main {
+  max-width: 960px;
+  margin: 20px auto;
+  background-color: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+main h2 {
+  color: #004080;
+  margin-bottom: 20px;
+}
+
+/* Help topic sections */
+.help-topic {
+  margin-bottom: 30px;
+}
+
+.help-topic h3 {
+  font-size: 1.25rem;
+  margin-bottom: 10px;
+  color: #0059b3;
+}
+
+.help-topic p {
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.help-topic ul {
+  padding-left: 20px;
+  margin-top: 8px;
+}
+
+.help-topic ul li {
+  margin-bottom: 6px;
+}
+
+/* Search box for help topics if relevant */
+#helpSearch {
+  width: 100%;
+  padding: 10px;
+  font-size: 1rem;
+  border: 2px solid #004080;
+  border-radius: 5px;
+  margin-bottom: 25px;
+  box-sizing: border-box;
+}
+
+/* Footer styles */
+footer {
+  text-align: center;
+  padding: 15px 10px;
+  color: #666;
+  font-size: 0.9rem;
+  border-top: 1px solid #ddd;
+  margin-top: 40px;
+}
+
+/* Responsive behaviors */
+@media (max-width: 600px) {
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  nav ul {
+    flex-wrap: wrap;
+  }
+  nav ul li {
+    margin-left: 0;
+    margin-right: 10px;
+    margin-bottom: 8px;
+  }
+  main {
+    padding: 15px;
+    margin: 10px;
+  }
+}
