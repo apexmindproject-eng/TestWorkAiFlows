@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>RealTimeStockMarketAnalyzer - Home</title>
+ <link rel="stylesheet" href="styles/styles.css">
+ <link rel="stylesheet" href="styles/responsive.css">
+</head>
+<body>
+ <header id="main-header" class="site-header">
+ <div class="container header-container">
+ <a href="index.html" class="logo-link">
+ <img src="images/logo.png" alt="RealTimeStockMarketAnalyzer Logo" id="logo" class="logo">
+ </a>
+ <nav id="main-nav" class="main-navigation" aria-label="Primary navigation">
+ <ul class="nav-list">
+ <li class="nav-item"><a href="index.html" class="nav-link active">Home</a></li>
+ <li class="nav-item"><a href="analysis.html" class="nav-link">Analysis</a></li>
+ <li class="nav-item"><a href="about.html" class="nav-link">About</a></li>
+ </ul>
+ </nav>
+ </div>
+ </header>
+
+ <main id="main-content" class="site-main">
+ <section id="hero-section" class="hero">
+ <div class="container hero-container">
+ <h1 class="hero-title">Real-Time Stock Market Analysis</h1>
+ <p class="hero-description">Monitor and analyze stock market trends live with our powerful tools and interactive charts.</p>
+ <a href="analysis.html" class="btn btn-primary" id="start-analysis-btn">Start Analyzing</a>
+ </div>
+ </section>
+
+ <section id="features-section" class="features">
+ <div class="container features-container">
+ <article class="feature-item" id="live-data-feature">
+ <h2 class="feature-title">Live Data</h2>
+ <p class="feature-description">Get up-to-the-second stock quotes and market movements from multiple exchanges worldwide.</p>
+ </article>
+ <article class="feature-item" id="charts-feature">
+ <h2 class="feature-title">Interactive Charts</h2>
+ <p class="feature-description">Visualize market information with customizable charts that update in real time.</p>
+ <img src="images/stockChartPlaceholder.png" alt="Stock Market Chart Placeholder" class="feature-image">
+ </article>
+ <article class="feature-item" id="analysis-feature">
+ <h2 class="feature-title">In-depth Analysis</h2>
+ <p class="feature-description">Use advanced algorithms and indicators to make informed trading decisions.</p>
+ </article>
+ </div>
+ </section>
+ </main>
+
+ <footer id="main-footer" class="site-footer">
+ <div class="container footer-container">
+ <p class="footer-text">&copy; 2024 RealTimeStockMarketAnalyzer. All rights reserved.</p>
+ </div>
+ </footer>
+
+ <script src="scripts/marketData.js" defer></script>
+ <script src="scripts/chartRenderer.js" defer></script>
+ <script src="scripts/analysisLogic.js" defer></script>
+ <script src="scripts/main.js" defer></script>
+</body>
+</html>
