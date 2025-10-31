@@ -1,0 +1,357 @@
+/* Responsive Stylesheet for RealTimeStockMarketAnalyzer */
+
+/* Mobile first approach */
+
+/* Typography scaling and spacing for smaller screens */
+body {
+ font-size: 16px;
+ line-height: 1.5;
+}
+
+h1, .hero-title {
+ font-size: 2rem;
+}
+
+.page-title, h1.page-title {
+ font-size: 1.75rem;
+}
+
+h2, .section-title, .feature-title {
+ font-size: 1.5rem;
+}
+
+.hero-description, p, .feature-description, .page-description, .intro-text, .team-description, .technology-description, .contact-info, .chart-description {
+ font-size: 1rem;
+ margin-bottom: 1rem;
+}
+
+/* Container padding adjustments for small devices */
+.container {
+ padding-left: 1rem;
+ padding-right: 1rem;
+ max-width: 100%;
+}
+
+/* Header container flex wrap and layout adjustments */
+.header-container {
+ flex-wrap: wrap;
+ justify-content: center;
+}
+
+.logo {
+ height: 36px;
+ margin-bottom: 0.5rem;
+}
+
+/* Navigation: vertical stack on mobile */
+.nav-list {
+ flex-direction: column;
+ width: 100%;
+ align-items: center;
+ gap: 0.5rem;
+}
+
+.nav-link {
+ padding: 0.5rem 1rem;
+ width: 100%;
+ text-align: center;
+ border-radius: 0;
+}
+
+.nav-link.active {
+ background-color: var(--color-primary);
+ color: #fff;
+}
+
+/* Hero Section spacing adjustments */
+.hero {
+ padding: 3rem 1rem;
+}
+
+.hero-title {
+ font-size: 2.25rem;
+ margin-bottom: 1rem;
+}
+
+/* Button full width on mobile */
+.btn {
+ width: 100%;
+ max-width: 320px;
+ padding: 1rem;
+ font-size: 1.25rem;
+ margin-left: auto;
+ margin-right: auto;
+ display: block;
+}
+
+/* Features Section grid single column on mobile */
+.features-container {
+ display: grid;
+ grid-template-columns: 1fr;
+ gap: 2rem;
+ padding: 1rem 0;
+}
+
+.feature-item {
+ text-align: center;
+ padding: 1rem;
+}
+
+.feature-image {
+ margin-top: 1rem;
+}
+
+/* Analysis page sections padding */
+.analysis-container, .live-data-container, .charts-container, .tools-container, .about-container, .team-container, .technology-container, .contact-container {
+ padding: 0 1rem;
+ max-width: 100%;
+}
+
+/* Chart canvas smaller height on mobile */
+.chart-canvas {
+ height: 280px;
+}
+
+/* Stock data and tools panel full width */
+.stock-data, .tools-panel {
+ width: 100%;
+ font-size: 0.9rem;
+ padding: 1rem;
+}
+
+/* Footer text smaller and centered */
+.footer-text {
+ font-size: 0.875rem;
+ text-align: center;
+ padding: 0 1rem;
+}
+
+/* Medium devices and up (tablets) */
+@media screen and (min-width: 600px) {
+
+ body {
+ font-size: 17px;
+ }
+
+ h1, .hero-title {
+ font-size: 2.75rem;
+ }
+
+ .page-title {
+ font-size: 2rem;
+ }
+
+ h2, .section-title, .feature-title {
+ font-size: 1.75rem;
+ }
+
+ .nav-list {
+ flex-direction: row;
+ justify-content: flex-end;
+ width: auto;
+ gap: 1rem;
+ }
+
+ .nav-link {
+ padding: 0.5rem 1.25rem;
+ width: auto;
+ border-radius: var(--border-radius);
+ }
+
+ .hero {
+ padding: 4rem 1.5rem;
+ }
+
+ .btn {
+ width: auto;
+ max-width: none;
+ padding: 0.75rem 1.5rem;
+ font-size: 1rem;
+ }
+
+ /* Features Section: two columns on tablets */
+ .features-container {
+ grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+ gap: 2.5rem;
+ }
+
+ /* Chart canvas increased height */
+ .chart-canvas {
+ height: 350px;
+ }
+
+ .stock-data, .tools-panel {
+ font-size: 1rem;
+ padding: 1.25rem;
+ }
+
+}
+
+/* Larger tablets and small desktops */
+@media screen and (min-width: 900px) {
+
+ body {
+ font-size: 18px;
+ }
+
+ h1, .hero-title {
+ font-size: 3rem;
+ }
+
+ .page-title {
+ font-size: 2.25rem;
+ }
+
+ h2, .section-title, .feature-title {
+ font-size: 2rem;
+ }
+
+ .container {
+ padding-left: 2rem;
+ padding-right: 2rem;
+ }
+
+ .header-container {
+ flex-wrap: nowrap;
+ justify-content: space-between;
+ }
+
+ .logo {
+ height: 45px;
+ margin-bottom: 0;
+ }
+
+ /* Navigation inline with space */
+ .nav-list {
+ flex-direction: row;
+ justify-content: flex-end;
+ gap: 1.5rem;
+ }
+
+ .features-container {
+ grid-template-columns: repeat(3, 1fr);
+ gap: 3rem;
+ }
+
+ /* Chart canvas larger for desktops */
+ .chart-canvas {
+ height: 400px;
+ }
+
+ .btn {
+ font-size: 1.125rem;
+ padding: 0.75rem 2rem;
+ }
+
+ .stock-data, .tools-panel {
+ font-size: 1.125rem;
+ padding: 1.5rem;
+ }
+
+}
+
+/* Large desktops and wide screens */
+@media screen and (min-width: 1200px) {
+
+ .container {
+ max-width: 1200px;
+ padding-left: 3rem;
+ padding-right: 3rem;
+ }
+
+ h1, .hero-title {
+ font-size: 3.5rem;
+ }
+
+ .page-title {
+ font-size: 2.5rem;
+ }
+
+ h2, .section-title, .feature-title {
+ font-size: 2.25rem;
+ }
+
+ .features-container {
+ gap: 4rem;
+ }
+
+ .btn {
+ font-size: 1.25rem;
+ padding: 1rem 2.5rem;
+ }
+
+ .chart-canvas {
+ height: 480px;
+ }
+
+ .stock-data, .tools-panel {
+ padding: 2rem;
+ }
+
+}
+
+/* Accessibility and hover enhancements on larger devices */
+@media (hover: hover) and (pointer: fine) {
+ .nav-link:hover, .nav-link:focus-visible {
+ background-color: var(--color-primary);
+ color: #fff;
+ }
+
+ .btn:hover, .btn:focus-visible {
+ box-shadow: 0 8px 20px rgba(13, 110, 253, 0.6);
+ }
+
+ .feature-item:hover {
+ box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+ }
+}
+
+/* Ensure navigation is accessible on small devices with expanded tap zones */
+@media (max-width: 599px) {
+ .nav-link {
+ font-size: 1.1rem;
+ padding: 0.75rem 1.25rem;
+ }
+}
+
+/* Visual adjustments for focus states on smaller devices */
+@media (max-width: 599px) {
+ :focus-visible {
+ outline-offset: 3px;
+ }
+}
+
+/* Fix footer padding and text size on small devices */
+@media (max-width: 599px) {
+ .site-footer {
+ padding: 1rem 0.5rem;
+ }
+ .footer-text {
+ font-size: 0.75rem;
+ }
+}
+
+/* Responsive utility classes */
+.text-center-md {
+ text-align: center;
+}
+
+/* Grid and Flexbox responsiveness for future enhancements */
+@media (min-width: 768px) {
+ .features-container {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+ gap: 2rem;
+ }
+}
+
+@media (min-width: 1024px) {
+ .features-container {
+ display: grid;
+ grid-template-columns: repeat(3, 1fr);
+ gap: 3rem;
+ }
+}
+
+
+/* End of responsive.css */
