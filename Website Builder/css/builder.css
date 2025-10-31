@@ -1,0 +1,290 @@
+/* Builder.css - UI Components, Tools and Editor Interface styles */
+
+/* Custom Scrollbar for Editor Container and Tools Lists */
+.editor-container, .tools-list {
+ scrollbar-width: thin;
+ scrollbar-color: var(--color-primary-light) var(--background-color);
+}
+.editor-container::-webkit-scrollbar, .tools-list::-webkit-scrollbar {
+ width: 8px;
+ height: 8px;
+}
+.editor-container::-webkit-scrollbar-track, .tools-list::-webkit-scrollbar-track {
+ background: var(--background-color);
+ border-radius: var(--border-radius);
+}
+.editor-container::-webkit-scrollbar-thumb, .tools-list::-webkit-scrollbar-thumb {
+ background-color: var(--color-primary-light);
+ border-radius: var(--border-radius);
+ border: 2px solid var(--background-color);
+}
+
+/* Builder Intro Section */
+.builder-intro {
+ text-align: center;
+ margin-bottom: 3rem;
+ max-width: 720px;
+ margin-left: auto;
+ margin-right: auto;
+ color: var(--text-color);
+}
+
+/* Editor Section */
+.editor-section {
+ margin-bottom: 3rem;
+}
+
+#editor-container {
+ border: 2px dashed var(--color-primary-light);
+ min-height: 320px;
+ padding: 2rem;
+ border-radius: var(--border-radius);
+ background-color: #fff;
+ box-shadow: inset 0 0 12px var(--color-primary-light);
+ overflow-y: auto;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ font-style: italic;
+ font-size: var(--font-size-base);
+ color: var(--color-primary-dark);
+ transition: border-color 0.3s ease;
+}
+
+#editor-container:focus-within, #editor-container:hover {
+ border-color: var(--color-primary);
+ outline: none;
+}
+
+.editor-placeholder {
+ max-width: 600px;
+ text-align: center;
+ user-select: none;
+}
+
+/* Tools Section */
+.tools-section {
+ margin-bottom: 3rem;
+}
+.tools-list {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+ gap: 1rem 1.5rem;
+ padding-left: 0;
+}
+.tool-item {
+ background-color: white;
+ border: 1px solid var(--border-color);
+ border-radius: var(--border-radius);
+ box-shadow: 0 2px 6px var(--shadow-color);
+ padding: 1rem 1.25rem;
+ font-weight: 600;
+ user-select: none;
+ color: var(--color-primary-dark);
+ text-align: center;
+ transition: background-color var(--transition-speed), transform var(--transition-speed);
+ cursor: default;
+}
+.tool-item:hover, .tool-item:focus {
+ background-color: var(--color-primary-light);
+ outline: none;
+ transform: translateY(-3px);
+ box-shadow: 0 6px 12px rgba(42, 115, 204, 0.3);
+}
+
+/* Save Section */
+#save-section {
+ text-align: center;
+ margin-top: 2rem;
+}
+#save-website {
+ padding: 0.75rem 1.5rem;
+ background-color: var(--color-secondary);
+ border-radius: var(--border-radius);
+ color: white;
+ font-weight: 700;
+ font-size: var(--font-size-base);
+ border: 2px solid transparent;
+ box-shadow: 0 3px 7px rgba(245, 130, 32, 0.5);
+ transition: background-color var(--transition-speed), box-shadow var(--transition-speed);
+ cursor: pointer;
+}
+#save-website:hover, #save-website:focus {
+ background-color: var(--color-secondary-dark);
+ outline: none;
+ box-shadow: 0 5px 16px rgba(186, 107, 4, 0.75);
+}
+#save-message {
+ margin-top: 1rem;
+ font-size: var(--font-size-small);
+ color: var(--color-secondary-dark);
+ min-height: 1.5rem;
+ font-style: italic;
+}
+
+/* Template List Enhancements (Overrides from style.css for builder context) */
+.template-list {
+ gap: 1.5rem 2rem;
+}
+.template-item {
+ transition: transform 0.25s ease, box-shadow 0.25s ease;
+ cursor: pointer;
+}
+.template-item:hover, .template-item:focus-within {
+ transform: scale(1.05);
+ box-shadow: 0px 8px 20px rgba(42, 115, 204, 0.4);
+ outline: none;
+}
+.select-button {
+ transition: background-color 0.3s ease;
+ cursor: pointer;
+ font-weight: 600;
+ border-radius: var(--border-radius);
+ padding: 0.55rem 1.1rem;
+ user-select: none;
+}
+.select-button:hover, .select-button:focus {
+ background-color: var(--color-secondary-dark);
+ outline: none;
+}
+
+/* About Section Specifics for Builder Styles (emphasis on team & mission) */
+.about-section h2 {
+ font-weight: 700;
+ letter-spacing: 0.02em;
+ text-transform: uppercase;
+ color: var(--color-secondary);
+ margin-bottom: 1em;
+}
+.about-section p {
+ font-size: 1.1rem;
+ line-height: 1.65;
+ color: var(--text-color);
+ user-select: text;
+}
+.about-image {
+ margin-top: 2.5rem;
+ border-radius: var(--border-radius);
+ overflow: hidden;
+ box-shadow: 0 4px 12px rgba(245, 130, 32, 0.2);
+ transition: box-shadow 0.3s ease;
+}
+.about-image:hover, .about-image:focus-within {
+ box-shadow: 0 6px 20px rgba(245, 130, 32, 0.4);
+ outline: none;
+}
+
+/* Buttons Shared Styling Extending style.css for focus and accessibility */
+.button {
+ box-shadow: 0 3px 7px var(--shadow-color);
+}
+.button:focus-visible {
+ outline: 3px solid var(--focus-outline-color);
+ outline-offset: 3px;
+}
+
+/* Interactive States for Navigation Buttons */
+.nav-link {
+ position: relative;
+ transition: color 0.3s ease;
+}
+.nav-link::after {
+ content: '';
+ position: absolute;
+ width: 0;
+ height: 3px;
+ bottom: 0;
+ left: 50%;
+ background-color: var(--color-secondary);
+ transition: width 0.3s ease, left 0.3s ease;
+ border-radius: 2px;
+}
+.nav-link:hover::after, .nav-link:focus::after, .nav-link.current::after {
+ width: 100%;
+ left: 0;
+}
+
+/* Responsive Grid for Editor and Tools on Builder page */
+#main-content.container {
+ display: grid;
+ grid-template-columns: 2.5fr 1.5fr;
+ gap: 2rem;
+ align-items: start;
+}
+
+#editor-section {
+ grid-column: 1;
+}
+
+#tools-section {
+ grid-column: 2;
+}
+
+#save-section {
+ grid-column: 1 / -1;
+ margin-top: 0;
+}
+
+/* Responsive Adjustments for Builder Layout */
+@media (max-width: 1024px) {
+ #main-content.container {
+ grid-template-columns: 1fr;
+ }
+ #tools-section {
+ margin-top: 2rem;
+ }
+ #save-section {
+ margin-top: 2rem;
+ }
+}
+
+/* Accessibility Enhancements */
+[aria-live="polite"] {
+ min-height: 1.5em;
+ padding-top: 0.25rem;
+}
+
+/* Form and Input Styles (Potential future use in Builder UI) */
+input[type="text"], input[type="email"], textarea, select {
+ font-family: var(--font-family);
+ font-size: var(--font-size-base);
+ border: 1px solid var(--border-color);
+ border-radius: var(--border-radius);
+ padding: 0.5rem 0.75rem;
+ transition: border-color 0.3s ease, box-shadow 0.3s ease;
+ width: 100%;
+ box-sizing: border-box;
+ resize: vertical;
+ color: var(--text-color);
+ background-color: white;
+}
+input[type="text"]:focus, input[type="email"]:focus, textarea:focus, select:focus {
+ border-color: var(--color-primary);
+ box-shadow: 0 0 5px var(--color-primary-light);
+ outline: none;
+}
+
+/* Drag and Drop Hotspot Highlights (future enhancement) */
+.drag-over {
+ border-color: var(--color-secondary);
+ background-color: var(--color-secondary-light);
+ transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+/* Utility Classes */
+.text-center {
+ text-align: center !important;
+}
+.mt-2 {
+ margin-top: 2rem !important;
+}
+.mb-2 {
+ margin-bottom: 2rem !important;
+}
+.flex-center {
+ display: flex !important;
+ justify-content: center !important;
+ align-items: center !important;
+}
+
+/* End of builder.css */
