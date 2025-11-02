@@ -1,0 +1,519 @@
+/* Reset and Normalize */
+*, *::before, *::after {
+ box-sizing: border-box;
+}
+body, h1, h2, h3, h4, h5, h6, p, ul, ol, li, figure, figcaption, blockquote, dl, dt, dd {
+ margin: 0;
+ padding: 0;
+}
+ul, ol {
+ list-style: none;
+}
+img {
+ max-width: 100%;
+ height: auto;
+ display: block;
+ border-radius: 6px;
+}
+
+/* Base Typography & Colors */
+:root {
+ --color-primary: #2c2c2c;
+ --color-secondary: #a27c48;
+ --color-background: #faf9f7;
+ --color-text: #444444;
+ --color-text-light: #777777;
+ --color-white: #ffffff;
+ --color-accent: #d5b45c;
+ --font-family-base: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+ --font-family-heading: 'Georgia', serif;
+ --transition-speed: 0.3s;
+}
+
+body {
+ font-family: var(--font-family-base);
+ font-size: 16px;
+ line-height: 1.55;
+ color: var(--color-text);
+ background-color: var(--color-background);
+ min-height: 100vh;
+ -webkit-font-smoothing: antialiased;
+ -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings */
+h1, h2, h3 {
+ font-family: var(--font-family-heading);
+ color: var(--color-primary);
+ font-weight: 700;
+ line-height: 1.2;
+}
+
+h1 {
+ font-size: 2.75rem; /* 44px approx */
+ margin-bottom: 0.75rem;
+}
+
+h2 {
+ font-size: 2rem; /* 32px approx */
+ margin-bottom: 1rem;
+}
+
+h3 {
+ font-size: 1.5rem; /* 24px approx */
+ margin-bottom: 0.75rem;
+}
+
+/* Paragraphs */
+p {
+ font-size: 1rem;
+ color: var(--color-text);
+ margin-bottom: 1.35rem;
+}
+
+/* Links */
+a {
+ color: var(--color-secondary);
+ text-decoration: none;
+ transition: color var(--transition-speed) ease;
+}
+
+a:hover, a:focus {
+ color: var(--color-accent);
+ outline: none;
+ text-decoration: underline;
+}
+
+a:focus-visible {
+ outline: 3px solid var(--color-accent);
+ outline-offset: 3px;
+}
+
+/* Site layout and containers */
+.site-header {
+ background-color: var(--color-primary);
+ padding: 1rem 2rem;
+ color: var(--color-white);
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ position: sticky;
+ top: 0;
+ z-index: 120;
+ box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.logo-container {
+ flex-shrink: 0;
+}
+
+.logo-image {
+ width: 150px;
+ height: auto;
+ display: block;
+}
+
+nav.main-navigation {
+ flex-grow: 1;
+ margin-left: 2rem;
+}
+
+ul.nav-list {
+ display: flex;
+ justify-content: flex-end;
+ gap: 2rem;
+ align-items: center;
+}
+
+li.nav-item {
+}
+
+.nav-link {
+ color: var(--color-white);
+ font-weight: 600;
+ font-size: 1rem;
+ padding: 0.25rem 0;
+ border-bottom: 3px solid transparent;
+ transition: border-color var(--transition-speed) ease, color var(--transition-speed) ease;
+}
+
+.nav-link:hover, .nav-link:focus {
+ color: var(--color-accent);
+ border-bottom-color: var(--color-accent);
+ outline: none;
+}
+
+.nav-link.current {
+ border-bottom-color: var(--color-accent);
+ color: var(--color-accent);
+ font-weight: 700;
+}
+
+/* Main Content Styling */
+main#main-content {
+ max-width: 1100px;
+ margin: 2.5rem auto 4rem;
+ padding: 0 1.5rem;
+ background-color: var(--color-white);
+ border-radius: 12px;
+ box-shadow: 0 6px 18px rgba(0,0,0,0.07);
+}
+
+/* Hero Section on home page */
+section.hero {
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: 2rem;
+ align-items: center;
+ margin-bottom: 3.5rem;
+}
+
+.hero-image {
+ border-radius: 12px;
+ box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+ max-height: 400px;
+ object-fit: cover;
+ width: 100%;
+}
+
+.hero-text h1 {
+ font-size: 3rem;
+ color: var(--color-primary);
+ margin-bottom: 1rem;
+ font-family: var(--font-family-heading);
+}
+
+.hero-text p {
+ font-size: 1.25rem;
+ color: var(--color-text);
+ line-height: 1.5;
+}
+
+/* Featured Techniques Section */
+section.featured-techniques {
+ margin-bottom: 3rem;
+}
+
+section.featured-techniques h2 {
+ font-size: 2.25rem;
+ text-align: center;
+ margin-bottom: 2rem;
+ color: var(--color-primary);
+}
+
+.techniques-container {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+ gap: 2rem;
+}
+
+.technique-item {
+ background-color: #fbfaf8;
+ border: 1px solid #e1d9cd;
+ border-radius: 10px;
+ padding: 1.5rem;
+ box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+ text-align: center;
+ transition: box-shadow var(--transition-speed) ease;
+}
+
+.technique-item:hover, .technique-item:focus-within {
+ box-shadow: 0 10px 22px rgba(0,0,0,0.12);
+ outline: none;
+}
+
+.technique-image {
+ border-radius: 8px;
+ margin-bottom: 1rem;
+ max-height: 200px;
+ object-fit: cover;
+ width: 100%;
+}
+
+.technique-item h3 {
+ font-size: 1.5rem;
+ margin-bottom: 0.5rem;
+ color: var(--color-secondary);
+}
+
+.technique-item p {
+ color: var(--color-text-light);
+ font-size: 1rem;
+ line-height: 1.4;
+}
+
+/* Classes Page Styles */
+article.classes-content {
+ max-width: 900px;
+ margin: 0 auto 3rem;
+ font-family: var(--font-family-heading);
+ color: var(--color-primary);
+}
+
+article.classes-content header h1 {
+ font-size: 2.75rem;
+ margin-bottom: 1rem;
+}
+
+article.classes-content header p {
+ font-size: 1.125rem;
+ color: var(--color-text-light);
+ margin-bottom: 2rem;
+ font-weight: 400;
+ line-height: 1.55;
+}
+
+.class-list {
+ display: grid;
+ grid-template-columns: 1fr;
+ gap: 2rem;
+}
+
+.class-item {
+ border: 1px solid #dbcebb;
+ border-radius: 10px;
+ padding: 1.25rem 1.5rem;
+ background-color: #fefdfb;
+ box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+ transition: box-shadow var(--transition-speed) ease;
+}
+
+.class-item:hover, .class-item:focus-within {
+ box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+ outline: none;
+}
+
+.class-item h2 {
+ font-size: 1.75rem;
+ margin-bottom: 1rem;
+ color: var(--color-secondary);
+}
+
+.class-item p {
+ font-size: 1.125rem;
+ color: var(--color-text);
+ line-height: 1.5;
+}
+
+.class-image {
+ width: 100%;
+ max-height: 280px;
+ object-fit: cover;
+ border-radius: 8px;
+ margin-bottom: 1rem;
+}
+
+/* Instructors Page Styles */
+article.instructors-content {
+ max-width: 900px;
+ margin: 0 auto 3rem;
+ font-family: var(--font-family-heading);
+ color: var(--color-primary);
+}
+
+article.instructors-content header h1 {
+ font-size: 2.75rem;
+ margin-bottom: 1rem;
+}
+
+article.instructors-content header p {
+ font-size: 1.125rem;
+ color: var(--color-text-light);
+ margin-bottom: 2rem;
+ font-weight: 400;
+ line-height: 1.55;
+}
+
+.instructor-list {
+ display: grid;
+ grid-template-columns: 1fr;
+ gap: 2rem;
+}
+
+.instructor-item {
+ background-color: #fefdfb;
+ border: 1px solid #dbcebb;
+ border-radius: 10px;
+ padding: 1.5rem;
+ box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+ text-align: center;
+ transition: box-shadow var(--transition-speed) ease;
+}
+
+.instructor-item:hover, .instructor-item:focus-within {
+ box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+ outline: none;
+}
+
+.instructor-photo {
+ width: 200px;
+ height: 200px;
+ object-fit: cover;
+ border-radius: 50%;
+ margin-bottom: 1rem;
+ box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+.instructor-item h2 {
+ font-size: 1.75rem;
+ margin-bottom: 0.25rem;
+ color: var(--color-secondary);
+}
+
+.instructor-item h3 {
+ font-size: 1.25rem;
+ margin-bottom: 1rem;
+ color: var(--color-text-light);
+ font-weight: 400;
+}
+
+.instructor-item p {
+ font-size: 1rem;
+ color: var(--color-text);
+ line-height: 1.5;
+}
+
+/* Contact Page Styles */
+article.contact-content {
+ max-width: 600px;
+ margin: 0 auto 4rem;
+ color: var(--color-primary);
+ font-family: var(--font-family-heading);
+}
+
+article.contact-content header h1 {
+ font-size: 2.75rem;
+ margin-bottom: 0.5rem;
+}
+
+article.contact-content header p {
+ font-size: 1.125rem;
+ margin-bottom: 2rem;
+ color: var(--color-text-light);
+ font-weight: 400;
+ line-height: 1.5;
+}
+
+.contact-form-section {
+ background-color: #fdfbf9;
+ border: 1px solid #dbcebb;
+ border-radius: 12px;
+ padding: 2rem;
+ box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+}
+
+form.contact-form {
+ display: flex;
+ flex-direction: column;
+ gap: 1.5rem;
+}
+
+.form-group {
+ display: flex;
+ flex-direction: column;
+}
+
+label {
+ font-weight: 600;
+ margin-bottom: 0.5rem;
+ color: var(--color-secondary);
+}
+
+input.form-control, textarea.form-control {
+ padding: 0.75rem 1rem;
+ border: 2px solid #d6c9b3;
+ border-radius: 6px;
+ font-size: 1rem;
+ font-family: var(--font-family-base);
+ color: var(--color-primary);
+ resize: vertical;
+ transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+}
+
+input.form-control:focus, textarea.form-control:focus {
+ border-color: var(--color-accent);
+ outline: none;
+ box-shadow: 0 0 8px rgba(213,180,92,0.5);
+}
+
+button.btn-submit {
+ background-color: var(--color-primary);
+ color: var(--color-white);
+ font-weight: 700;
+ font-size: 1.125rem;
+ padding: 0.75rem 2rem;
+ border: none;
+ border-radius: 8px;
+ cursor: pointer;
+ transition: background-color var(--transition-speed) ease;
+ align-self: flex-start;
+}
+
+button.btn-submit:hover, button.btn-submit:focus {
+ background-color: var(--color-accent);
+ outline: none;
+}
+
+/* Footer Styles */
+.site-footer {
+ background-color: var(--color-primary);
+ color: var(--color-white);
+ text-align: center;
+ padding: 1.5rem 1rem;
+ font-size: 0.9rem;
+ letter-spacing: 0.05em;
+ font-family: var(--font-family-base);
+ box-shadow: 0 -3px 10px rgba(0,0,0,0.15);
+}
+
+/* Accessibility & Focus outlines for interactive elements */
+button:focus, input:focus, textarea:focus {
+ outline: 3px solid var(--color-accent);
+ outline-offset: 3px;
+}
+
+/* Utility Classes */
+.text-center {
+ text-align: center;
+}
+
+/* IDs Specific Styles */
+#dojo-image {
+ width: 100%;
+ max-height: 400px;
+ object-fit: cover;
+ border-radius: 12px;
+ box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+#featured-techniques {
+ padding: 0 1rem 3rem;
+ max-width: 1100px;
+ margin: 0 auto;
+}
+
+#kenpo-pose, #strike-techniques {
+ cursor: default;
+}
+
+/* Interaction focus / hover states for keyboard users on technique items */
+.technique-item:focus-within {
+ outline: 3px solid var(--color-accent);
+ outline-offset: 3px;
+}
+
+/* Smooth scroll behavior for in-page navigation if applicable */
+html {
+ scroll-behavior: smooth;
+}
+
+/* Reduce motion for users with preferences */
+@media (prefers-reduced-motion: reduce) {
+ *, *::before, *::after {
+ transition-duration: 0.01ms !important;
+ animation-duration: 0.01ms !important;
+ animation-iteration-count: 1 !important;
+ }
+}
+
+/* End of styles.css */
