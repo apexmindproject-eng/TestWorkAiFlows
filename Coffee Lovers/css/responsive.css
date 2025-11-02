@@ -1,0 +1,284 @@
+/* Responsive and adaptive styles */
+
+/* Variables for breakpoints */
+:root {
+ --breakpoint-mobile-max: 639px;
+ --breakpoint-tablet-min: 640px;
+ --breakpoint-tablet-max: 1023px;
+ --breakpoint-desktop-min: 1024px;
+}
+
+/* Base responsive typography scaling */
+@media (max-width: var(--breakpoint-mobile-max)) {
+ body {
+ font-size: 14px;
+ }
+
+ h1.site-title {
+ font-size: 2rem;
+ }
+
+ h2 {
+ font-size: 1.5rem;
+ }
+
+ h3, .feature-link {
+ font-size: 1.125rem;
+ }
+
+ p, section.intro p, section.mission p, section.community p, article.about-content p,
+ article.brewing-methods-content p, article.coffee-types-content p, article.contact-content p {
+ font-size: 1rem;
+ }
+
+ main#main-content {
+ padding: 1.5rem 1rem 3rem;
+ }
+
+ header.site-header {
+ padding: 0.75rem 0;
+ }
+
+ nav.main-navigation {
+ padding: 0 0.75rem;
+ }
+
+ ul.nav-list {
+ flex-direction: column;
+ gap: 0.5rem;
+ }
+
+ a.nav-link {
+ font-size: 1rem;
+ padding: 0.5rem 0;
+ display: block;
+ }
+
+ section.hero {
+ grid-template-columns: 1fr;
+ gap: 1rem;
+ text-align: center;
+ }
+
+ .hero-text {
+ padding: 0 1rem;
+ }
+
+ section.features {
+ grid-template-columns: 1fr;
+ gap: 1.5rem;
+ }
+
+ article.feature-item {
+ padding: 1rem;
+ }
+
+ article.about-content, article.brewing-methods-content, article.coffee-types-content, article.contact-content {
+ padding: 0 1rem;
+ }
+
+ .about-intro {
+ flex-direction: column;
+ align-items: center;
+ }
+
+ .about-image {
+ width: 100%;
+ max-width: 280px;
+ margin-bottom: 1rem;
+ }
+
+ .method-image {
+ width: 100%;
+ max-width: none;
+ margin-bottom: 1rem;
+ }
+
+ section.coffee-type {
+ padding-bottom: 1.5rem;
+ }
+
+ .coffee-type-image {
+ width: 100%;
+ max-width: 100%;
+ margin-bottom: 1rem;
+ }
+
+ .contact-form-section {
+ padding: 1.5rem 1rem;
+ }
+
+ button.btn-submit {
+ width: 100%;
+ padding: 1rem;
+ font-size: 1.125rem;
+ }
+}
+
+/* Tablet & small desktop breakpoint styles between 640px and 1023px */
+@media (min-width: var(--breakpoint-tablet-min)) and (max-width: var(--breakpoint-tablet-max)) {
+ body {
+ font-size: 15px;
+ }
+
+ h1.site-title {
+ font-size: 2.5rem;
+ }
+
+ h2 {
+ font-size: 1.75rem;
+ }
+
+ h3, .feature-link {
+ font-size: 1.25rem;
+ }
+
+ p, section.intro p, section.mission p, section.community p, article.about-content p,
+ article.brewing-methods-content p, article.coffee-types-content p, article.contact-content p {
+ font-size: 1.125rem;
+ }
+
+ main#main-content {
+ padding: 2rem 1.5rem 4rem;
+ }
+
+ nav.main-navigation {
+ max-width: 90%;
+ margin: 0 auto;
+ }
+
+ ul.nav-list {
+ justify-content: center;
+ gap: 1.5rem;
+ }
+
+ section.hero {
+ grid-template-columns: repeat(2, 1fr);
+ gap: 2rem;
+ text-align: left;
+ }
+
+ .hero-text {
+ padding: 0;
+ }
+
+ section.features {
+ grid-template-columns: repeat(2, 1fr);
+ gap: 2rem;
+ }
+
+ article.feature-item {
+ padding: 1.5rem;
+ }
+
+ .about-intro {
+ flex-wrap: nowrap;
+ gap: 1.5rem;
+ }
+
+ .about-image {
+ width: 350px;
+ flex-shrink: 0;
+ }
+
+ .method-image {
+ width: 350px;
+ margin-bottom: 1.5rem;
+ }
+
+ .contact-form-section {
+ padding: 2rem;
+ }
+
+ button.btn-submit {
+ width: auto;
+ padding: 0.75rem 2rem;
+ }
+}
+
+/* Desktop and above breakpoint 1024px and up */
+@media (min-width: var(--breakpoint-desktop-min)) {
+ body {
+ font-size: 16px;
+ }
+
+ ul.nav-list {
+ justify-content: center;
+ gap: 2rem;
+ }
+
+ section.hero {
+ grid-template-columns: 1fr 1fr;
+ gap: 2rem;
+ }
+
+ section.features {
+ grid-template-columns: repeat(3, 1fr);
+ gap: 2rem;
+ }
+
+ .about-intro {
+ flex-wrap: nowrap;
+ }
+
+ .about-image {
+ width: 300px;
+ }
+
+ .method-image {
+ width: 350px;
+ }
+
+ button.btn-submit {
+ width: auto;
+ }
+
+ main#main-content {
+ padding: 2rem 2rem 4rem;
+ }
+}
+
+/* Additional responsive utility tweaks and accessibility enhancements */
+
+/* Reduce nav gaps on very large screens for neatness */
+@media (min-width:1200px) {
+ ul.nav-list {
+ gap: 2.5rem;
+ }
+}
+
+/* Improve tap target size for nav links on mobile for usability */
+@media (max-width: 480px) {
+ a.nav-link {
+ padding: 0.75rem 0;
+ }
+}
+
+/* Fluid images and text scale for varied content widths */
+@media (max-width: 960px) {
+ section.features {
+ grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+ }
+}
+
+/* Responsive tables or other elements can be added here if needed in future */
+
+/* Responsive adjustments for contact form */
+@media (max-width: 600px) {
+ .contact-form-section {
+ padding: 1rem;
+ }
+
+ input.form-control, textarea.form-control {
+ font-size: 1rem;
+ }
+
+ button.btn-submit {
+ font-size: 1rem;
+ padding: 0.75rem;
+ }
+}
+
+/* Grid and flexbox fallback adjustments for older browsers if required (not included here) */
+
+/* End of responsive.css */
