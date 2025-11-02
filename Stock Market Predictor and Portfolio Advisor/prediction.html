@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1" />
+ <title>Prediction - Stock Market Predictor and Portfolio Advisor</title>
+ <link rel="stylesheet" href="../css/styles.css" />
+ <link rel="stylesheet" href="../css/portfolio.css" />
+</head>
+<body>
+ <header id="prediction-header" class="site-header">
+ <div class="logo-container">
+ <img src="../images/logo.png" alt="Logo of Stock Market Predictor" class="logo-image" id="logo" />
+ <h1 class="site-title">Stock Market Predictor and Portfolio Advisor</h1>
+ </div>
+ <nav id="prediction-nav" class="navigation">
+ <ul class="nav-list">
+ <li class="nav-item"><a href="../index.html" class="nav-link">Home</a></li>
+ <li class="nav-item"><a href="portfolio.html" class="nav-link">Portfolio</a></li>
+ <li class="nav-item"><a href="prediction.html" class="nav-link active">Prediction</a></li>
+ <li class="nav-item"><a href="about.html" class="nav-link">About</a></li>
+ </ul>
+ </nav>
+ </header>
+
+ <main id="prediction-content" class="main-content">
+ <section id="prediction-intro" class="prediction-intro">
+ <h2 class="section-title">Stock Market Trend Prediction</h2>
+ <p class="intro-text">Predict upcoming trends in the stock market using our advanced predictive algorithms. Input parameters or select stocks to get started.</p>
+ </section>
+
+ <section id="prediction-form-section" class="prediction-form-section">
+ <form id="prediction-form" class="prediction-form" aria-label="Stock prediction form">
+ <fieldset>
+ <legend>Prediction Parameters</legend>
+ <label for="stock-symbol" class="form-label">Stock Symbol:</label>
+ <input type="text" id="stock-symbol" name="stock-symbol" class="form-input" placeholder="e.g. AAPL" required />
+
+ <label for="timeframe" class="form-label">Timeframe:</label>
+ <select id="timeframe" name="timeframe" class="form-select" required>
+ <option value="1d">1 Day</option>
+ <option value="1w" selected>1 Week</option>
+ <option value="1m">1 Month</option>
+ <option value="3m">3 Months</option>
+ <option value="1y">1 Year</option>
+ </select>
+ </fieldset>
+ <button type="submit" id="submit-prediction" class="btn-submit">Predict Trend</button>
+ </form>
+ </section>
+
+ <section id="prediction-results" class="prediction-results" aria-live="polite">
+ <h2 class="section-title">Prediction Results</h2>
+ <div id="prediction-output" class="prediction-output">
+ <p class="placeholder-text">Enter stock symbol and select a timeframe to view the prediction results.</p>
+ </div>
+ </section>
+ </main>
+
+ <footer id="prediction-footer" class="site-footer">
+ <p class="footer-text">&copy; 2024 Stock Market Predictor and Portfolio Advisor. All rights reserved.</p>
+ </footer>
+
+ <script src="../js/main.js"></script>
+ <script src="../js/prediction.js"></script>
+</body>
+</html>
