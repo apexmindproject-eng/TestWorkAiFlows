@@ -1,0 +1,331 @@
+/* Reset and Normalize CSS */
+*, *::before, *::after {
+ box-sizing: border-box;
+}
+
+html {
+ line-height: 1.5;
+ -webkit-text-size-adjust: 100%;
+ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+ scroll-behavior: smooth;
+ font-size: 16px;
+ background-color: #fcfcfc;
+ color: #222;
+}
+
+body, h1, h2, h3, h4, h5, h6, p, ul, ol, figure, blockquote {
+ margin: 0;
+ padding: 0;
+}
+
+ul, ol {
+ list-style: none;
+}
+
+a {
+ color: inherit;
+ text-decoration: none;
+ cursor: pointer;
+}
+
+a:hover, a:focus {
+ color: #b85c00;
+ outline: none;
+ text-decoration: underline;
+}
+
+img, picture {
+ max-width: 100%;
+ display: block;
+}
+
+button {
+ font-family: inherit;
+ font-size: 1rem;
+ cursor: pointer;
+ border: none;
+ background: none;
+ padding: 0;
+}
+
+input, select, textarea, button {
+ font-family: inherit;
+ font-size: 1rem;
+ color: #222;
+}
+
+:focus {
+ outline: 3px solid #b85c00;
+ outline-offset: 2px;
+ transition: outline-color 0.3s ease-in-out;
+}
+
+/* CSS variables */
+:root {
+ --clr-primary: #e67e22;
+ --clr-primary-dark: #b85c00;
+ --clr-accent: #f39c12;
+ --clr-bg: #fcfcfc;
+ --clr-bg-light: #fff7e6;
+ --clr-text: #222;
+ --clr-text-light: #666;
+ --clr-border: #eee;
+ --font-family-sans: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+ --font-weight-normal: 400;
+ --font-weight-semibold: 600;
+ --font-weight-bold: 700;
+ --border-radius: 8px;
+ --spacing-xxs: 0.25rem;
+ --spacing-xs: 0.5rem;
+ --spacing-sm: 0.75rem;
+ --spacing-md: 1rem;
+ --spacing-lg: 1.5rem;
+ --spacing-xl: 2rem;
+ --max-width: 1100px;
+}
+
+/* Utility classes */
+.container {
+ max-width: var(--max-width);
+ width: 90%;
+ margin-left: auto;
+ margin-right: auto;
+}
+.text-center {
+ text-align: center;
+}
+.visually-hidden {
+ position: absolute !important;
+ width: 1px !important;
+ height: 1px !important;
+ padding: 0 !important;
+ margin: -1px !important;
+ overflow: hidden !important;
+ clip: rect(0, 0, 0, 0) !important;
+ white-space: nowrap !important;
+ border: 0 !important;
+}
+
+/* Typography */
+body {
+ font-family: var(--font-family-sans);
+ font-weight: var(--font-weight-normal);
+ font-size: 1rem;
+ line-height: 1.6;
+ color: var(--clr-text);
+ background-color: var(--clr-bg);
+}
+h1, .site-title {
+ font-size: 2.75rem;
+ font-weight: var(--font-weight-bold);
+ color: var(--clr-primary-dark);
+ margin-bottom: var(--spacing-sm);
+}
+h2, .section-title {
+ font-size: 1.75rem;
+ font-weight: var(--font-weight-semibold);
+ margin-bottom: var(--spacing-md);
+ color: var(--clr-primary);
+}
+p, .intro-text, .care-tip {
+ font-size: 1rem;
+ color: var(--clr-text-light);
+ margin-bottom: var(--spacing-md);
+ line-height: 1.5;
+}
+
+/* Navigation */
+#main-header {
+ background-color: var(--clr-bg-light);
+ box-shadow: 0 2px 6px rgba(200, 150, 50, 0.15);
+ position: sticky;
+ top: 0;
+ z-index: 1000;
+ padding: var(--spacing-md) 0;
+}
+#main-header .container {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+}
+.navigation {
+ flex-grow: 1;
+ margin-left: var(--spacing-lg);
+}
+.nav-list {
+ display: flex;
+ gap: var(--spacing-lg);
+ align-items: center;
+}
+.nav-item {
+ list-style: none;
+}
+.nav-link {
+ font-weight: var(--font-weight-semibold);
+ font-size: 1rem;
+ padding: var(--spacing-xs) var(--spacing-sm);
+ color: var(--clr-text);
+ border-radius: var(--border-radius);
+ transition: background-color 0.3s ease, color 0.3s ease;
+}
+.nav-link:hover, .nav-link:focus {
+ background-color: var(--clr-bg-light);
+ color: var(--clr-primary-dark);
+ outline: none;
+}
+.nav-link.active {
+ color: var(--clr-primary-dark);
+ font-weight: var(--font-weight-bold);
+ border-bottom: 3px solid var(--clr-primary);
+}
+
+/* Main content area */
+#main-content {
+ padding: var(--spacing-xl) 0;
+ min-height: 75vh;
+}
+
+/* Sections */
+section.container {
+ margin-bottom: var(--spacing-xl);
+}
+
+/* Images */
+.feature-image {
+ width: 100%;
+ max-height: 320px;
+ border-radius: var(--border-radius);
+ object-fit: cover;
+ box-shadow: 0 4px 8px rgba(230, 150, 40, 0.2);
+ margin-top: var(--spacing-md);
+}
+
+/* Facts list styling */
+.facts-list {
+ font-size: 1rem;
+ color: var(--clr-text-light);
+ line-height: 1.6;
+ margin-left: var(--spacing-lg);
+}
+.facts-list li {
+ margin-bottom: var(--spacing-sm);
+}
+
+/* Care tips paragraphs */
+.care-tip {
+ background-color: var(--clr-bg-light);
+ padding: var(--spacing-sm) var(--spacing-md);
+ border-left: 4px solid var(--clr-accent);
+ border-radius: 0 4px 4px 0;
+ margin-bottom: var(--spacing-sm);
+ font-style: italic;
+ color: var(--clr-primary-dark);
+}
+
+/* Forms */
+.form {
+ max-width: 480px;
+ margin: 0 auto;
+ background-color: var(--clr-bg-light);
+ padding: var(--spacing-lg);
+ border-radius: var(--border-radius);
+ box-shadow: 0 3px 8px rgb(230 150 40 / 0.15);
+}
+.form-group {
+ margin-bottom: var(--spacing-md);
+ display: flex;
+ flex-direction: column;
+}
+.form-label {
+ font-weight: var(--font-weight-semibold);
+ margin-bottom: var(--spacing-xs);
+ color: var(--clr-primary-dark);
+}
+.form-input {
+ padding: 0.6rem 0.8rem;
+ border: 1.5px solid var(--clr-border);
+ border-radius: var(--border-radius);
+ font-size: 1rem;
+ transition: border-color 0.3s ease;
+}
+.form-input:focus {
+ border-color: var(--clr-primary);
+ outline: none;
+ box-shadow: 0 0 6px var(--clr-primary);
+}
+
+/* Buttons */
+.btn {
+ background-color: var(--clr-primary);
+ color: #fff;
+ padding: 0.75rem 1.5rem;
+ font-weight: var(--font-weight-semibold);
+ font-size: 1rem;
+ border-radius: var(--border-radius);
+ border: none;
+ cursor: pointer;
+ transition: background-color 0.3s ease;
+ display: inline-block;
+}
+.btn:hover, .btn:focus {
+ background-color: var(--clr-primary-dark);
+ outline: none;
+}
+
+/* Footer */
+#main-footer {
+ background-color: var(--clr-bg-light);
+ padding: var(--spacing-md) 0;
+ border-top: 1px solid var(--clr-border);
+ text-align: center;
+ color: var(--clr-text-light);
+ font-size: 0.875rem;
+}
+#main-footer .container {
+ display: flex;
+ justify-content: center;
+ gap: var(--spacing-md);
+ flex-wrap: wrap;
+ align-items: center;
+}
+.footer-nav {
+}
+.footer-nav-list {
+ display: flex;
+ gap: var(--spacing-md);
+ padding: 0;
+ margin: 0;
+ list-style: none;
+}
+.footer-nav-list li a {
+ color: var(--clr-text-light);
+ font-weight: var(--font-weight-semibold);
+ transition: color 0.3s ease;
+}
+.footer-nav-list li a:hover, .footer-nav-list li a:focus {
+ color: var(--clr-primary);
+ outline: none;
+}
+
+/* Accessibility Enhancements */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+ outline: 3px solid var(--clr-accent);
+ outline-offset: 3px;
+}
+
+/* Scrollbar Styling for modern browsers */
+body::-webkit-scrollbar {
+ width: 12px;
+}
+body::-webkit-scrollbar-track {
+ background: var(--clr-bg);
+}
+body::-webkit-scrollbar-thumb {
+ background-color: var(--clr-primary);
+ border-radius: var(--border-radius);
+ border: 3px solid var(--clr-bg);
+}
+
+/* Responsive Typography and Layout Adjustments (mobile-first approach handled in responsive.css) */
+
+/* End of style.css for Cat Lovers website */
