@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1" />
+ <title>Portfolio - Stock Market Predictor and Portfolio Advisor</title>
+ <link rel="stylesheet" href="../css/styles.css" />
+ <link rel="stylesheet" href="../css/portfolio.css" />
+</head>
+<body>
+ <header id="portfolio-header" class="site-header">
+ <div class="logo-container">
+ <img src="../images/logo.png" alt="Logo of Stock Market Predictor" class="logo-image" id="logo" />
+ <h1 class="site-title">Stock Market Predictor and Portfolio Advisor</h1>
+ </div>
+ <nav id="portfolio-nav" class="navigation">
+ <ul class="nav-list">
+ <li class="nav-item"><a href="../index.html" class="nav-link">Home</a></li>
+ <li class="nav-item"><a href="portfolio.html" class="nav-link active">Portfolio</a></li>
+ <li class="nav-item"><a href="prediction.html" class="nav-link">Prediction</a></li>
+ <li class="nav-item"><a href="about.html" class="nav-link">About</a></li>
+ </ul>
+ </nav>
+ </header>
+
+ <main id="portfolio-content" class="main-content">
+ <section id="portfolio-intro" class="portfolio-intro">
+ <h2 class="section-title">Your Portfolio Advisor</h2>
+ <p class="intro-text">Use our portfolio advisor to get personalized recommendations for allocating your investments based on the latest market predictions and your preferences.</p>
+ </section>
+
+ <section id="portfolio-form-section" class="portfolio-form-section">
+ <form id="portfolio-form" class="portfolio-form" aria-label="Portfolio allocation form">
+ <fieldset>
+ <legend>Investment Preferences</legend>
+ <label for="risk-tolerance" class="form-label">Risk Tolerance:</label>
+ <select id="risk-tolerance" name="risk-tolerance" class="form-select" required>
+ <option value="low">Low</option>
+ <option value="medium" selected>Medium</option>
+ <option value="high">High</option>
+ </select>
+
+ <label for="investment-horizon" class="form-label">Investment Horizon (years):</label>
+ <input type="number" id="investment-horizon" name="investment-horizon" class="form-input" min="1" max="50" value="5" required />
+
+ <label for="investment-amount" class="form-label">Investment Amount ($):</label>
+ <input type="number" id="investment-amount" name="investment-amount" class="form-input" min="1000" step="500" value="10000" required />
+ </fieldset>
+
+ <button type="submit" id="submit-portfolio" class="btn-submit">Get Recommendations</button>
+ </form>
+ </section>
+
+ <section id="recommendation-results" class="recommendation-results" aria-live="polite">
+ <h2 class="section-title">Recommended Portfolio Allocation</h2>
+ <div id="portfolio-output" class="portfolio-output">
+ <p class="placeholder-text">Please fill out the form and click "Get Recommendations" to see your personalized portfolio allocation.</p>
+ </div>
+ </section>
+ </main>
+
+ <footer id="portfolio-footer" class="site-footer">
+ <p class="footer-text">&copy; 2024 Stock Market Predictor and Portfolio Advisor. All rights reserved.</p>
+ </footer>
+
+ <script src="../js/main.js"></script>
+ <script src="../js/portfolio.js"></script>
+</body>
+</html>
