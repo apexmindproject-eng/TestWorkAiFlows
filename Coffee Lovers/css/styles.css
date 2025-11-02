@@ -1,0 +1,585 @@
+/* Reset and Normalize */
+/* Box sizing border-box for easier sizing */
+*, *::before, *::after {
+ box-sizing: border-box;
+}
+
+/* Remove default margin and padding */
+body, h1, h2, h3, h4, h5, h6, p, ul, ol, li, figure, figcaption, blockquote, dl, dd {
+ margin: 0;
+ padding: 0;
+}
+
+/* Remove list styles on ul, ol */
+ul, ol {
+ list-style: none;
+}
+
+/* Set core body defaults */
+body {
+ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+ line-height: 1.6;
+ font-size: 16px;
+ color: #333333;
+ background-color: #faf9f7;
+ min-height: 100vh;
+ -webkit-font-smoothing: antialiased;
+ -moz-osx-font-smoothing: grayscale;
+}
+
+/* Anchor default styling and focus visibility enhancements */
+a {
+ color: #6f4e37; /* Coffee brown shade */
+ text-decoration: none;
+ transition: color 0.3s ease;
+}
+
+/* Focus states for links for accessibility */
+a:focus, a:hover {
+ color: #a9746e;
+ outline: none;
+ text-decoration: underline;
+}
+
+/* Focus visible for keyboard navigation */
+a:focus-visible {
+ outline: 3px solid #d07c28;
+ outline-offset: 2px;
+}
+
+/* Headings hierarchy and font weights */
+h1, h2, h3 {
+ font-weight: 700;
+ color: #4b3621;
+ line-height: 1.2;
+}
+
+h1 {
+ font-size: 2.5rem; /* 40px approx */
+ margin-bottom: 0.5rem;
+}
+
+h2 {
+ font-size: 2rem; /* 32px approx */
+ margin-bottom: 0.75rem;
+}
+
+h3 {
+ font-size: 1.5rem; /* 24px approx */
+ margin-bottom: 0.5rem;
+}
+
+/* Paragraphs spacing */
+p {
+ margin-bottom: 1.25rem;
+ color: #555555;
+}
+
+/* Images responsive and accessible */
+img {
+ max-width: 100%;
+ height: auto;
+ display: block;
+ border-radius: 6px;
+}
+
+/* Container helper for consistent horizontal padding */
+.container {
+ width: 90%;
+ max-width: 1200px;
+ margin-left: auto;
+ margin-right: auto;
+}
+
+/* Site Layout Sections */
+header.site-header {
+ background-color: #6f4e37;
+ color: #ffffff;
+ padding: 1rem 0;
+ box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+ position: sticky;
+ top: 0;
+ z-index: 100;
+}
+
+/* Navigation Styling */
+nav.main-navigation {
+ max-width: 1200px;
+ margin: 0 auto;
+ padding: 0 1rem;
+}
+
+ul.nav-list {
+ display: flex;
+ justify-content: center;
+ gap: 2rem;
+}
+
+li.nav-item {
+}
+
+a.nav-link {
+ color: #f0e6dc;
+ font-weight: 600;
+ font-size: 1rem;
+ padding: 0.5rem 0;
+ border-bottom: 3px solid transparent;
+ transition: border-color 0.3s ease, color 0.3s ease;
+ position: relative;
+}
+
+a.nav-link:hover, a.nav-link:focus {
+ color: #d7b377;
+ border-bottom-color: #d7b377;
+ outline: none;
+}
+
+a.nav-link.current {
+ border-bottom-color: #d7b377;
+ color: #d7b377;
+ font-weight: 700;
+}
+
+/* Main content wrapper */
+main#main-content {
+ padding: 2rem 1rem 4rem;
+ max-width: 1200px;
+ margin: 0 auto;
+ background-color: #ffffff;
+ border-radius: 8px;
+ box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* Hero Section */
+section.hero {
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: 2rem;
+ align-items: center;
+ margin-bottom: 3rem;
+}
+
+.hero-image {
+ border-radius: 12px;
+ box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+}
+
+.hero-text {
+ font-family: 'Georgia', serif;
+ color: #4b3621;
+}
+
+h1.site-title {
+ font-size: 3rem;
+ margin-bottom: 1rem;
+}
+
+p.site-description {
+ font-size: 1.25rem;
+ line-height: 1.5;
+ color: #6b4b35;
+}
+
+/* Intro Section */
+section.intro {
+ max-width: 800px;
+ margin: 0 auto 3rem auto;
+ text-align: center;
+ color: #5a4630;
+}
+
+section.intro h2 {
+ margin-bottom: 1rem;
+ font-weight: 700;
+}
+
+section.intro p {
+ font-size: 1.125rem;
+ line-height: 1.6;
+}
+
+/* Features Section with Grid Cards */
+section.features {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+ gap: 2rem;
+ margin-bottom: 3rem;
+}
+
+article.feature-item {
+ border: 1px solid #dcd2c0;
+ border-radius: 10px;
+ padding: 1rem;
+ background-color: #fefcf9;
+ box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ text-align: center;
+ transition: box-shadow 0.3s ease;
+}
+
+article.feature-item:hover, article.feature-item:focus-within {
+ box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+.feature-image {
+ width: 100%;
+ max-height: 180px;
+ object-fit: cover;
+ border-radius: 8px;
+ margin-bottom: 1rem;
+}
+
+.feature-link {
+ font-weight: 700;
+ color: #7b4f2a;
+ font-size: 1.25rem;
+ text-decoration: none;
+ margin-bottom: 0.75rem;
+ display: inline-block;
+ transition: color 0.3s ease;
+}
+
+.feature-link:hover, .feature-link:focus {
+ color: #b78952;
+ outline: none;
+ text-decoration: underline;
+}
+
+article.feature-item p {
+ color: #5c4a2f;
+ font-size: 1rem;
+ line-height: 1.4;
+}
+
+/* About Page Specific Classes */
+article.about-content {
+ max-width: 900px;
+ margin: 0 auto 3rem;
+ padding: 0 1rem;
+ color: #4a3721;
+ font-family: 'Georgia', serif;
+}
+
+.about-intro {
+ display: flex;
+ align-items: center;
+ gap: 2rem;
+ margin-bottom: 2rem;
+ flex-wrap: wrap;
+}
+
+.about-image {
+ width: 300px;
+ flex-shrink: 0;
+ border-radius: 10px;
+ box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+}
+
+.about-intro p {
+ flex: 1 1 350px;
+ font-size: 1.125rem;
+ line-height: 1.6;
+ color: #5a4630;
+}
+
+section.mission, section.community {
+ margin-bottom: 2rem;
+ padding: 1rem 0;
+ border-top: 1px solid #d7c9b3;
+}
+
+section.mission h2, section.community h2 {
+ font-size: 1.75rem;
+ margin-bottom: 1rem;
+ color: #6b4b35;
+}
+
+section.mission p, section.community p {
+ font-size: 1.125rem;
+ color: #5a4630;
+ line-height: 1.5;
+}
+
+/* Brewing Methods Page */
+article.brewing-methods-content {
+ max-width: 900px;
+ margin: 0 auto 3rem;
+ padding: 0 1rem;
+ color: #4a3721;
+ font-family: 'Georgia', serif;
+}
+
+article.brewing-methods-content > header h1 {
+ margin-bottom: 1rem;
+ font-size: 2.5rem;
+ color: #4b3621;
+}
+
+article.brewing-methods-content p {
+ margin-bottom: 2rem;
+ font-size: 1.125rem;
+ color: #5a4630;
+ line-height: 1.6;
+}
+
+section.method {
+ margin-bottom: 3rem;
+ border-bottom: 1px solid #dcd2c0;
+ padding-bottom: 2rem;
+}
+
+section.method:last-child {
+ border-bottom: none;
+ margin-bottom: 0;
+ padding-bottom: 0;
+}
+
+section.method h2 {
+ font-size: 2rem;
+ margin-bottom: 1rem;
+ color: #6b4b35;
+}
+
+.method-image {
+ max-width: 100%;
+ width: 350px;
+ height: auto;
+ border-radius: 10px;
+ box-shadow: 0 8px 18px rgba(0,0,0,0.1);
+ margin-bottom: 1rem;
+}
+
+section.method p {
+ font-size: 1.125rem;
+ color: #5a4630;
+ line-height: 1.5;
+}
+
+/* Coffee Types Page */
+article.coffee-types-content {
+ max-width: 900px;
+ margin: 0 auto 3rem;
+ padding: 0 1rem;
+ font-family: 'Georgia', serif;
+ color: #4b3621;
+}
+
+article.coffee-types-content > header h1 {
+ font-size: 2.5rem;
+ margin-bottom: 2rem;
+}
+
+section.coffee-type {
+ margin-bottom: 3rem;
+ border-bottom: 1px solid #dcd2c0;
+ padding-bottom: 2rem;
+}
+
+section.coffee-type:last-child {
+ border-bottom: none;
+ margin-bottom: 0;
+ padding-bottom: 0;
+}
+
+.coffee-type h2 {
+ font-size: 2rem;
+ margin-bottom: 1rem;
+ color: #6b4b35;
+}
+
+.coffee-type-image {
+ width: 100%;
+ max-width: 400px;
+ height: auto;
+ border-radius: 10px;
+ margin-bottom: 1rem;
+ box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+}
+
+.coffee-type p {
+ font-size: 1.125rem;
+ color: #5a4630;
+ line-height: 1.5;
+}
+
+/* Contact Page / Forms */
+article.contact-content {
+ max-width: 600px;
+ margin: 0 auto 4rem;
+ padding: 0 1rem;
+ color: #4b3621;
+ font-family: 'Georgia', serif;
+}
+
+article.contact-content > header h1 {
+ font-size: 2.5rem;
+ margin-bottom: 0.5rem;
+}
+
+article.contact-content > header p {
+ font-size: 1.125rem;
+ margin-bottom: 2rem;
+ color: #6b4b35;
+}
+
+.contact-form-section {
+ background-color: #fefcf9;
+ border: 1px solid #dcd2c0;
+ border-radius: 12px;
+ padding: 2rem;
+ box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+form.contact-form {
+ display: flex;
+ flex-direction: column;
+ gap: 1.5rem;
+}
+
+.form-group {
+ display: flex;
+ flex-direction: column;
+}
+
+label {
+ font-weight: 600;
+ margin-bottom: 0.5rem;
+ color: #5a4630;
+}
+
+input.form-control, textarea.form-control {
+ padding: 0.75rem 1rem;
+ border: 2px solid #cbb798;
+ border-radius: 6px;
+ font-size: 1rem;
+ font-family: inherit;
+ color: #4b3621;
+ resize: vertical;
+ transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input.form-control:focus, textarea.form-control:focus {
+ border-color: #a9746e;
+ outline: none;
+ box-shadow: 0 0 8px rgba(169,116,110,0.5);
+}
+
+button.btn-submit {
+ background-color: #6f4e37;
+ color: #f0e6dc;
+ font-weight: 700;
+ font-size: 1.125rem;
+ padding: 0.75rem 2rem;
+ border: none;
+ border-radius: 8px;
+ cursor: pointer;
+ transition: background-color 0.3s ease;
+ align-self: flex-start;
+}
+
+button.btn-submit:hover, button.btn-submit:focus {
+ background-color: #a9746e;
+ outline: none;
+}
+
+/* Footer styling */
+footer.site-footer {
+ background-color: #6f4e37;
+ color: #f0e6dc;
+ text-align: center;
+ padding: 1.5rem 1rem;
+ font-size: 0.9rem;
+ letter-spacing: 0.05em;
+ box-shadow: 0 -3px 10px rgba(0,0,0,0.1);
+ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Focus styles for all interactive elements */
+button:focus, input:focus, textarea:focus {
+ outline: 3px solid #d07c28;
+ outline-offset: 2px;
+}
+
+/* Utility classes */
+.text-center {
+ text-align: center;
+}
+
+/* IDs specific styling (mostly spacing and titles) */
+#hero-image {
+ width: 100%;
+ max-height: 400px;
+ object-fit: cover;
+ border-radius: 12px;
+ box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+#intro {
+ padding: 2rem 1rem;
+ background-color: #f7f2e8;
+ border-radius: 8px;
+ max-width: 900px;
+ margin: 0 auto 3rem;
+ color: #5a4630;
+}
+
+#features {
+ padding: 0 1rem;
+ max-width: 1200px;
+ margin: 0 auto 4rem;
+}
+
+#coffee-types-feature, #brewing-methods-feature, #coffee-culture-feature {
+ transition: transform 0.3s ease;
+}
+
+#coffee-types-feature:hover, #brewing-methods-feature:hover, #coffee-culture-feature:hover {
+ transform: translateY(-6px);
+}
+
+#about-image {
+ max-width: 100%;
+ height: auto;
+ border-radius: 12px;
+ box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+#mission, #community {
+ border-top: 1px solid #d7c9b3;
+ padding-top: 1.25rem;
+ margin-top: 1.25rem;
+ color: #5a4630;
+}
+
+/* Page body IDs can provide some subtle background variations if needed */
+body#home {
+ background-color: #faf9f7;
+}
+
+body#about-page,
+body#brewing-methods-page,
+body#coffee-types-page,
+body#contact-page {
+ background-color: #fdfcf9;
+}
+
+/* Scroll behavior smooth for anchor navigation */
+html {
+ scroll-behavior: smooth;
+}
+
+/* Accessibility improvements and transitions */
+/* Reduce motion for prefers-reduced-motion users */
+@media (prefers-reduced-motion: reduce) {
+ *, *::before, *::after {
+ transition-duration: 0.01ms !important;
+ animation-duration: 0.01ms !important;
+ animation-iteration-count: 1 !important;
+ }
+}
+
+/* Responsive grid and layout placeholders, actual queries in responsive.css */
+
+/* End of styles.css */
