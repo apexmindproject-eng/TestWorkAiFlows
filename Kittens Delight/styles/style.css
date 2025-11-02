@@ -1,0 +1,441 @@
+/* style.css - Base and Global Styles for Kittens Delight Website (index.html, gallery.html, care.html, about.html) */
+
+/* === Reset and Normalize === */
+*, *::before, *::after {
+ box-sizing: border-box;
+ margin: 0;
+ padding: 0;
+}
+html {
+ font-size: 16px;
+ line-height: 1.5;
+ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+ scroll-behavior: smooth;
+ background-color: var(--bg-color);
+ color: var(--text-color);
+ -webkit-text-size-adjust: 100%;
+ -moz-tab-size: 4;
+ tab-size: 4;
+}
+body {
+ min-height: 100vh;
+ display: flex;
+ flex-direction: column;
+ font-weight: 400;
+ line-height: 1.6;
+ -webkit-font-smoothing: antialiased;
+ -moz-osx-font-smoothing: grayscale;
+ background-color: var(--bg-color);
+ color: var(--text-color);
+}
+img, picture {
+ display: block;
+ max-width: 100%;
+ height: auto;
+}
+a {
+ text-decoration: none;
+ color: var(--link-color);
+ transition: color 0.3s ease;
+ cursor: pointer;
+}
+a:hover, a:focus {
+ color: var(--link-hover-color);
+ outline: none;
+ text-decoration: underline;
+}
+ul {
+ list-style-type: none;
+}
+button, input, select, textarea {
+ font-family: inherit;
+ font-size: 1rem;
+ line-height: 1.5;
+ color: var(--text-color);
+ border-radius: var(--border-radius);
+ border: 1px solid var(--border-color);
+ background-color: var(--input-bg);
+ padding: 0.5rem 0.75rem;
+ transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+button {
+ cursor: pointer;
+ border: none;
+ background-color: var(--button-bg);
+ color: var(--button-color);
+ font-weight: 600;
+ padding: 0.65rem 1.25rem;
+ border-radius: var(--border-radius);
+ box-shadow: var(--button-shadow);
+ transition: background-color 0.3s ease, box-shadow 0.3s ease;
+ user-select: none;
+}
+button:hover, button:focus {
+ background-color: var(--button-bg-hover);
+ outline: none;
+ box-shadow: var(--button-shadow-hover);
+}
+input:focus, textarea:focus {
+ outline: none;
+ border-color: var(--focus-color);
+ box-shadow: 0 0 6px var(--focus-color);
+}
+.form-textarea {
+ min-height: 7rem;
+ resize: vertical;
+}
+
+/* === CSS Variables === */
+:root {
+ --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+ --border-radius: 8px;
+ --bg-color: #fffaf0;
+ --text-color: #2e2e2e;
+ --text-secondary: #555555;
+ --link-color: #ff6f61;
+ --link-hover-color: #e85b50;
+ --border-color: #ccc;
+ --input-bg: #fff;
+ --button-bg: #ff6f61;
+ --button-bg-hover: #e85b50;
+ --button-color: #ffffff;
+ --button-shadow: 0 4px 8px rgba(255,111,97,0.4);
+ --button-shadow-hover: 0 6px 12px rgba(232, 91, 80, 0.6);
+ --focus-color: #ff6f61;
+ --spacing-xs: 4px;
+ --spacing-sm: 8px;
+ --spacing-md: 16px;
+ --spacing-lg: 24px;
+ --spacing-xl: 32px;
+ --spacing-xxl: 48px;
+}
+
+/* === Typography === */
+body, input, button, select, textarea {
+ font-family: var(--font-family);
+}
+.site-title {
+ font-family: 'Georgia', serif;
+ font-weight: 700;
+ font-size: 2.5rem;
+ color: var(--link-color);
+ margin-bottom: var(--spacing-md);
+ text-align: center;
+ letter-spacing: 0.05em;
+}
+.section-title {
+ font-family: 'Georgia', serif;
+ font-weight: 700;
+ font-size: 2rem;
+ color: var(--text-color);
+ margin-bottom: var(--spacing-md);
+ border-bottom: 3px solid var(--link-color);
+ padding-bottom: var(--spacing-sm);
+ max-width: max-content;
+}
+.section-subtitle {
+ font-family: 'Georgia', serif;
+ font-weight: 600;
+ font-size: 1.5rem;
+ margin-bottom: var(--spacing-sm);
+ color: var(--link-color);
+}
+.intro-text, .kitten-description, p, li {
+ font-size: 1rem;
+ color: var(--text-secondary);
+ line-height: 1.6;
+}
+.gallery-description, .about-intro p {
+ font-size: 1rem;
+ color: var(--text-secondary);
+ margin-bottom: var(--spacing-lg);
+ line-height: 1.6;
+}
+
+/* === Layout Header and Navigation === */
+.site-header {
+ background-color: var(--button-bg);
+ padding: var(--spacing-md);
+ color: var(--button-color);
+ position: sticky;
+ top: 0;
+ z-index: 1000;
+ box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+}
+@media (min-width: 768px) {
+ .site-header {
+ flex-direction: row;
+ justify-content: space-between;
+ padding: var(--spacing-md) var(--spacing-xl);
+ }
+}
+.navigation {
+ margin-top: var(--spacing-sm);
+}
+@media (min-width: 768px) {
+ .navigation {
+ margin-top: 0;
+ }
+}
+.nav-list {
+ display: flex;
+ gap: var(--spacing-lg);
+ flex-wrap: wrap;
+ justify-content: center;
+}
+.nav-item {
+ list-style: none;
+}
+.nav-link {
+ font-weight: 600;
+ font-size: 1rem;
+ padding: var(--spacing-xs) var(--spacing-sm);
+ color: var(--button-color);
+ border-radius: var(--border-radius);
+ transition: background-color 0.3s ease, color 0.3s ease;
+}
+.nav-link:hover, .nav-link:focus {
+ background-color: var(--button-bg-hover);
+ color: var(--button-color);
+ outline: none;
+}
+.nav-link.active {
+ background-color: var(--button-bg-hover);
+ color: var(--button-color);
+ cursor: default;
+ pointer-events: none;
+ box-shadow: 0 0 8px var(--button-bg-hover);
+}
+
+/* === Main Content === */
+.main-content {
+ flex-grow: 1;
+ padding: var(--spacing-xl) var(--spacing-md);
+ max-width: 1100px;
+ margin-left: auto;
+ margin-right: auto;
+ width: 100%;
+ display: flex;
+ flex-direction: column;
+ gap: var(--spacing-xxl);
+}
+
+/* === Kittens Gallery (Homepage Featured Kittens Section) === */
+.kittens-gallery {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+ gap: var(--spacing-lg);
+}
+.kitten-card {
+ background-color: #fff;
+ border-radius: var(--border-radius);
+ box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+ text-align: center;
+ transition: transform 0.3s ease, box-shadow 0.3s ease;
+ user-select: none;
+ display: flex;
+ flex-direction: column;
+}
+.kitten-card:hover, .kitten-card:focus-within {
+ transform: translateY(-8px);
+ box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+ outline: none;
+}
+.kitten-image {
+ border-radius: var(--border-radius) var(--border-radius) 0 0;
+ width: 100%;
+ height: 150px;
+ object-fit: cover;
+ flex-shrink: 0;
+}
+.kitten-name {
+ font-weight: 700;
+ font-size: 1.25rem;
+ color: var(--link-color);
+ margin: var(--spacing-sm) 0 0.25rem 0;
+}
+.kitten-description {
+ padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
+ color: var(--text-secondary);
+ font-weight: 600;
+ font-size: 1rem;
+ flex-grow: 1;
+}
+
+/* === Fun Facts Section === */
+.fun-facts .facts-list {
+ margin-top: var(--spacing-md);
+ padding-left: 1.5rem;
+ list-style-type: disc;
+ color: var(--text-secondary);
+ font-size: 1rem;
+ line-height: 1.6;
+}
+.fact-item {
+ margin-bottom: var(--spacing-sm);
+}
+
+/* === Gallery Intro === */
+.gallery-intro {
+ margin-bottom: var(--spacing-lg);
+}
+
+/* === Photo Gallery (gallery.html) === */
+.photo-gallery {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+ gap: var(--spacing-lg);
+}
+.gallery-item {
+ background: #fff;
+ border-radius: var(--border-radius);
+ overflow: hidden;
+ box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+ display: flex;
+ flex-direction: column;
+ cursor: pointer;
+ transition: transform 0.3s ease, box-shadow 0.3s ease;
+ user-select: none;
+}
+.gallery-item:hover, .gallery-item:focus-within {
+ transform: translateY(-6px);
+ box-shadow: 0 14px 30px rgba(0,0,0,0.22);
+ outline: none;
+}
+.gallery-item:focus-visible {
+ outline: 3px solid var(--focus-color);
+ outline-offset: 3px;
+}
+.gallery-image {
+ width: 100%;
+ height: 180px;
+ object-fit: cover;
+ border-bottom: 4px solid var(--link-color);
+ flex-shrink: 0;
+ transition: filter 0.3s ease;
+}
+.gallery-item:hover .gallery-image, .gallery-item:focus-within .gallery-image {
+ filter: brightness(1.1);
+}
+.caption {
+ padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
+ font-weight: 600;
+ font-size: 1rem;
+ color: var(--text-secondary);
+ text-align: center;
+}
+
+/* === Care Tips Section === */
+.care-intro, .care-section {
+ margin-bottom: var(--spacing-xl);
+}
+.care-section p, .care-section ul {
+ font-size: 1rem;
+ color: var(--text-secondary);
+ line-height: 1.6;
+}
+.care-list {
+ list-style-type: disc;
+ margin-left: 1.5rem;
+ margin-top: var(--spacing-sm);
+}
+.care-list li {
+ margin-bottom: var(--spacing-sm);
+}
+
+/* === About Page Sections === */
+.about-intro {
+ margin-bottom: var(--spacing-lg);
+}
+.our-story, .our-mission, .contact-info {
+ margin-bottom: var(--spacing-lg);
+}
+.contact-link {
+ color: var(--link-color);
+ font-weight: 600;
+ text-decoration: underline;
+}
+.contact-link:hover, .contact-link:focus {
+ color: var(--link-hover-color);
+ outline: none;
+ text-decoration: none;
+}
+
+/* === Footer Styling === */
+.site-footer {
+ background-color: var(--button-bg);
+ color: var(--button-color);
+ text-align: center;
+ padding: var(--spacing-md) 0;
+ font-size: 0.9rem;
+ user-select: none;
+ box-shadow: 0 -2px 6px rgba(0,0,0,0.1);
+ margin-top: auto;
+}
+.footer-text {
+ margin: 0;
+}
+
+/* === Responsive Breakpoints === */
+@media (min-width: 576px) {
+ .kittens-gallery {
+ grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+ }
+ .nav-list {
+ justify-content: flex-start;
+ }
+}
+
+@media (min-width: 768px) {
+ html {
+ font-size: 18px;
+ }
+ .site-header {
+ padding: var(--spacing-md) var(--spacing-xl);
+ }
+ .site-title {
+ margin-bottom: 0;
+ }
+ .navigation {
+ margin-top: 0;
+ }
+ .nav-list {
+ gap: 2rem;
+ }
+ .main-content {
+ padding: var(--spacing-xl) var(--spacing-lg);
+ }
+}
+
+@media (min-width: 992px) {
+ html {
+ font-size: 20px;
+ }
+}
+
+/* === Accessibility Focus Outline === */
+:focus-visible {
+ outline: 3px solid var(--focus-color);
+ outline-offset: 3px;
+}
+
+/* === Utility Classes === */
+.text-center {
+ text-align: center !important;
+}
+.visually-hidden {
+ position: absolute !important;
+ width: 1px !important;
+ height: 1px !important;
+ padding: 0 !important;
+ margin: -1px !important;
+ overflow: hidden !important;
+ clip: rect(0, 0, 0, 0) !important;
+ white-space: nowrap !important;
+ border: 0 !important;
+}
+
+/* End of style.css */
