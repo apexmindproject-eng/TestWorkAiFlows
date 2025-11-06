@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1" />
+ <title>Website Builder - Editor</title>
+ <link rel="stylesheet" href="css/style.css" />
+ <link rel="stylesheet" href="css/editor.css" />
+</head>
+<body id="editor-page">
+ <header id="site-header" class="header">
+ <div class="container">
+ <a href="index.html" class="logo-link">
+ <img src="images/logo.png" alt="Website Builder Logo" id="logo" class="logo" />
+ </a>
+ <nav id="main-navigation" class="navigation" aria-label="Primary Navigation">
+ <ul class="nav-list">
+ <li class="nav-item"><a href="index.html" class="nav-link">Home</a></li>
+ <li class="nav-item"><a href="editor.html" class="nav-link active" aria-current="page">Editor</a></li>
+ <li class="nav-item"><a href="templates.html" class="nav-link">Templates</a></li>
+ <li class="nav-item"><a href="about.html" class="nav-link">About</a></li>
+ </ul>
+ </nav>
+ </div>
+ </header>
+
+ <main id="main-content" class="main-content">
+ <section class="editor-interface">
+ <div class="container">
+ <h1 class="page-title">Website Editor</h1>
+ <p class="editor-description">Use our intuitive editor to customize your website's layout, content, and style with ease.</p>
+
+ <div id="editor-container" class="editor-container">
+ <aside id="editor-sidebar" class="editor-sidebar" aria-label="Editor Tools">
+ <h2 class="sidebar-title">Tools</h2>
+ <ul class="tools-list">
+ <li><button type="button" class="tool-btn" id="add-text-btn">Add Text</button></li>
+ <li><button type="button" class="tool-btn" id="add-image-btn">Add Image</button></li>
+ <li><button type="button" class="tool-btn" id="add-section-btn">Add Section</button></li>
+ </ul>
+ </aside>
+
+ <section id="editor-preview" class="editor-preview" aria-label="Website Preview">
+ <h2 class="preview-title">Live Preview</h2>
+ <div id="preview-area" class="preview-area">
+ <p class="placeholder-text">Your website preview will appear here as you build it.</p>
+ </div>
+ </section>
+ </div>
+ </div>
+ </section>
+ </main>
+
+ <footer id="site-footer" class="site-footer">
+ <div class="container">
+ <p>&copy; 2024 Website Builder. All rights reserved.</p>
+ </div>
+ </footer>
+
+ <script src="js/builder.js"></script>
+ <script src="js/editor.js"></script>
+</body>
+</html>
