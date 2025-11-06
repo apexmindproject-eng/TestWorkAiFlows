@@ -1,0 +1,126 @@
+/* Responsive Design Styles */
+
+/* Mobile First Approach */
+
+/* General Styles for Small Screens */
+body {
+ font-size: 14px;
+}
+
+.intro-section,
+.beans-section,
+.brewing-section,
+.contact-section {
+ padding: 10px;
+}
+
+.header-container {
+ flex-direction: column;
+ align-items: center;
+}
+
+.nav-list {
+ flex-direction: column;
+ width: 100%;
+}
+
+.nav-link {
+ text-align: center;
+ padding: 10px 0;
+}
+
+.hero-section {
+ padding: 20px;
+}
+
+.hero-image {
+ width: 100%;
+ height: auto;
+}
+
+/* Medium Screens */
+@media (min-width: 600px) {
+ body {
+ font-size: 16px;
+ }
+ .header-container {
+ flex-direction: row;
+ justify-content: space-between;
+ }
+ .nav-list {
+ flex-direction: row;
+ }
+ .nav-link {
+ padding: 15px;
+ }
+ .hero-section {
+ flex-direction: column;
+ }
+}
+
+/* Large Screens */
+@media (min-width: 900px) {
+ body {
+ font-size: 18px;
+ }
+ .main-content {
+ display: flex;
+ flex-wrap: wrap;
+ justify-content: space-between;
+ }
+ .intro-section {
+ display: flex;
+ justify-content: space-between;
+ }
+ .section-title {
+ text-align: center;
+ }
+ .beans-list,
+ .brewing-list {
+ display: grid;
+ grid-template-columns: repeat(3, 1fr);
+ gap: 20px;
+ }
+}
+
+/* Extra Large Screens */
+@media (min-width: 1200px) {
+ .main-content {
+ flex-direction: row;
+ }
+ 
+ .hero-title {
+ font-size: 3rem;
+ }
+ .footer-container {
+ justify-content: space-around;
+ }
+}
+
+/* Accessibility Features */
+[tabindex]:focus {
+ outline: 2px solid var(--primary-color);
+ outline-offset: 3px;
+}
+
+/* Accessibility high-contrast styles for buttons */
+.btn {
+ border: 2px solid transparent;
+ transition: border-color 0.3s ease;
+}
+
+.btn:hover {
+ border-color: var(--highlight-color);
+}
+
+/* Responsive layout for forms */
+.contact-form {
+ display: flex;
+ flex-direction: column;
+}
+
+.form-group {
+ display: flex;
+ flex-direction: column;
+ margin-bottom: 15px;
+}
