@@ -1,0 +1,1 @@
+# {{ $json.folderPath.split('/')[1] }}\n\nPart of {{ $json.projectName }}
