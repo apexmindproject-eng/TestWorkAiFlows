@@ -1,0 +1,213 @@
+/* CSS Reset */
+* {
+ margin: 0;
+ padding: 0;
+ box-sizing: border-box;
+}
+
+html {
+ scroll-behavior: smooth;
+}
+
+body {
+ font-family: 'Arial', sans-serif;
+ line-height: 1.5;
+ color: var(--text-color);
+ background-color: var(--background-color);
+}
+
+/* CSS Custom Properties for Builder */
+:root {
+ --primary-color: #007BFF;
+ --secondary-color: #6C757D;
+ --alert-color: #FF3860;
+ --bg-color-toolbox: #F0F3F5;
+ --border-color: #CED4DA;
+ --highlight-color: #FFC107;
+ --spacing: 16px;
+}
+
+/* Typography */
+h1, h2, h3 {
+ color: var(--primary-color);
+}
+h1 {
+ font-size: clamp(2rem, 5vw, 3rem);
+}
+h2 {
+ font-size: clamp(1.5rem, 4vw, 2rem);
+}
+h3 {
+ font-size: clamp(1.25rem, 3vw, 1.5rem);
+}
+p {
+ color: var(--text-color);
+ margin-bottom: var(--spacing);
+}
+
+/* Layout styles for Builder interface */
+.builder-page {
+ padding: var(--spacing);
+}
+
+.builder-interface {
+ display: flex;
+ flex-direction: column;
+ width: 100%;
+ max-width: var(--max-width);
+ margin: auto;
+ background-color: #fff;
+ border: 1px solid var(--border-color);
+ border-radius: 8px;
+}
+
+.builder-header {
+ background-color: var(--primary-color);
+ color: white;
+ padding: var(--spacing);
+ text-align: center;
+}
+
+.builder-title {
+ font-size: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.builder-description {
+ margin-bottom: var(--spacing);
+}
+
+/* Toolbox styles */
+.toolbox {
+ background-color: var(--bg-color-toolbox);
+ border: 1px solid var(--border-color);
+ border-radius: 8px;
+ padding: var(--spacing);
+ margin: var(--spacing) 0;
+}
+
+.toolbox-title {
+ font-size: clamp(1.25rem, 3vw, 1.75rem);
+ color: var(--highlight-color);
+}
+
+.tool-list {
+ list-style: none;
+ display: flex;
+ flex-wrap: wrap;
+ gap: var(--spacing);
+}
+
+.tool-item {
+ flex: 1 1 calc(33% - var(--spacing));
+ background-color: var(--secondary-color);
+ color: white;
+ padding: var(--spacing);
+ border-radius: 4px;
+ transition: background-color 0.3s;
+}
+
+.tool-item:hover {
+ background-color: var(--alert-color);
+}
+
+/* Canvas styles */
+.canvas {
+ border: 1px dashed var(--border-color);
+ border-radius: 4px;
+ width: 100%;
+ height: 400px;
+ position: relative;
+ background-color: #fff;
+}
+
+.canvas-placeholder {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ height: 100%;
+ color: var(--secondary-color);
+}
+
+/* Preview section */
+.preview-section {
+ margin-top: var(--spacing);
+}
+
+.preview-title {
+ font-size: clamp(1.25rem, 3vw, 1.5rem);
+ color: var(--primary-color);
+}
+
+.preview-frame {
+ border: 1px solid var(--border-color);
+ width: 100%;
+ height: 500px;
+}
+
+/* Form styles specific to Builder interface */
+form {
+ display: flex;
+ flex-direction: column;
+}
+
+.form-group {
+ margin-bottom: var(--spacing);
+}
+
+.form-label {
+ margin-bottom: var(--spacing / 2);
+}
+
+.form-input, .form-textarea {
+ padding: var(--spacing / 2);
+ border: 1px solid var(--border-color);
+ border-radius: 4px;
+ width: 100%;
+}
+
+button {
+ margin-top: var(--spacing);
+}
+
+/* Accessibility styles */
+[tabindex]:focus {
+ outline: 2px dashed var(--primary-color);
+}
+
+/* Responsive design for Builder */
+@media (max-width: 600px) {
+ .tool-item {
+ flex: 1 1 100%;
+ }
+}
+
+@media (min-width: 601px) {
+ .tool-item {
+ flex: 1 1 calc(50% - var(--spacing));
+ }
+}
+
+@media (min-width: 900px) {
+ .tool-item {
+ flex: 1 1 calc(33% - var(--spacing));
+ }
+}
+
+/* Additional styles for unique elements like buttons */
+.btn {
+ padding: var(--spacing);
+ background-color: var(--primary-color);
+ color: white;
+ border: none;
+ border-radius: 4px;
+ cursor: pointer;
+ transition: background-color 0.3s ease;
+}
+
+.btn-primary {
+ background-color: var(--highlight-color);
+}
+
+.btn-primary:hover {
+ background-color: var(--primary-color);
+}
