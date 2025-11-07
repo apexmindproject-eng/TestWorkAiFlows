@@ -1,0 +1,327 @@
+/* recipes.css - UI Components and Specific Layouts for Recipes, About, Contact Pages */
+
+/* Root CSS Variables inherited from style.css but override or add here if needed */
+:root {
+ /* Reaffirming main colors for clarity and override if necessary */
+ --color-card-bg: var(--color-surface);
+ --color-card-shadow: rgba(0,0,0,0.12);
+ --color-btn-bg: var(--color-primary);
+ --color-btn-hover-bg: var(--color-primary-dark);
+ --color-btn-text: var(--color-text-inverse);
+ --color-input-border: var(--color-border);
+ --color-input-focus-border: var(--color-primary);
+ --color-input-focus-shadow: var(--color-primary-light);
+ --transition-speed: 0.3s;
+}
+
+/* Reset and base styles for components and pages (reinforced from base stylesheet) */
+
+/* Container Component - centers content and controls max width */
+.container {
+ max-width: 1100px;
+ margin: 0 auto;
+ padding-left: var(--space-md);
+ padding-right: var(--space-md);
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-lg);
+}
+
+/* Navigation Styles */
+.navigation {
+ display: flex;
+ justify-content: flex-end;
+ align-items: center;
+ width: 100%;
+}
+
+.nav-list {
+ list-style: none;
+ display: flex;
+ gap: var(--space-lg);
+ padding-left: 0;
+}
+
+.nav-link {
+ font-weight: 600;
+ font-size: var(--font-size-base);
+ color: var(--color-text-primary);
+ text-decoration: none;
+ padding: var(--space-sm) var(--space-md);
+ border-radius: var(--border-radius);
+ transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+}
+
+.nav-link:hover, .nav-link:focus {
+ background-color: var(--color-primary-light);
+ color: var(--color-text-inverse);
+ outline: none;
+}
+
+.active {
+ background-color: var(--color-primary);
+ color: var(--color-text-inverse);
+ font-weight: 700;
+}
+
+/* Hero Section Component */
+.hero-section {
+ background-color: var(--color-primary-light);
+ color: var(--color-text-inverse);
+ border-radius: var(--border-radius);
+ padding: var(--space-xxl) var(--space-lg);
+ text-align: center;
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-md);
+}
+
+.hero-image {
+ max-width: 320px;
+ margin: 0 auto;
+ border-radius: var(--border-radius);
+ box-shadow: 0 6px 12px var(--color-card-shadow);
+ object-fit: cover;
+ aspect-ratio: 4 / 3;
+}
+
+.hero-text {
+ font-size: var(--font-size-lg);
+ max-width: 700px;
+ margin: 0 auto;
+ font-weight: 600;
+ line-height: 1.5;
+}
+
+/* Featured Section Wrapper */
+.featured-section {
+ background-color: var(--color-card-bg);
+ border-radius: var(--border-radius);
+ box-shadow: 0 2px 10px var(--color-card-shadow);
+ padding: var(--space-xl) var(--space-md);
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-lg);
+ margin-bottom: var(--space-xxl);
+}
+
+/* Recipe Cards Grid Container */
+.recipe-cards {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+ gap: var(--space-lg);
+ width: 100%;
+}
+
+/* Individual Recipe Card */
+.recipe-card {
+ background-color: var(--color-surface);
+ border-radius: var(--border-radius);
+ box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+ display: flex;
+ flex-direction: column;
+ overflow: hidden;
+ transition: box-shadow var(--transition-speed) ease-in-out;
+ cursor: pointer;
+}
+
+.recipe-card:hover, .recipe-card:focus-within {
+ box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+ outline: none;
+}
+
+.recipe-image {
+ width: 100%;
+ height: 180px;
+ object-fit: cover;
+ border-top-left-radius: var(--border-radius);
+ border-top-right-radius: var(--border-radius);
+}
+
+.recipe-title {
+ font-size: var(--font-size-lg);
+ font-weight: 700;
+ color: var(--color-primary-dark);
+ padding: var(--space-md);
+ padding-bottom: 0;
+}
+
+.recipe-description {
+ padding: var(--space-md);
+ padding-top: var(--space-xs);
+ font-size: var(--font-size-sm);
+ color: var(--color-text-secondary);
+ flex-grow: 1;
+ line-height: 1.4;
+}
+
+/* About Section Styling */
+.about-section {
+ max-width: 900px;
+ margin: 0 auto var(--space-xxl) auto;
+ background-color: var(--color-card-bg);
+ padding: var(--space-xl) var(--space-lg);
+ border-radius: var(--border-radius);
+ box-shadow: 0 2px 10px var(--color-card-shadow);
+ color: var(--color-text-primary);
+ line-height: 1.7;
+ font-size: var(--font-size-lg);
+}
+
+.about-section h2 {
+ margin-bottom: var(--space-lg);
+ color: var(--color-primary-dark);
+}
+
+/* Contact Section Styling */
+.contact-section {
+ max-width: 700px;
+ margin: 0 auto var(--space-xxl) auto;
+ background-color: var(--color-card-bg);
+ padding: var(--space-xl) var(--space-lg);
+ border-radius: var(--border-radius);
+ box-shadow: 0 2px 10px var(--color-card-shadow);
+ color: var(--color-text-primary);
+}
+
+.contact-form {
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-md);
+}
+
+.form-group {
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-xs);
+}
+
+label {
+ font-weight: 600;
+ color: var(--color-primary-dark);
+ font-size: var(--font-size-sm);
+}
+
+input[type="text"], input[type="email"], textarea {
+ padding: var(--space-sm) var(--space-md);
+ border: 1px solid var(--color-input-border);
+ border-radius: var(--border-radius);
+ font-family: var(--font-family-sans);
+ font-size: var(--font-size-base);
+ transition: border-color var(--transition-speed) ease-in-out, box-shadow var(--transition-speed) ease-in-out;
+ resize: vertical;
+}
+
+input:focus, textarea:focus {
+ border-color: var(--color-input-focus-border);
+ outline: none;
+ box-shadow: 0 0 5px var(--color-input-focus-shadow);
+}
+
+/* Buttons in forms and general use */
+.btn, button {
+ background-color: var(--color-btn-bg);
+ border: none;
+ border-radius: var(--border-radius);
+ color: var(--color-btn-text);
+ font-weight: 700;
+ font-size: var(--font-size-lg);
+ padding: var(--space-md) var(--space-lg);
+ cursor: pointer;
+ align-self: flex-start;
+ transition: background-color var(--transition-speed) ease-in-out;
+ user-select: none;
+}
+
+.btn:hover, .btn:focus, button:hover, button:focus {
+ background-color: var(--color-btn-hover-bg);
+ outline: none;
+}
+
+#submit-btn {
+ margin-top: var(--space-md);
+}
+
+/* Header adjustments for site-header and logo for clarity */
+#site-header {
+ background-color: var(--color-surface);
+ box-shadow: 0 2px 5px rgba(0,0,0,0.07);
+ padding: var(--space-md) 0;
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ position: sticky;
+ top: 0;
+ z-index: 1000;
+}
+
+#logo {
+ font-family: var(--font-family-heading);
+ font-weight: 800;
+ font-size: var(--font-size-xxl);
+ color: var(--color-primary);
+ letter-spacing: 0.1em;
+ user-select: none;
+}
+
+/* Main content wrapper adjustments */
+#main-content {
+ width: 100%;
+ padding: var(--space-xl) 0;
+}
+
+/* Featured recipes container for homepage layout */
+#featured-recipes {
+ width: 100%;
+ margin-bottom: var(--space-xxl);
+}
+
+/* Individual recipe IDs such as cookie1, cookie2, cookie3 for specific recipe card overrides if needed */
+#cookie1, #cookie2, #cookie3 {
+ outline: none;
+ transition: transform var(--transition-speed) ease-in-out;
+}
+
+#cookie1:hover, #cookie2:hover, #cookie3:hover,
+#cookie1:focus-within, #cookie2:focus-within, #cookie3:focus-within {
+ transform: translateY(-6px);
+ box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+ outline: none;
+}
+
+/* Footer styling */
+#site-footer {
+ background-color: var(--color-primary-dark);
+ color: var(--color-text-inverse);
+ padding: var(--space-lg) 0;
+ text-align: center;
+ font-size: var(--font-size-sm);
+ user-select: none;
+}
+
+/* Accessibility Improvements */
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible {
+ outline: 3px solid var(--color-secondary);
+ outline-offset: 3px;
+}
+
+/* Make images inside recipe cards responsive */
+.recipe-card img {
+ width: 100%;
+ height: auto;
+ display: block;
+}
+
+/* Responsive and flexible layout helpers */
+.container, .featured-section, .about-section, .contact-section {
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-lg);
+}
+
+/* Hide script tags visually */
+script {
+ display: none;
+}
+
+/* End of recipes.css */
