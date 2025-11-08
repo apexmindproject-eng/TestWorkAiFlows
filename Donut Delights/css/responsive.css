@@ -1,0 +1,431 @@
+/* ============================================================
+ Donut Delights - responsive.css
+ Responsive Design and Media Queries
+ ============================================================ */
+
+/* ---------- Mobile First Base ---------- */
+/* Base styles are defined in styles.css, here we enhance and override for larger screens */
+
+/* ------------------ Small Devices and Up (600px) ------------------ */
+@media (min-width: 600px) {
+
+ /* Header layout update for larger screens */
+ #main-header {
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ padding: var(--spacing-md) var(--spacing-xl);
+ }
+
+ .site-title {
+ margin-left: 0;
+ }
+
+ #main-nav, .site-navigation {
+ justify-content: flex-end;
+ }
+
+ .nav-list {
+ gap: var(--spacing-xl);
+ }
+
+ /* Increase click target on nav links */
+ .nav-link {
+ padding: var(--spacing-md) var(--spacing-lg);
+ font-size: 1.1rem;
+ }
+
+ /* Hero Section
+ Hero text shifts to left with max-width */
+ .hero-text {
+ max-width: 50%;
+ left: var(--spacing-xl);
+ text-align: left;
+ transform: translateY(-50%);
+ }
+
+ /* Main page container padding increased */
+ main#home-main, main {
+ padding: var(--spacing-xxl) var(--spacing-xl);
+ }
+
+ /* Grid: increase gap and min column size */
+ .grid {
+ grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+ gap: var(--spacing-xxl);
+ }
+
+ /* Feature cards increase padding and image fixed height */
+ .feature-card {
+ padding: var(--spacing-md);
+ }
+
+ .feature-image {
+ height: 220px;
+ }
+
+ /* Content section max width increased */
+ .content-section {
+ max-width: 900px;
+ }
+
+ /* Recipe lists and history content become 2 columns */
+ #recipe-list {
+ display: grid;
+ grid-template-columns: repeat(2, 1fr);
+ gap: var(--spacing-lg);
+ }
+
+ #history-content {
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: var(--spacing-lg);
+ align-items: center;
+ }
+
+ /* Gallery grid transition to 3 columns */
+ .gallery-grid {
+ grid-template-columns: repeat(3, 1fr);
+ }
+
+ /* Contact form max width constrain and button alignment */
+ .contact-form {
+ max-width: 500px;
+ margin-left: auto;
+ margin-right: auto;
+ }
+
+ .form-group {
+ flex-direction: row;
+ align-items: center;
+ gap: var(--spacing-md);
+ }
+
+ label {
+ width: 140px;
+ margin-bottom: 0;
+ }
+
+ input[type="text"], input[type="email"], textarea {
+ flex-grow: 1;
+ margin-bottom: 0;
+ }
+
+ .btn-submit {
+ align-self: center;
+ }
+
+ /* Footer text alignment */
+ footer#main-footer {
+ text-align: left;
+ padding-left: var(--spacing-xl);
+ padding-right: var(--spacing-xl);
+ }
+}
+
+/* ------------------ Medium Devices and Up (900px) ------------------ */
+@media (min-width: 900px) {
+
+ /* Header increased padding */
+ #main-header {
+ padding: var(--spacing-lg) var(--spacing-xxl);
+ }
+
+ /* Site title font size bigger */
+ .site-title {
+ font-size: clamp(2.5rem, 3vw + 1rem, 4rem);
+ }
+
+ /* Nav links larger and spaced more */
+ .nav-list {
+ gap: 3rem;
+ }
+
+ .nav-link {
+ font-size: 1.2rem;
+ padding: var(--spacing-md) var(--spacing-xl);
+ }
+
+ /* Hero Section: Text font-size bigger and more margin */
+ .hero-text {
+ font-size: clamp(3rem, 4vw + 1.5rem, 5rem);
+ max-width: 40%;
+ }
+
+ /* Grid: 3 columns when possible */
+ .grid {
+ grid-template-columns: repeat(3, 1fr);
+ }
+
+ /* Feature card image increase size */
+ .feature-image {
+ height: 260px;
+ }
+
+ /* Content section max width larger for readability */
+ .content-section {
+ max-width: 1000px;
+ }
+
+ /* Recipe list grid 3 columns on large screens */
+ #recipe-list {
+ grid-template-columns: repeat(3, 1fr);
+ }
+
+ /* Gallery grid transition to 4 columns */
+ .gallery-grid {
+ grid-template-columns: repeat(4, 1fr);
+ }
+
+ /* History content uses 3 columns - image and text side by side, extra space for content */
+ #history-content {
+ grid-template-columns: 1fr 2fr;
+ }
+
+ /* Contact form max width and button size upscaled */
+ .contact-form {
+ max-width: 600px;
+ }
+
+ .btn-submit {
+ padding: var(--spacing-md) var(--spacing-xxl);
+ font-size: 1.1rem;
+ }
+
+ /* Footer padding increased */
+ footer#main-footer {
+ padding-left: var(--spacing-xxl);
+ padding-right: var(--spacing-xxl);
+ }
+
+}
+
+/* ------------------ Large Devices (1200px and up) ------------------ */
+@media (min-width: 1200px) {
+
+ main#home-main, main {
+ padding-left: var(--spacing-xxl);
+ padding-right: var(--spacing-xxl);
+ }
+
+ /* Header elements inline and spaced nicely */
+ #main-header {
+ padding: var(--spacing-xl) var(--spacing-xxl);
+ }
+
+ /* Navigation wide screen increased spacing */
+ .nav-list {
+ gap: 4rem;
+ }
+
+ /* Hero Section continue scaling text size and positioning */
+ .hero-text {
+ max-width: 30%;
+ font-size: clamp(4rem, 5vw + 2rem, 6rem);
+ left: var(--spacing-xxl);
+ }
+
+ /* Grid: 4 columns wide layout */
+ .grid {
+ grid-template-columns: repeat(4, 1fr);
+ }
+
+ /* Increase feature card padding and image height */
+ .feature-card {
+ padding: var(--spacing-xl);
+ }
+
+ .feature-image {
+ height: 280px;
+ }
+
+ /* Content sections get max width for very large screens */
+ .content-section {
+ max-width: 1100px;
+ }
+
+ /* Recipe list grid 4 columns for wide screens */
+ #recipe-list {
+ grid-template-columns: repeat(4, 1fr);
+ }
+
+ /* Gallery grid 5 columns for huge screens */
+ .gallery-grid {
+ grid-template-columns: repeat(5, 1fr);
+ }
+
+ /* Contact form max width and button size upscaled */
+ .contact-form {
+ max-width: 700px;
+ }
+
+ .btn-submit {
+ font-size: 1.25rem;
+ padding: var(--spacing-md) var(--spacing-xxl);
+ }
+
+ /* Footer enhanced padding for large screens */
+ footer#main-footer {
+ padding-left: var(--spacing-xxl);
+ padding-right: var(--spacing-xxl);
+ }
+
+}
+
+/* ------------------ Responsive Nav for Mobile Devices ------------------ */
+/* Mobile nav toggle could be implemented here in components.css,
+ but base responsive markup styles are provided here for clarity */
+
+@media (max-width: 599px) {
+ .nav-list {
+ flex-direction: column;
+ gap: var(--spacing-md);
+ background-color: var(--color-primary);
+ position: absolute;
+ top: 100%;
+ left: 0;
+ width: 100%;
+ padding: var(--spacing-md) 0;
+ display: none; /* Hidden by default, toggled with JS*/
+ z-index: 1001;
+ }
+
+ .nav-list.active {
+ display: flex;
+ }
+
+ #main-nav {
+ position: relative;
+ }
+
+ .nav-link {
+ display: block;
+ padding: var(--spacing-md);
+ text-align: center;
+ border-bottom: 1px solid var(--color-secondary);
+ }
+
+ .nav-link:last-child {
+ border-bottom: none;
+ }
+}
+
+/* ---------------- Accessibility enhancements for focus states ---------------- */
+@media (hover: hover) {
+ a.nav-link:hover, a.nav-link:focus {
+ color: var(--color-accent);
+ background-color: var(--color-secondary);
+ }
+
+ .btn-submit:hover, .btn-submit:focus {
+ background-color: var(--color-accent);
+ box-shadow: 0 0 8px var(--color-accent);
+ }
+}
+
+/* ---------- Responsive Images ---------- */
+@media (max-width: 599px) {
+ .hero-image {
+ height: clamp(12rem, 30vw, 22rem);
+ }
+
+ .recipe-image {
+ height: 180px;
+ }
+
+ .gallery-image {
+ height: 120px;
+ }
+}
+
+@media (min-width: 600px) {
+ .hero-image {
+ height: clamp(16rem, 35vw, 32rem);
+ }
+
+ .recipe-image {
+ height: 220px;
+ }
+
+ .gallery-image {
+ height: 140px;
+ }
+}
+
+@media (min-width: 900px) {
+ .hero-image {
+ height: clamp(20rem, 40vw, 40rem);
+ }
+
+ .recipe-image {
+ height: 260px;
+ }
+
+ .gallery-image {
+ height: 160px;
+ }
+}
+
+/* ---------- Responsive Typography Adjustments ---------- */
+@media (max-width: 599px) {
+ p, #intro-recipes, #history-intro, #history-content {
+ font-size: 0.9rem;
+ }
+
+ h1 {
+ font-size: 2rem;
+ }
+
+ h2 {
+ font-size: 1.5rem;
+ }
+
+ h3 {
+ font-size: 1.25rem;
+ }
+
+ h4 {
+ font-size: 1rem;
+ }
+}
+
+@media (min-width: 600px) {
+ p, #intro-recipes, #history-intro, #history-content {
+ font-size: 1rem;
+ }
+
+ h1 {
+ font-size: clamp(2.5rem, 3vw + 1rem, 3.5rem);
+ }
+
+ h2 {
+ font-size: clamp(1.75rem, 2vw + 1rem, 2.5rem);
+ }
+
+ h3 {
+ font-size: clamp(1.5rem, 1.5vw + 1rem, 2rem);
+ }
+
+ h4 {
+ font-size: clamp(1.25rem, 1vw + 0.8rem, 1.5rem);
+ }
+}
+
+/* ---------- Responsive Forms ---------- */
+@media (min-width: 900px) {
+ textarea.input-textarea {
+ min-height: 150px;
+ }
+ input.input-text {
+ height: 3rem;
+ }
+}
+
+/* -------------- Misc Responsive Tweaks -------------- */
+@media (min-width: 600px) {
+ .text-center {
+ text-align: left;
+ }
+}
+
+/* End of responsive.css */
