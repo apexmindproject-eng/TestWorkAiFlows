@@ -1,0 +1,318 @@
+/* Zoo Explorer - responsive.css - Responsive and Adaptive Styles */
+
+/* Mobile-first approach, scaling up for larger viewports */
+
+/* --------- Small devices (sm) >= 480px --------- */
+@media (min-width: 480px) {
+ header.site-header {
+ padding: var(--space-md) var(--space-xl);
+ }
+
+ nav.main-navigation {
+ max-width: 900px;
+ }
+
+ .site-title {
+ font-size: clamp(1.5rem, 4vw, 2rem);
+ }
+
+ ul.nav-list {
+ gap: var(--space-xl);
+ }
+
+ main#main-content {
+ max-width: 960px;
+ padding: 0 var(--space-lg);
+ }
+
+ section {
+ padding: var(--space-xl);
+ }
+
+ .featured-animals {
+ grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+ }
+
+ .animal-gallery {
+ grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+ }
+
+ .animal-image {
+ width: clamp(170px, 40vw, 300px);
+ }
+
+ .btn, .btn-primary {
+ padding: var(--space-md) var(--space-xl);
+ font-size: var(--font-size-lg);
+ }
+
+ .visit-info {
+ flex-direction: row;
+ align-items: flex-start;
+ gap: var(--space-xl);
+ }
+
+ .visit-description {
+ max-width: 50%;
+ }
+
+ .zoo-map {
+ max-width: 50%;
+ border-radius: var(--border-radius-lg);
+ }
+
+ .animal-list {
+ gap: var(--space-xl);
+ }
+
+ .visitor-info-list {
+ padding-left: var(--space-xl);
+ font-size: var(--font-size-lg);
+ }
+
+ .contact-info,
+ .contact-form-section {
+ max-width: 900px;
+ padding: var(--space-lg);
+ }
+
+ .contact-form {
+ gap: var(--space-lg);
+ }
+
+ /* Form elements increased font size for better usability */
+ input, textarea {
+ font-size: var(--font-size-lg);
+ padding: var(--space-md);
+ border-radius: var(--border-radius-md);
+ }
+
+ label {
+ font-size: var(--font-size-lg);
+ margin-bottom: var(--space-sm);
+ }
+}
+
+/* --------- Medium devices (md) >= 768px --------- */
+@media (min-width: 768px) {
+ header.site-header {
+ padding: var(--space-lg) var(--space-xxl);
+ }
+
+ .site-title {
+ font-size: clamp(2rem, 5vw, 2.5rem);
+ }
+
+ nav.main-navigation {
+ gap: var(--space-xxl);
+ }
+
+ ul.nav-list {
+ gap: var(--space-xxl);
+ }
+
+ main#main-content {
+ max-width: 1080px;
+ padding: 0 var(--space-xl);
+ }
+
+ .featured-animals {
+ grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+ }
+
+ .animal-gallery {
+ grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+ }
+
+ .animal-image {
+ width: clamp(220px, 35vw, 350px);
+ }
+
+ .btn, .btn-primary {
+ padding: var(--space-md) var(--space-xxl);
+ font-size: var(--font-size-xl);
+ }
+
+ .visit-info {
+ gap: var(--space-xxl);
+ }
+
+ .visit-description, .zoo-map {
+ max-width: 48%;
+ }
+
+ .animal-list {
+ gap: var(--space-xxl);
+ }
+
+ .visitor-info-list {
+ padding-left: var(--space-xxl);
+ font-size: var(--font-size-xl);
+ }
+
+ .contact-info, .contact-form-section {
+ max-width: 960px;
+ padding: var(--space-xxl);
+ }
+
+ /* Form inputs bigger at larger sizes */
+ input, textarea {
+ font-size: var(--font-size-xl);
+ padding: var(--space-lg);
+ border-radius: var(--border-radius-lg);
+ }
+
+ label {
+ font-size: var(--font-size-xl);
+ margin-bottom: var(--space-md);
+ }
+}
+
+/* --------- Large devices (lg) >= 1024px --------- */
+@media (min-width: 1024px) {
+ header.site-header {
+ padding: var(--space-xl) var(--space-xxl);
+ }
+
+ .site-title {
+ font-size: var(--font-size-xxl);
+ }
+
+ nav.main-navigation {
+ flex-grow: 1;
+ }
+
+ ul.nav-list {
+ gap: calc(var(--space-xxl) * 1.5);
+ }
+
+ main#main-content {
+ max-width: 1140px;
+ padding: 0 var(--space-xxl);
+ }
+
+ .featured-animals {
+ grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+ }
+
+ .animal-gallery {
+ grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+ }
+
+ .animal-image {
+ width: 350px;
+ }
+
+ .btn, .btn-primary {
+ padding: var(--space-lg) calc(var(--space-xxl) * 1.5);
+ font-size: var(--font-size-xxl);
+ }
+
+ .visit-info {
+ gap: calc(var(--space-xxl) * 1.5);
+ }
+
+ .visit-description, .zoo-map {
+ max-width: 45%;
+ }
+
+ .animal-list {
+ gap: calc(var(--space-xxl) * 1.5);
+ }
+
+ .visitor-info-list {
+ padding-left: calc(var(--space-xxl) * 1.5);
+ font-size: var(--font-size-xxl);
+ }
+
+ .contact-info, .contact-form-section {
+ max-width: 1080px;
+ padding: calc(var(--space-xxl) * 1.5);
+ }
+
+ input, textarea {
+ border-radius: var(--border-radius-lg);
+ }
+
+ label {
+ margin-bottom: var(--space-lg);
+ }
+}
+
+/* --------- Utility Responsive Adjustments --------- */
+/* Stack nav links vertically on very small devices */
+@media (max-width: 399px) {
+ nav.main-navigation {
+ width: 100%;
+ justify-content: center;
+ }
+
+ ul.nav-list {
+ flex-direction: column;
+ gap: var(--space-md);
+ }
+
+ .animal-gallery, .featured-animals {
+ grid-template-columns: 1fr !important;
+ }
+
+ .visit-info {
+ flex-direction: column;
+ align-items: center;
+ }
+
+ .visit-description, .zoo-map {
+ max-width: 100%;
+ }
+
+ button, .btn-primary {
+ width: 100%;
+ }
+
+ .contact-form {
+ width: 100%;
+ }
+}
+
+/* --------- Accessibility Responsive Helpers --------- */
+/* Increase tappable area on smaller devices */
+@media (max-width: 639px) {
+ a.nav-link, button, input, textarea {
+ min-height: 44px;
+ padding: 0.75rem 1rem;
+ }
+}
+
+/* --------- Animations --------- */
+@keyframes fadeInUp {
+ from {
+ opacity: 0;
+ transform: translateY(15px);
+ }
+ to {
+ opacity: 1;
+ transform: translateY(0);
+ }
+}
+
+/* Apply fadeInUp to featured animals on load */
+.featured-animals > * {
+ animation: fadeInUp 0.6s ease forwards;
+ opacity: 0;
+ will-change: opacity, transform;
+}
+
+.featured-animals > *:nth-child(1) {
+ animation-delay: 0.1s;
+}
+.featured-animals > *:nth-child(2) {
+ animation-delay: 0.3s;
+}
+.featured-animals > *:nth-child(3) {
+ animation-delay: 0.5s;
+}
+.featured-animals > *:nth-child(4) {
+ animation-delay: 0.7s;
+}
+
+/* End of responsive.css */
