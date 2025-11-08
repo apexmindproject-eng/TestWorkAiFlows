@@ -1,0 +1,510 @@
+/* ==========================
+ Responsive Styles - Media Queries
+ Mobile-First Enhancements
+========================== */
+
+/* --------------------------
+ Breakpoint variables
+--------------------------- */
+:root {
+ --breakpoint-sm: 480px;
+ --breakpoint-md: 768px;
+ --breakpoint-lg: 1024px;
+ --breakpoint-xl: 1280px;
+}
+
+/* ==========================
+ Small Devices (≥ 480px)
+========================== */
+@media (min-width: var(--breakpoint-sm)) {
+
+ body {
+ padding: var(--spacing-lg) var(--spacing-xl);
+ }
+
+ /* Header layout for small screens */
+ .site-header .container {
+ flex-wrap: wrap;
+ justify-content: center;
+ gap: var(--spacing-md);
+ }
+
+ #main-navigation .nav-list, .nav-list {
+ justify-content: center;
+ }
+
+ /* Banner Section grid columns for sm */
+ #banner, .banner-section {
+ grid-template-columns: 1fr 1fr;
+ align-items: center;
+ }
+
+ .banner-text {
+ text-align: left;
+ padding: 0;
+ }
+
+ .banner-image {
+ max-height: 350px;
+ }
+
+ /* Button sizes slightly larger */
+ .btn {
+ padding: clamp(0.5rem, 1vw, 0.75rem) clamp(1rem, 2vw, 1.5rem);
+ font-size: var(--font-size-base);
+ }
+
+}
+
+/* ==========================
+ Medium Devices (≥ 768px)
+========================== */
+@media (min-width: var(--breakpoint-md)) {
+
+ /* Header menu inline */
+ #main-navigation, .navigation {
+ justify-content: flex-end;
+ }
+
+ .site-header .container {
+ justify-content: space-between;
+ }
+
+ /* Main content layout with gap and grid cards */
+ .site-main {
+ padding: 0;
+ }
+
+ /* Featured recipes grid update */
+ #featured-recipes, .featured-recipes {
+ grid-template-columns: repeat(3, 1fr);
+ gap: var(--spacing-xl);
+ }
+
+ .recipe-cards {
+ grid-template-columns: repeat(3, 1fr);
+ gap: var(--spacing-md);
+ }
+
+ /* About section side-by-side */
+ .about-section {
+ grid-template-columns: 1fr 1fr;
+ gap: var(--spacing-xl);
+ align-items: start;
+ }
+
+ .about-text-content {
+ font-size: var(--font-size-lg);
+ }
+
+ .about-banner-image {
+ max-height: 450px;
+ }
+
+ /* Recipes list grid for medium devices */
+ .recipes-list {
+ grid-template-columns: repeat(2, 1fr);
+ gap: var(--spacing-lg);
+ }
+
+ .recipe-item {
+ flex-direction: row;
+ align-items: center;
+ }
+
+ .recipe-item > * {
+ flex: 1 1 auto;
+ }
+
+ /* Recipe details alignment */
+ .recipe-details {
+ margin-top: 0;
+ padding-left: var(--spacing-md);
+ font-size: var(--font-size-base);
+ }
+
+ /* Form layout improvements */
+ #contact-form, .contact-form {
+ gap: var(--spacing-lg);
+ }
+
+ .form-group {
+ flex-direction: row;
+ align-items: center;
+ }
+
+ .form-label {
+ flex: 0 0 140px;
+ padding-right: var(--spacing-sm);
+ text-align: right;
+ margin-bottom: 0;
+ }
+
+ .form-input, .form-textarea {
+ flex: 1 1 auto;
+ }
+
+ /* Banner text padding added */
+ .banner-text {
+ padding: var(--spacing-md);
+ }
+
+ .banner-title {
+ font-size: var(--font-size-xxl);
+ }
+
+}
+
+/* ==========================
+ Large Devices (≥ 1024px)
+========================== */
+@media (min-width: var(--breakpoint-lg)) {
+
+ body {
+ padding: var(--spacing-xl) var(--spacing-xxl);
+ }
+
+ /* Header container max width increased */
+ .site-header .container {
+ max-width: 1440px;
+ }
+
+ /* Navigation gap increased for large screens */
+ #main-navigation .nav-list, .nav-list {
+ gap: var(--spacing-lg);
+ }
+
+ /* Banner section uses wider columns */
+ #banner, .banner-section {
+ grid-template-columns: 2fr 3fr;
+ gap: var(--spacing-xl);
+ }
+
+ /* Banner image larger and more prominent */
+ .banner-image {
+ max-height: 400px;
+ border-radius: var(--border-radius);
+ }
+
+ /* Featured recipes grid expands */
+ #featured-recipes, .featured-recipes {
+ grid-template-columns: repeat(4, 1fr);
+ gap: var(--spacing-xl);
+ }
+
+ .recipe-cards {
+ grid-template-columns: repeat(4, 1fr);
+ gap: var(--spacing-lg);
+ }
+
+ /* Recipe cards hover transform enhanced */
+ .recipe-card:hover, .recipe-card:focus-within {
+ transform: translateY(-8px);
+ box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+ }
+
+ /* About section uses 2 columns with padding */
+ .about-section {
+ grid-template-columns: 2fr 3fr;
+ gap: var(--spacing-xxl);
+ }
+
+ /* Recipes list changes to 3 columns */
+ .recipes-list {
+ grid-template-columns: repeat(3, 1fr);
+ gap: var(--spacing-xl);
+ }
+
+ .recipe-item {
+ padding: var(--spacing-lg);
+ }
+
+ /* Footer container max width enlarged */
+ .site-footer .container {
+ max-width: 1440px;
+ }
+
+}
+
+/* ==========================
+ Extra Large Devices (≥ 1280px)
+========================== */
+@media (min-width: var(--breakpoint-xl)) {
+
+ .site-header .container, .site-main, .site-footer .container {
+ max-width: 1600px;
+ margin-left: auto;
+ margin-right: auto;
+ }
+
+ /* Increase font sizes for headings */
+ h1, .page-title {
+ font-size: clamp(2.5rem, 3vw, 3rem);
+ }
+
+ h2, .section-title {
+ font-size: clamp(2rem, 2.5vw, 2.5rem);
+ }
+
+ h3, .recipe-title {
+ font-size: clamp(1.5rem, 1.5vw, 2rem);
+ }
+
+ /* Banner text grows more comfortable */
+ .banner-text {
+ padding: var(--spacing-xl);
+ }
+
+ /* Button padding increased for easier click targets */
+ .btn {
+ padding: clamp(0.75rem, 1.5vw, 1rem) clamp(1.5rem, 3vw, 2rem);
+ font-size: var(--font-size-lg);
+ }
+
+ /* Expanded recipe cards grid */
+ #featured-recipes, .featured-recipes {
+ grid-template-columns: repeat(5, 1fr);
+ }
+
+ .recipe-cards {
+ grid-template-columns: repeat(5, 1fr);
+ }
+
+ /* More padding in about section text */
+ .about-text-content {
+ font-size: 1.125rem;
+ }
+
+ /* Contact form max width increased */
+ #contact-section, .contact-section {
+ max-width: 700px;
+ }
+
+ /* Footer text max width increased */
+ .footer-text {
+ max-width: 1200px;
+ margin-left: auto;
+ margin-right: auto;
+ }
+
+}
+
+/* ==========================
+ Navigation responsive tweaks
+========================== */
+@media (max-width: calc(var(--breakpoint-md) - 1px)) {
+ /* Stack navigation vertically on smaller than medium devices */
+ #main-navigation, .navigation {
+ text-align: center;
+ }
+
+ .nav-list {
+ flex-direction: column;
+ gap: var(--spacing-sm);
+ }
+
+ .nav-item {
+ width: 100%;
+ }
+
+ .nav-link {
+ display: block;
+ padding: var(--spacing-sm) 0;
+ }
+}
+
+/* ==========================
+ Recipe Cards Responsive
+========================== */
+@media (max-width: calc(var(--breakpoint-sm) - 1px)) {
+ .recipe-cards, #featured-recipes, .featured-recipes {
+ grid-template-columns: 1fr !important;
+ }
+
+ #featured-recipes, .featured-recipes {
+ padding: 0;
+ }
+
+ .recipe-item {
+ flex-direction: column !important;
+ }
+
+ .recipe-item > * {
+ flex-basis: auto !important;
+ }
+
+ .recipe-details {
+ padding-left: 0 !important;
+ margin-top: var(--spacing-sm) !important;
+ }
+}
+
+/* ==========================
+ Form and Input Responsive
+========================== */
+@media (max-width: calc(var(--breakpoint-sm) - 1px)) {
+ .form-group {
+ flex-direction: column !important;
+ align-items: stretch !important;
+ }
+
+ .form-label {
+ text-align: left !important;
+ padding-right: 0 !important;
+ margin-bottom: var(--spacing-xs) !important;
+ }
+
+ .form-input, .form-textarea {
+ width: 100% !important;
+ }
+}
+
+/* ==========================
+ Footer layout responsive
+========================== */
+@media (max-width: calc(var(--breakpoint-sm) - 1px)) {
+ .footer-nav-list, .footer-nav {
+ flex-direction: column;
+ gap: var(--spacing-sm);
+ align-items: center;
+ }
+}
+
+/* ==========================
+ Accessibility on small screens
+========================== */
+@media (max-width: var(--breakpoint-sm)) {
+ .btn, button {
+ min-height: 40px;
+ touch-action: manipulation;
+ }
+
+ .nav-link, a {
+ padding: var(--spacing-sm) var(--spacing-md);
+ }
+}
+
+/* ==========================
+ Image responsiveness
+========================== */
+img, .banner-image, .recipe-image, .about-banner-image {
+ width: 100%;
+ height: auto;
+ max-width: 100%;
+ border-radius: var(--border-radius);
+}
+
+/* ==========================
+ Subsections padding and margin tweaks
+========================== */
+@media (min-width: var(--breakpoint-md)) {
+ .site-main > section, main > section {
+ padding-left: var(--spacing-lg);
+ padding-right: var(--spacing-lg);
+ }
+}
+
+@media (min-width: var(--breakpoint-lg)) {
+ .site-main > section, main > section {
+ padding-left: var(--spacing-xl);
+ padding-right: var(--spacing-xl);
+ }
+}
+
+/* ==========================
+ Utility classes responsiveness
+========================== */
+@media (min-width: var(--breakpoint-md)) {
+ .container {
+ width: 85%;
+ }
+}
+
+@media (min-width: var(--breakpoint-lg)) {
+ .container {
+ width: 80%;
+ }
+}
+
+/* ==========================
+ Individual IDs responsiveness
+========================== */
+@media (min-width: var(--breakpoint-md)) {
+ #header {
+ height: auto;
+ }
+
+ #logo {
+ max-height: 60px;
+ }
+
+ #banner {
+ grid-template-columns: 1fr 1fr;
+ }
+
+ #main-content {
+ padding: 0 var(--spacing-lg);
+ }
+
+ #featured-recipes {
+ grid-template-columns: repeat(3, 1fr);
+ }
+
+ #about-section {
+ grid-template-columns: 1fr 1fr;
+ }
+
+ #recipes-list {
+ grid-template-columns: repeat(2, 1fr);
+ }
+
+ #contact-section {
+ max-width: 600px;
+ margin-left: auto;
+ margin-right: auto;
+ padding: var(--spacing-lg);
+ }
+
+ #contact-form {
+ gap: var(--spacing-lg);
+ }
+}
+
+@media (min-width: var(--breakpoint-lg)) {
+ #banner {
+ grid-template-columns: 2fr 3fr;
+ }
+
+ #featured-recipes {
+ grid-template-columns: repeat(4, 1fr);
+ }
+
+ #about-section {
+ grid-template-columns: 2fr 3fr;
+ }
+
+ #recipes-list {
+ grid-template-columns: repeat(3, 1fr);
+ }
+
+ #contact-section {
+ max-width: 700px;
+ }
+}
+
+/* ==========================
+ Ensure adequate touch targets on mobile
+========================== */
+@media (max-width: var(--breakpoint-sm)) {
+ .btn, button {
+ min-width: 140px;
+ }
+}
+
+/* ==========================
+ Final notes:
+ Responsive interactions and navigability ensured
+ Accessibility maintained through focus states
+========================== */
+
+/* End of responsive.css */
