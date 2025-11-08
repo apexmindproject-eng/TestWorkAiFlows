@@ -1,0 +1,309 @@
+/* ============================================================
+ Zoo Explorer - animals.css
+ Animal-specific styling and detailed component styles
+ ============================================================ */
+
+/* ---------- CSS Reset / Base Overrides ---------- */
+/* In sync with base styles from styles.css but scoped just in case */
+html, body, div, h1, h2, h3, p, a, ul, li, nav, main, section, article, footer, header, form, label, input, textarea, button, address, strong, img {
+ box-sizing: border-box;
+}
+
+/* ---------- Variables Override for Themed Animal Section ---------- */
+:root {
+ /* Animal Palette Specific Colors */
+ --animal-bg: #e9f0f1;
+ --animal-card-bg: #ffffff;
+ --animal-card-border: #cfd8dc;
+ --animal-card-shadow: 0 2px 6px rgba(0,0,0,0.12);
+ --animal-hover-shadow: 0 6px 16px rgba(0,0,0,0.16);
+ --animal-name-color: #2c3e50;
+ --animal-desc-color: #57606a;
+ --button-link-bg: transparent;
+ --button-link-color: var(--color-primary);
+ --button-link-hover-color: var(--color-accent);
+ --button-link-focus-outline: 3px solid var(--color-accent);
+}
+
+/* ---------- Body and Container for Animal Pages ---------- */
+body {
+ background-color: var(--animal-bg);
+ color: var(--color-text);
+ font-family: var(--font-family-base);
+}
+
+.container {
+ max-width: 1100px;
+ margin-left: auto;
+ margin-right: auto;
+ padding-left: var(--spacing-md);
+ padding-right: var(--spacing-md);
+}
+
+/* ---------- Featured Animals Section ---------- */
+#featured-animals {
+ display: flex;
+ flex-direction: column;
+ gap: var(--spacing-xl);
+ padding: var(--spacing-lg) 0;
+}
+
+#featured-animals .animal-card {
+ background-color: var(--animal-card-bg);
+ border: 1px solid var(--animal-card-border);
+ border-radius: var(--border-radius-md);
+ box-shadow: var(--animal-card-shadow);
+ transition: box-shadow 0.3s ease;
+ display: flex;
+ flex-direction: column;
+ overflow: hidden;
+}
+
+#featured-animals .animal-card:hover, #featured-animals .animal-card:focus-within {
+ box-shadow: var(--animal-hover-shadow);
+ outline: none;
+}
+
+#featured-animals .animal-image {
+ width: 100%;
+ height: 260px;
+ object-fit: cover;
+ border-bottom: 1px solid var(--animal-card-border);
+ flex-shrink: 0;
+}
+
+#featured-animals .button-link {
+ padding: var(--spacing-md);
+ font-weight: var(--font-weight-bold);
+ color: var(--button-link-color);
+ text-decoration: none;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ background-color: var(--button-link-bg);
+ border: none;
+ cursor: pointer;
+ transition: color 0.3s ease;
+}
+
+#featured-animals .button-link:hover, #featured-animals .button-link:focus {
+ color: var(--button-link-hover-color);
+ outline: none;
+}
+
+/* ---------- Animal Grid and Animal Cards ---------- */
+.animal-grid {
+ display: grid;
+ grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+ gap: var(--spacing-lg);
+ padding: var(--spacing-lg) 0;
+}
+
+.animal-card {
+ background-color: var(--animal-card-bg);
+ border: 1px solid var(--animal-card-border);
+ border-radius: var(--border-radius-md);
+ box-shadow: var(--animal-card-shadow);
+ display: flex;
+ flex-direction: column;
+ overflow: hidden;
+ transition: box-shadow 0.3s ease;
+}
+
+.animal-card:hover, .animal-card:focus-within {
+ box-shadow: var(--animal-hover-shadow);
+ outline: none;
+}
+
+.animal-image {
+ width: 100%;
+ height: 200px;
+ object-fit: cover;
+ border-bottom: 1px solid var(--animal-card-border);
+ flex-shrink: 0;
+}
+
+.animal-card h3 {
+ margin: var(--spacing-md);
+ color: var(--animal-name-color);
+ font-size: clamp(1.25rem, 1.25vw + 0.75rem, 1.5rem);
+}
+
+.animal-card p {
+ flex-grow: 1;
+ margin: 0 var(--spacing-md) var(--spacing-md) var(--spacing-md);
+ color: var(--animal-desc-color);
+ font-size: 0.95rem;
+ line-height: 1.4;
+}
+
+/* ---------- Hero Section Enhancements ---------- */
+#hero {
+ position: relative;
+ text-align: center;
+ margin-bottom: var(--spacing-xxl);
+}
+
+.hero-image {
+ width: 100%;
+ height: clamp(20rem, 40vw, 45rem);
+ object-fit: cover;
+ border-radius: var(--border-radius-lg);
+ filter: brightness(0.75);
+}
+
+.hero-text {
+ position: absolute;
+ top: 50%;
+ left: 50%;
+ transform: translate(-50%, -50%);
+ font-family: var(--font-family-heading);
+ font-weight: var(--font-weight-bold);
+ font-size: clamp(3rem, 5vw + 1rem, 5rem);
+ color: var(--color-bg);
+ text-shadow: 3px 3px 8px rgba(0,0,0,0.8);
+ user-select: none;
+ max-width: 90%;
+}
+
+/* ---------- Content Sections ---------- */
+.content-section {
+ max-width: 900px;
+ margin-left: auto;
+ margin-right: auto;
+ padding: var(--spacing-xl) var(--spacing-md);
+ color: var(--color-text-light);
+}
+
+/* ---------- Individual Animal Specific Styles ---------- */
+/* For #lion, #elephant, #giraffe, #zebra, #panda */
+#lion, #elephant, #giraffe, #zebra, #panda {
+ padding: var(--spacing-lg);
+ background-color: var(--animal-card-bg);
+ border-radius: var(--border-radius-md);
+ box-shadow: var(--animal-card-shadow);
+ margin-bottom: var(--spacing-xl);
+}
+
+#lion h2, #elephant h2, #giraffe h2, #zebra h2, #panda h2 {
+ color: var(--color-primary);
+ font-size: clamp(1.75rem, 2.5vw + 1rem, 2.75rem);
+ margin-bottom: var(--spacing-md);
+}
+
+#lion p, #elephant p, #giraffe p, #zebra p, #panda p {
+ color: var(--color-text-light);
+ font-size: 1rem;
+ line-height: 1.5;
+}
+
+/* ---------- About Section (about-main) ---------- */
+#about-main {
+ padding: var(--spacing-xxl) var(--spacing-md);
+ max-width: 800px;
+ margin-left: auto;
+ margin-right: auto;
+ color: var(--color-text-light);
+}
+
+#about-intro, #our-mission, #team {
+ margin-bottom: var(--spacing-xl);
+ font-size: 1.125rem;
+ line-height: 1.6;
+}
+
+/* ---------- Contact Section ---------- */
+#contact-main {
+ padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.contact-form {
+ max-width: 600px;
+ margin-left: auto;
+ margin-right: auto;
+}
+
+.form-group {
+ display: flex;
+ flex-direction: column;
+ margin-bottom: var(--spacing-md);
+}
+
+label {
+ font-weight: var(--font-weight-bold);
+ margin-bottom: var(--spacing-sm);
+ color: var(--color-primary);
+}
+
+input[type="text"], input[type="email"], textarea {
+ padding: var(--spacing-sm);
+ border: 1px solid var(--color-border);
+ border-radius: var(--border-radius-sm);
+ font-size: var(--font-size-base);
+ font-family: var(--font-family-base);
+ resize: vertical;
+ transition: border-color 0.3s ease, box-shadow 0.3s ease;
+ color: var(--color-text);
+}
+
+input[type="text"]:focus, input[type="email"]:focus, textarea:focus {
+ outline: none;
+ border-color: var(--color-primary);
+ box-shadow: 0 0 6px var(--color-primary);
+}
+
+.input-textarea {
+ min-height: 130px;
+}
+
+.input-text {
+ height: 2.75rem;
+}
+
+.btn-submit {
+ background-color: var(--color-primary);
+ color: var(--color-bg);
+ padding: var(--spacing-sm) var(--spacing-md);
+ border: none;
+ border-radius: var(--border-radius-md);
+ font-weight: var(--font-weight-bold);
+ font-size: var(--font-size-base);
+ cursor: pointer;
+ transition: background-color 0.3s ease, box-shadow 0.3s ease;
+ align-self: flex-start;
+}
+
+.btn-submit:hover, .btn-submit:focus {
+ background-color: var(--color-accent);
+ outline: none;
+ box-shadow: 0 0 6px var(--color-accent);
+}
+
+/* ---------- Animal List Page Specific ---------- */
+#animal-list {
+ padding: var(--spacing-lg) 0;
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+ gap: var(--spacing-lg);
+}
+
+/* ---------- Accessibility and Focus Enhancements ---------- */
+:focus-visible {
+ outline: 3px solid var(--color-accent);
+ outline-offset: 3px;
+}
+
+/* ---------- Utility Classes ---------- */
+.text-center {
+ text-align: center;
+}
+
+.mt-md {
+ margin-top: var(--spacing-lg);
+}
+
+.mb-md {
+ margin-bottom: var(--spacing-lg);
+}
+
+/* End of animals.css */
