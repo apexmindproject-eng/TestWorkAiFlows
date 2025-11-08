@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Coffee Haven - Contact</title>
+ <link rel="stylesheet" href="../css/styles.css">
+ <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+ <header id="main-header">
+ <div class="container">
+ <h1 class="site-title">Coffee Haven</h1>
+ <nav id="main-nav" class="site-navigation">
+ <ul class="nav-list">
+ <li><a href="../index.html" class="nav-link">Home</a></li>
+ <li><a href="../pages/about.html" class="nav-link">About</a></li>
+ <li><a href="../pages/brewing.html" class="nav-link">Brewing Methods</a></li>
+ <li><a href="../pages/varieties.html" class="nav-link">Coffee Varieties</a></li>
+ <li><a href="contact.html" class="nav-link active">Contact</a></li>
+ </ul>
+ </nav>
+ </div>
+ </header>
+
+ <main id="contact-main" class="container">
+ <section id="contact-info">
+ <h2>Contact Us</h2>
+ <p>If you have any questions, comments, or want to share your coffee experiences, we'd love to hear from you. Please fill out the contact form below or reach us through the provided information.</p>
+ <address>
+ <p><strong>Email:</strong> <a href="mailto:info@coffeehaven.com">info@coffeehaven.com</a></p>
+ <p><strong>Phone:</strong> +1 (555) 123-4567</p>
+ <p><strong>Address:</strong> 123 Coffee Lane, Brewtown, CA 90210</p>
+ </address>
+ </section>
+
+ <section id="contact-form-section">
+ <h3>Send Us a Message</h3>
+ <form id="contact-form" class="contact-form" action="#" method="post" novalidate>
+ <div class="form-group">
+ <label for="name">Name:</label>
+ <input type="text" id="name" name="name" class="input-text" required aria-required="true">
+ </div>
+ <div class="form-group">
+ <label for="email">Email:</label>
+ <input type="email" id="email" name="email" class="input-text" required aria-required="true">
+ </div>
+ <div class="form-group">
+ <label for="message">Message:</label>
+ <textarea id="message" name="message" class="input-textarea" rows="5" required aria-required="true"></textarea>
+ </div>
+ <button type="submit" class="btn-submit">Submit</button>
+ </form>
+ </section>
+ </main>
+
+ <footer id="main-footer">
+ <div class="container">
+ <p>&copy; 2024 Coffee Haven. All rights reserved.</p>
+ </div>
+ </footer>
+
+ <script src="../js/main.js" defer></script>
+ <script src="../js/form-validation.js" defer></script>
+</body>
+</html>
