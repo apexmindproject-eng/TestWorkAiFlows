@@ -1,0 +1,527 @@
+/* ============================================================
+ Coffee Haven - styles.css
+ Base / Global Styles / Typography / Layout
+ ============================================================ */
+
+/* ---------- CSS Reset / Normalize ---------- */
+/* Eric Meyer's Reset CSS v2.0 - http://meyerweb.com/eric/tools/css/reset/ */
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+ margin: 0;
+ padding: 0;
+ border: 0;
+ font-size: 100%;
+ font: inherit;
+ vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure,
+footer, header, hgroup, menu, nav, section {
+ display: block;
+}
+body {
+ line-height: 1;
+ background-color: var(--color-bg);
+ color: var(--color-text);
+ font-family: var(--font-family-base);
+ -webkit-font-smoothing: antialiased;
+ -moz-osx-font-smoothing: grayscale;
+ min-height: 100vh;
+}
+ol, ul {
+ list-style: none;
+}
+blockquote, q {
+ quotes: none;
+}
+blockquote::before, blockquote::after,
+q::before, q::after {
+ content: '';
+ content: none;
+}
+table {
+ border-collapse: collapse;
+ border-spacing: 0;
+}
+
+/* ---------- CSS Custom Properties (Variables) ---------- */
+:root {
+ /* Colors */
+ --color-primary: #6f4e37; /* Coffee Brown */
+ --color-secondary: #c9a66b; /* Creamy Beige */
+ --color-accent: #d97b5d; /* Light Coral Accent */
+ --color-bg: #fefbf7; /* Off White Background */
+ --color-text: #3e2f1c; /* Dark Brown Text */
+ --color-text-light: #7f7053;
+ --color-muted: #a59986;
+ --color-border: #d7ccc8;
+ --color-error: #cc3c3c;
+ --color-success: #3c993c;
+ --color-link: var(--color-primary);
+ --color-link-hover: var(--color-accent);
+
+ /* Typography */
+ --font-family-base: 'Roboto', sans-serif;
+ --font-family-heading: 'Merriweather', serif;
+ --font-size-base: 1rem; /* 16px */
+ --line-height-base: 1.6;
+ --font-weight-normal: 400;
+ --font-weight-bold: 700;
+
+ /* Spacing */
+ --spacing-xs: 0.25rem;
+ --spacing-sm: 0.5rem;
+ --spacing-md: 1rem;
+ --spacing-lg: 1.5rem;
+ --spacing-xl: 2.5rem;
+ --spacing-xxl: 4rem;
+
+ /* Border Radius */
+ --border-radius-sm: 0.25rem;
+ --border-radius-md: 0.5rem;
+ --border-radius-lg: 1rem;
+
+ /* Shadows */
+ --shadow-light: 0 1px 3px rgba(0,0,0,0.1);
+ --shadow-medium: 0 4px 8px rgba(0,0,0,0.15);
+
+ /* Breakpoints (for responsive.css) */
+ --breakpoint-sm: 600px;
+ --breakpoint-md: 900px;
+ --breakpoint-lg: 1200px;
+}
+
+/* ----------------- Typography ----------------- */
+html {
+ font-size: 100%; /* 16px base */
+ scroll-behavior: smooth;
+ font-family: var(--font-family-base);
+ line-height: var(--line-height-base);
+ color: var(--color-text);
+ background-color: var(--color-bg);
+}
+
+body {
+ min-height: 100vh;
+ text-rendering: optimizeLegibility;
+ -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+ font-family: var(--font-family-heading);
+ font-weight: var(--font-weight-bold);
+ color: var(--color-primary);
+ margin-bottom: var(--spacing-md);
+ line-height: 1.2;
+}
+
+h1 {
+ font-size: clamp(1.75rem, 2vw + 1rem, 3rem); /* Responsive size */
+}
+
+h2 {
+ font-size: clamp(1.5rem, 1.5vw + 1rem, 2.25rem);
+}
+
+h3 {
+ font-size: clamp(1.25rem, 1vw + 1rem, 1.75rem);
+}
+
+p {
+ font-size: var(--font-size-base);
+ line-height: var(--line-height-base);
+ color: var(--color-text-light);
+ margin-bottom: var(--spacing-md);
+}
+
+strong {
+ font-weight: var(--font-weight-bold);
+ color: var(--color-primary);
+}
+
+/* Links */
+a {
+ color: var(--color-link);
+ text-decoration: none;
+ transition: color 0.3s ease, text-decoration 0.3s ease;
+}
+a:hover, a:focus {
+ color: var(--color-link-hover);
+ text-decoration: underline;
+ outline: none;
+}
+
+/* ---------- Layout ---------- */
+.container {
+ width: min(90%, 1200px);
+ margin-left: auto;
+ margin-right: auto;
+ padding-left: var(--spacing-md);
+ padding-right: var(--spacing-md);
+}
+
+/* ---------- Header ---------- */
+header#main-header, #main-header {
+ background-color: var(--color-primary);
+ color: var(--color-bg);
+ padding: var(--spacing-md) 0;
+ box-shadow: var(--shadow-medium);
+ position: sticky;
+ top: 0;
+ z-index: 1000;
+}
+
+.site-title {
+ font-family: var(--font-family-heading);
+ font-size: clamp(1.5rem, 2vw + 1rem, 2.5rem);
+ font-weight: var(--font-weight-bold);
+ color: var(--color-bg);
+ margin-left: var(--spacing-md);
+}
+
+/* Navigation */
+nav#main-nav, #main-nav, .site-navigation {
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ background: transparent;
+ user-select: none;
+}
+
+.nav-list {
+ display: flex;
+ gap: var(--spacing-lg);
+ padding: 0;
+}
+
+.nav-list li {
+ list-style: none;
+}
+
+.nav-link {
+ font-weight: var(--font-weight-bold);
+ color: var(--color-bg);
+ padding: var(--spacing-sm) var(--spacing-md);
+ border-radius: var(--border-radius-sm);
+ transition: background-color 0.3s ease, color 0.3s ease;
+ display: inline-block;
+}
+
+.nav-link:hover, .nav-link:focus {
+ background-color: var(--color-secondary);
+ color: var(--color-primary);
+ outline: none;
+}
+
+.nav-link.active {
+ background-color: var(--color-secondary);
+ color: var(--color-primary);
+ cursor: default;
+ box-shadow: 0 0 8px var(--color-secondary);
+}
+
+/* ---------- Main Content Area ---------- */
+main#home-main, main {
+ padding: var(--spacing-xl) var(--spacing-md);
+ max-width: 1200px;
+ margin-left: auto;
+ margin-right: auto;
+}
+
+/* Hero Section */
+.hero {
+ position: relative;
+ text-align: center;
+ margin-bottom: var(--spacing-xxl);
+ color: var(--color-bg);
+}
+
+.hero-image {
+ width: 100%;
+ height: clamp(15rem, 40vw, 40rem);
+ object-fit: cover;
+ border-radius: var(--border-radius-lg);
+ filter: brightness(0.7);
+}
+
+.hero-text {
+ position: absolute;
+ top: 50%;
+ left: 50%;
+ transform: translate(-50%, -50%);
+ font-family: var(--font-family-heading);
+ font-weight: var(--font-weight-bold);
+ font-size: clamp(2rem, 4vw + 1rem, 4rem);
+ text-shadow: 2px 2px 6px rgba(0,0,0,0.7);
+ max-width: 90%;
+ user-select: none;
+}
+
+/* Grid layout utility for feature cards and lists */
+.grid {
+ display: grid;
+ gap: var(--spacing-lg);
+ grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+/* Feature Cards */
+.feature-card {
+ background-color: var(--color-bg);
+ border: 1px solid var(--color-border);
+ border-radius: var(--border-radius-md);
+ box-shadow: var(--shadow-light);
+ display: flex;
+ flex-direction: column;
+ overflow: hidden;
+ transition: box-shadow 0.3s ease;
+}
+
+.feature-card:hover, .feature-card:focus-within {
+ box-shadow: var(--shadow-medium);
+ outline: none;
+}
+
+.feature-image {
+ width: 100%;
+ height: 180px;
+ object-fit: cover;
+ border-bottom: 1px solid var(--color-border);
+ flex-shrink: 0;
+}
+
+.feature-link {
+ padding: var(--spacing-md);
+ font-weight: var(--font-weight-bold);
+ color: var(--color-primary);
+ text-decoration: none;
+ flex-grow: 1;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ transition: color 0.3s ease;
+}
+
+.feature-link:hover, .feature-link:focus {
+ color: var(--color-accent);
+ outline: none;
+}
+
+/* About Page Images */
+.about-image, .brewing-image, .varieties-image {
+ width: 100%;
+ height: auto;
+ border-radius: var(--border-radius-md);
+ box-shadow: var(--shadow-light);
+ margin-bottom: var(--spacing-lg);
+ display: block;
+ max-width: 600px;
+ margin-left: auto;
+ margin-right: auto;
+}
+
+/* Content Sections */
+.content-section {
+ padding: var(--spacing-xl) 0;
+ max-width: 1000px;
+ margin-left: auto;
+ margin-right: auto;
+ color: var(--color-text-light);
+}
+
+/* Brewing Methods and Varieties */
+.method, .variety {
+ background-color: var(--color-bg);
+ border: 1px solid var(--color-border);
+ border-radius: var(--border-radius-md);
+ padding: var(--spacing-md);
+ box-shadow: var(--shadow-light);
+ margin-bottom: var(--spacing-md);
+ transition: box-shadow 0.3s ease;
+}
+.method:hover, .method:focus-within, .variety:hover, .variety:focus-within {
+ box-shadow: var(--shadow-medium);
+ outline: none;
+}
+
+/* Lists for Methods and Varieties */
+#methods-list, #variety-list {
+ display: flex;
+ flex-direction: column;
+ gap: var(--spacing-md);
+ padding-left: 0;
+ margin-top: var(--spacing-lg);
+}
+
+/* Contact Form */
+.contact-form {
+ background-color: var(--color-bg);
+ border: 1px solid var(--color-border);
+ border-radius: var(--border-radius-lg);
+ padding: var(--spacing-lg);
+ box-shadow: var(--shadow-light);
+ max-width: 600px;
+ margin-left: auto;
+ margin-right: auto;
+}
+
+.form-group {
+ display: flex;
+ flex-direction: column;
+ margin-bottom: var(--spacing-md);
+}
+
+label {
+ font-weight: var(--font-weight-bold);
+ margin-bottom: var(--spacing-sm);
+ color: var(--color-primary);
+}
+
+input[type="text"], input[type="email"], textarea {
+ padding: var(--spacing-sm);
+ border: 1px solid var(--color-border);
+ border-radius: var(--border-radius-sm);
+ font-size: var(--font-size-base);
+ font-family: var(--font-family-base);
+ resize: vertical;
+ transition: border-color 0.3s ease, box-shadow 0.3s ease;
+ color: var(--color-text);
+}
+
+input[type="text"]:focus, input[type="email"]:focus, textarea:focus {
+ outline: none;
+ border-color: var(--color-primary);
+ box-shadow: 0 0 6px var(--color-primary);
+}
+
+.input-textarea {
+ min-height: 120px;
+}
+
+.input-text {
+ height: 2.5rem;
+}
+
+.btn-submit {
+ background-color: var(--color-primary);
+ color: var(--color-bg);
+ padding: var(--spacing-sm) var(--spacing-md);
+ border: none;
+ border-radius: var(--border-radius-md);
+ font-weight: var(--font-weight-bold);
+ font-size: var(--font-size-base);
+ cursor: pointer;
+ transition: background-color 0.3s ease, box-shadow 0.3s ease;
+ align-self: flex-start;
+}
+
+.btn-submit:hover, .btn-submit:focus {
+ background-color: var(--color-accent);
+ outline: none;
+ box-shadow: 0 0 6px var(--color-accent);
+}
+
+/* ---------- Footer ---------- */
+footer#main-footer, #main-footer {
+ background-color: var(--color-primary);
+ color: var(--color-bg);
+ padding: var(--spacing-lg) 0;
+ text-align: center;
+ font-size: 0.9rem;
+ box-shadow: 0 -4px 6px rgba(0,0,0,0.15);
+}
+
+footer#main-footer address, #contact-info {
+ font-style: normal;
+ font-weight: var(--font-weight-normal);
+ margin-top: var(--spacing-sm);
+ color: var(--color-text-light);
+}
+
+/* ---------- Specific IDs Styling ---------- */
+#intro, #about-intro, #brewing-intro, #coffee-culture, #our-vision {
+ margin-bottom: var(--spacing-xl);
+ color: var(--color-text-light);
+ font-size: clamp(1rem, 1vw + 0.8rem, 1.125rem);
+ line-height: 1.5;
+}
+
+#featured-sections {
+ margin-bottom: var(--spacing-xxl);
+}
+
+#contact-main, #contact-form-section {
+ padding-top: var(--spacing-xl);
+ padding-bottom: var(--spacing-xl);
+}
+
+#contact-form {
+ max-width: 600px;
+ margin-left: auto;
+ margin-right: auto;
+}
+
+/* Form Inputs by ID */
+#name, #email, #message {
+ font-family: var(--font-family-base);
+ font-size: var(--font-size-base);
+ border-radius: var(--border-radius-sm);
+ border: 1px solid var(--color-border);
+ padding: var(--spacing-sm);
+ transition: border-color 0.3s ease, box-shadow 0.3s ease;
+ width: 100%;
+ box-sizing: border-box;
+ color: var(--color-text);
+}
+
+#name:focus, #email:focus, #message:focus {
+ outline: none;
+ border-color: var(--color-primary);
+ box-shadow: 0 0 6px var(--color-primary);
+}
+
+/* ---------- Images ---------- */
+img {
+ display: block;
+ max-width: 100%;
+ height: auto;
+ border-radius: var(--border-radius-sm);
+}
+
+/* Accessibility Enhancement */
+:focus-visible {
+ outline: 2px solid var(--color-accent);
+ outline-offset: 2px;
+}
+
+/* Cursor Helper for Buttons and Links */
+a, button {
+ cursor: pointer;
+}
+
+/* Script and Meta tags are unstyled but reset above */
+
+/* ---------- Additional Utility Classes ---------- */
+.text-center {
+ text-align: center;
+}
+
+.mt-md {
+ margin-top: var(--spacing-lg);
+}
+
+.mb-md {
+ margin-bottom: var(--spacing-lg);
+}
+
+/* End of styles.css */
