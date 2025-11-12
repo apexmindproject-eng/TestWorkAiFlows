@@ -1,0 +1,366 @@
+/*--------------------------------------------------
+  Responsive Stylesheet for Coffee Lovers
+  Mobile-First Design with Progressive Enhancements
+--------------------------------------------------*/
+
+/*--------------------------------------------------
+  Base Mobile Adjustments
+  All styles.css styles are mobile-first; this file enhances and adjusts layouts 
+  and typography for larger screens.
+--------------------------------------------------*/
+
+/* Container max-width increases on tablets and desktops */
+@media (min-width: 600px) {
+  .container {
+    width: 85vw;
+  }
+}
+
+@media (min-width: 900px) {
+  .container {
+    width: 80vw;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    width: 70vw;
+  }
+}
+
+/*--------------------------------------------------
+  Header Responsive
+--------------------------------------------------*/
+@media (min-width: 600px) {
+  #site-header {
+    padding: var(--space-lg) 0;
+  }
+
+  .header-container {
+    flex-direction: row;
+  }
+
+  .site-logo {
+    font-size: clamp(1.75rem, 3vw, var(--font-size-xxl));
+  }
+
+  .navigation {
+    flex-grow: 1;
+    justify-content: flex-end;
+  }
+
+  .nav-list {
+    gap: var(--space-xl);
+  }
+
+  .nav-link {
+    font-size: var(--font-size-xl);
+    padding: var(--space-sm) var(--space-md);
+  }
+}
+
+/*--------------------------------------------------
+  Navigation Enhancements for Desktop
+--------------------------------------------------*/
+@media (min-width: 900px) {
+  .nav-list {
+    gap: var(--space-xxl);
+  }
+
+  .nav-link {
+    padding: var(--space-md) var(--space-lg);
+  }
+}
+
+/*--------------------------------------------------
+  Hero Section Layout
+--------------------------------------------------*/
+@media (min-width: 600px) {
+  .hero-section {
+    flex-direction: row;
+    text-align: left;
+    padding: var(--space-xxl) 0;
+    align-items: center;
+  }
+
+  .hero-text {
+    max-width: 50%;
+    padding-right: var(--space-xl);
+  }
+
+  .hero-title {
+    font-size: clamp(3rem, 5vw, 4rem);
+    margin-bottom: var(--space-md);
+  }
+
+  .hero-description {
+    font-size: var(--font-size-lg);
+  }
+
+  .hero-image {
+    position: relative;
+    width: 50%;
+    height: auto;
+    opacity: 1;
+  }
+}
+
+@media (min-width: 900px) {
+  .hero-text {
+    max-width: 45%;
+  }
+
+  .hero-image {
+    width: 55%;
+  }
+}
+
+/*--------------------------------------------------
+  Featured Section Responsive Grid
+--------------------------------------------------*/
+@media (min-width: 600px) {
+  .featured-section {
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
+  }
+
+  .brewing-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .brewing-cards {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xxl);
+  }
+}
+
+/*--------------------------------------------------
+  About Section Responsive Grid
+--------------------------------------------------*/
+@media (min-width: 600px) {
+  .about-content {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-xxl);
+  }
+
+  .intro-text {
+    padding: 0 var(--space-lg);
+  }
+}
+
+/*--------------------------------------------------
+  Bootstrap-like Utility: Offerings list flex on medium screens
+--------------------------------------------------*/
+@media (min-width: 768px) {
+  .offerings-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-lg);
+  }
+
+  .offerings-list > * {
+    flex: 1 1 calc(50% - var(--space-lg));
+  }
+}
+
+@media (min-width: 1024px) {
+  .offerings-list > * {
+    flex: 1 1 calc(33.333% - var(--space-lg));
+  }
+}
+
+/*--------------------------------------------------
+  Coffee Types Grid Responsive
+--------------------------------------------------*/
+@media (min-width: 600px) {
+  .types-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-xl);
+  }
+
+  .coffee-type {
+    margin-bottom: 0;
+  }
+}
+
+/*--------------------------------------------------
+  Contact Form Responsive
+--------------------------------------------------*/
+@media (min-width: 600px) {
+  #contact-form {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+  }
+
+  .form-group:nth-child(4) {
+    grid-column: 1 / -1;
+  }
+
+  button[type="submit"] {
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin-top: var(--space-lg);
+  }
+}
+
+@media (min-width: 900px) {
+  #contact-form {
+    max-width: 700px;
+  }
+
+  /* Larger padding on form controls */
+  input.form-control,
+  textarea.form-control {
+    padding: var(--space-md) var(--space-lg);
+    font-size: var(--font-size-lg);
+  }
+}
+
+/*--------------------------------------------------
+  Footer Responsive Layout
+--------------------------------------------------*/
+@media (min-width: 600px) {
+  .footer-container {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 var(--space-lg);
+  }
+  .footer-nav-list {
+    gap: var(--space-lg);
+  }
+}
+/*--------------------------------------------------
+  Navigation Collapse for Mobile - Burger Menu Placeholder
+  (This can be enhanced later with JavaScript)
+--------------------------------------------------*/
+@media (max-width: 599px) {
+  .nav-list {
+    flex-direction: column;
+    gap: var(--space-md);
+    background-color: var(--color-primary-light);
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 200px;
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    display: none; /* Hidden by default; toggle with JS */
+  }
+
+  .nav-list.open {
+    display: flex;
+  }
+
+  .nav-link {
+    padding: var(--space-sm);
+    color: var(--color-primary-dark);
+  }
+}
+
+/*--------------------------------------------------
+  Brewing Cards Grid for Large Displays
+--------------------------------------------------*/
+@media (min-width: 1200px) {
+  .brewing-cards {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-xxl);
+  }
+}
+/*--------------------------------------------------
+  Brewing Method Cards Flex
+--------------------------------------------------*/
+@media (min-width: 900px) {
+  .brewing-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xl);
+  }
+
+  .brewing-method {
+    flex: 1 1 45%;
+    margin-bottom: 0;
+  }
+}
+
+/*--------------------------------------------------
+  Typography Scaling Enhancements
+--------------------------------------------------*/
+@media (min-width: 900px) {
+  h1 {
+    font-size: clamp(3rem, 4vw, 4rem);
+  }
+
+  h2 {
+    font-size: clamp(2rem, 3vw, 3rem);
+  }
+
+  h3 {
+    font-size: clamp(1.5rem, 2vw, 2rem);
+  }
+
+  p {
+    font-size: var(--font-size-lg);
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  a {
+    font-size: var(--font-size-lg);
+  }
+}
+
+/*--------------------------------------------------
+  Specific IDs Responsive Adjustments
+--------------------------------------------------*/
+@media (min-width: 900px) {
+  /* Espresso and Latte Art Cards arranged horizontally */
+  #espresso-card, #latte-art-card {
+    max-width: 400px;
+  }
+
+  .brewing-cards {
+    grid-template-areas: "espresso latteart featured";
+    grid-template-columns: 1fr 1fr 1.5fr;
+  }
+}
+
+/*--------------------------------------------------
+  Form Inputs full width for mobile and half for desktop
+--------------------------------------------------*/
+@media (max-width: 599px) {
+  input.form-control,
+  textarea.form-control {
+    width: 100%;
+    font-size: var(--font-size-base);
+  }
+}
+/*--------------------------------------------------
+  Additional Accessibility and Focus adjustments
+--------------------------------------------------*/
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover, .btn-primary:hover, .btn-secondary:hover {
+    filter: brightness(0.9);
+  }
+}
+
+/*--------------------------------------------------
+  Image adjustments for Retina and larger displays
+--------------------------------------------------*/
+@media (min-resolution: 2dppx), (min-resolution: 192dpi) {
+  .hero-image,
+  .brewing-image,
+  .type-image {
+    image-rendering: optimizeQuality;
+  }
+}
+
+/*--------------------------------------------------
+  End of responsive.css
+--------------------------------------------------*/
