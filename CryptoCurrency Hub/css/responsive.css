@@ -1,0 +1,525 @@
+/*------------------------------------------------------------
+  Responsive Styles - Media Queries
+  Mobile-first approach - styles.css contains base styles
+------------------------------------------------------------*/
+
+/*------------------------------------------------------------
+  Base Breakpoints and Utilities
+------------------------------------------------------------*/
+:root {
+  --breakpoint-sm: 600px;
+  --breakpoint-md: 900px;
+  --breakpoint-lg: 1200px;
+  --breakpoint-xl: 1600px;
+}
+
+/*------------------------------------------------------------
+  Small devices & Up (min-width: 600px)
+------------------------------------------------------------*/
+@media screen and (min-width: var(--breakpoint-sm)) {
+
+  /* Header Layout Changes for tablets and above */
+  .header-container, #site-header {
+    flex-wrap: nowrap;
+    padding: var(--spacing-md) var(--spacing-xl);
+  }
+
+  /* Navigation Horizontal and visible */
+  nav#main-navigation, .navigation {
+    display: flex !important;
+  }
+/* Navigation Horizontal and visible */
+  nav#main-navigation, .navigation {
+    display: flex !important;
+  }
+
+  .nav-list {
+    justify-content: flex-end;
+    gap: var(--spacing-lg);
+  }
+
+  /* Hero Section text alignment left with padding */
+  .hero-section {
+    text-align: left;
+    padding: var(--spacing-xxl) var(--spacing-xl);
+  }
+
+  .hero-title {
+    max-width: 70%;
+    margin-left: 0;
+  }
+
+  .hero-description {
+    max-width: 60%;
+    margin-left: 0;
+  }
+
+  /* Featured coins grid adjusts to 3 columns */
+  .coins-list {
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
+  }
+
+  .coin-card {
+    max-width: 280px;
+    margin: 0 auto;
+  }
+
+  /* Education Section max width increase for readability */
+  .education-description {
+    max-width: 650px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Footer container switches to flex row with spacing */
+  .footer-container {
+    flex-wrap: nowrap;
+    padding: var(--spacing-lg) var(--spacing-xl);
+  }
+/* Footer container switches to flex row with spacing */
+  .footer-container {
+    flex-wrap: nowrap;
+    padding: var(--spacing-lg) var(--spacing-xl);
+  }
+
+  /* Footer text and nav horizontally aligned */
+  .footer-text, .footer-navigation {
+    flex: 1 1 auto;
+  }
+
+  .footer-nav-list {
+    justify-content: flex-end;
+  }
+
+  /* About page article max width & padding tweaks */
+  .about-article {
+    max-width: 850px;
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+  }
+
+  /* News articles flex direction becomes row for better space use */
+  .news-article-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-lg);
+  }
+
+  .news-article {
+    flex: 1 1 350px;
+    max-width: 400px;
+  }
+
+  /* Market data section contains more padding and grid expansion */
+  .market-description {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+/* Market data section contains more padding and grid expansion */
+  .market-description {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Tables have better spacing and fixed layout */
+  table#crypto-market-table, .market-table {
+    table-layout: fixed;
+  }
+
+  tr th, tr td {
+    padding: var(--spacing-md); 
+  }
+
+  /* Contact form center aligned with max width */
+  .contact-form-section {
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: var(--spacing-lg);
+  }
+
+}
+
+/*------------------------------------------------------------
+  Medium Devices & Up (min-width: 900px)
+------------------------------------------------------------*/
+@media screen and (min-width: var(--breakpoint-md)) {
+
+  /* Header container spacing and layout */
+  .header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-md) var(--spacing-xxl);
+  }
+/* Header container spacing and layout */
+  .header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-md) var(--spacing-xxl);
+  }
+
+  /* Logo and title alignment with more space */
+  .logo-link {
+    gap: var(--spacing-sm);
+  }
+
+  .site-title {
+    font-size: 2rem;
+  }
+
+  /* Navigation spacing and hover improvements */
+  .nav-list {
+    gap: var(--spacing-xl);
+  }
+
+  .nav-link {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: 1.125rem;
+  }
+
+  /* Hero Section max width for content */
+  .hero-section {
+    padding: var(--spacing-xxl) var(--spacing-xxl);
+  }
+
+  .hero-title {
+    max-width: 50%;
+  }
+
+  .hero-description {
+    max-width: 40%;
+  }
+
+  /* Coins list grid expands to 4 columns on wider screens */
+  .coins-list {
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
+    gap: var(--spacing-xl);
+  }
+/* Coins list grid expands to 4 columns on wider screens */
+  .coins-list {
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
+    gap: var(--spacing-xl);
+  }
+
+  /* Education section description wider with centered text */
+  .education-description {
+    max-width: 720px;
+    font-size: 1.25rem;
+  }
+
+  /* Footer container center content with max width */
+  .footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* About page article wider max width */
+  .about-article {
+    max-width: 900px;
+    font-size: 1.125rem;
+  }
+
+  /* News articles justify content stretch with even gaps */
+  .news-article-list {
+    gap: var(--spacing-xl);
+  }
+
+  /* Market data section max width & table improvements */
+  .market-data-section {
+    padding: 0 var(--spacing-xxl);
+  }
+
+  /* Contact form inputs and textarea larger */
+  .form-input, .form-textarea {
+    font-size: 1.125rem;
+    padding: var(--spacing-md);
+  }
+/* Contact form inputs and textarea larger */
+  .form-input, .form-textarea {
+    font-size: 1.125rem;
+    padding: var(--spacing-md);
+  }
+
+  button.btn, .btn {
+    font-size: 1.125rem;
+    padding: var(--spacing-md) var(--spacing-xl);
+  }
+
+}
+
+/*------------------------------------------------------------
+  Large Devices & Up (min-width: 1200px)
+------------------------------------------------------------*/
+@media screen and (min-width: var(--breakpoint-lg)) {
+
+  /* Header container max width and padding */
+  .header-container {
+    max-width: 1400px;
+    padding: var(--spacing-md) calc(var(--spacing-xxl) * 1.5);
+  }
+
+  /* Site title bigger font size */
+  .site-title {
+    font-size: 2.25rem;
+  }
+
+  /* Navigation larger fonts and spacing */
+  .nav-link {
+    font-size: 1.25rem;
+    padding: var(--spacing-md) var(--spacing-xl);
+  }
+/* Navigation larger fonts and spacing */
+  .nav-link {
+    font-size: 1.25rem;
+    padding: var(--spacing-md) var(--spacing-xl);
+  }
+
+  /* Hero section layout with grid - text and possible image or illustration side by side */
+  .hero-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: var(--spacing-xxl);
+    padding: var(--spacing-xxl) calc(var(--spacing-xxl) * 1.5);
+    text-align: left;
+  }
+
+  .hero-title {
+    font-size: clamp(3rem, 5vw + 1rem, 5rem);
+    max-width: 80%;
+  }
+
+  .hero-description {
+    font-size: 1.25rem;
+    max-width: 70%;
+    margin-top: var(--spacing-sm);
+  }
+
+  /* Featured coins 5 columns grid */
+  .coins-list {
+    grid-template-columns: repeat(5, minmax(220px, 1fr));
+    gap: var(--spacing-xxl);
+  }
+
+  /* Education section description wider and increasing font size */
+  .education-description {
+    font-size: 1.5rem;
+    max-width: 800px;
+  }
+/* Education section description wider and increasing font size */
+  .education-description {
+    font-size: 1.5rem;
+    max-width: 800px;
+  }
+
+  /* Footer text and navigation separated more with padding */
+  .footer-container {
+    max-width: 1400px;
+    padding: var(--spacing-lg) calc(var(--spacing-xxl) * 1.5);
+  }
+
+  /* About article max width and typography size increase */
+  .about-article {
+    max-width: 950px;
+    font-size: 1.25rem;
+  }
+
+  /* News article size increase and grid improvements */
+  .news-article-list {
+    gap: calc(var(--spacing-xxl) / 2);
+  }
+
+  .news-article {
+    max-width: 450px;
+  }
+
+  /* Market page table font and padding enlarged */
+  table#crypto-market-table, .market-table {
+    font-size: 1rem;
+  }
+
+  tr th, tr td {
+    padding: var(--spacing-lg);
+  }
+
+  /* Contact form max width and input sizing larger */
+  .contact-form-section {
+    max-width: 700px;
+    padding: var(--spacing-xxl);
+  }
+tr th, tr td {
+    padding: var(--spacing-lg);
+  }
+
+  /* Contact form max width and input sizing larger */
+  .contact-form-section {
+    max-width: 700px;
+    padding: var(--spacing-xxl);
+  }
+
+  .form-input, .form-textarea {
+    font-size: 1.25rem;
+    padding: var(--spacing-lg);
+  }
+
+  button.btn, .btn {
+    font-size: 1.25rem;
+    padding: var(--spacing-lg) var(--spacing-xxl);
+  }
+
+}
+
+/*------------------------------------------------------------
+  Extra Large Devices & Up (min-width: 1600px)
+------------------------------------------------------------*/
+@media screen and (min-width: var(--breakpoint-xl)) {
+
+  .header-container {
+    max-width: 1600px;
+    padding: var(--spacing-lg) calc(var(--spacing-xxl) * 2);
+  }
+
+  .site-title {
+    font-size: 2.75rem;
+  }
+
+  .nav-link {
+    font-size: 1.35rem;
+    padding: var(--spacing-lg) calc(var(--spacing-xxl) * 1.25);
+  }
+.site-title {
+    font-size: 2.75rem;
+  }
+
+  .nav-link {
+    font-size: 1.35rem;
+    padding: var(--spacing-lg) calc(var(--spacing-xxl) * 1.25);
+  }
+
+  .hero-section {
+    padding: var(--spacing-xxl) calc(var(--spacing-xxl) * 2);
+    grid-gap: calc(var(--spacing-xxl) * 1.5);
+  }
+
+  .hero-title {
+    max-width: 60%;
+  }
+
+  .hero-description {
+    max-width: 55%;
+  }
+
+  .coins-list {
+    grid-template-columns: repeat(6, minmax(220px, 1fr));
+    gap: calc(var(--spacing-xxl) * 1.5);
+  }
+
+  .education-description {
+    font-size: 1.75rem;
+    max-width: 900px;
+  }
+
+  .footer-container {
+    max-width: 1600px;
+    padding: var(--spacing-lg) calc(var(--spacing-xxl) * 2);
+  }
+
+  .about-article {
+    max-width: 1000px;
+    font-size: 1.375rem;
+  }
+
+  .news-article-list {
+    gap: calc(var(--spacing-xxl));
+  }
+
+  .news-article {
+    max-width: 500px;
+  }
+
+  table#crypto-market-table, .market-table {
+    font-size: 1.125rem;
+  }
+.news-article-list {
+    gap: calc(var(--spacing-xxl));
+  }
+
+  .news-article {
+    max-width: 500px;
+  }
+
+  table#crypto-market-table, .market-table {
+    font-size: 1.125rem;
+  }
+
+  tr th, tr td {
+    padding: calc(var(--spacing-lg) * 1.25);
+  }
+
+  .contact-form-section {
+    max-width: 800px;
+    padding: calc(var(--spacing-xxl) * 1.25);
+  }
+
+  .form-input, .form-textarea {
+    font-size: 1.375rem;
+    padding: calc(var(--spacing-lg) * 1.25);
+  }
+
+  button.btn, .btn {
+    font-size: 1.375rem;
+    padding: calc(var(--spacing-lg) * 1.25) calc(var(--spacing-xxl) * 1.25);
+  }
+
+}
+
+/*------------------------------------------------------------
+  Navigation Mobile Hamburger Toggle (Optional for implementation)
+------------------------------------------------------------*/
+/* Sample styles for toggle button if JS-driven menu toggle is implemented */
+@media screen and (max-width: calc(var(--breakpoint-sm) - 1px)) {
+  nav#main-navigation, .navigation {
+    display: none;
+  }
+  .nav-list {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  .nav-link {
+    padding: var(--spacing-md);
+    font-size: 1.125rem;
+  }
+}
+
+/*------------------------------------------------------------
+  Accessibility improvements for resize and orientation
+------------------------------------------------------------*/
+@media screen and (orientation: landscape) and (max-width: 800px) {
+  .hero-description, .education-description, .market-description, .contact-description {
+    font-size: 1rem;
+  }
+}
+
+/*------------------------------------------------------------
+  Fine tuning for headings on smaller devices
+------------------------------------------------------------*/
+@media screen and (max-width: 400px) {
+  h1 {
+    font-size: clamp(1.75rem, 5vw + 0.5rem, 2.5rem);
+  }
+  h2 {
+    font-size: clamp(1.25rem, 4vw + 0.5rem, 2rem);
+  }
+}
+/*------------------------------------------------------------
+  Utility and helper adjustments
+------------------------------------------------------------*/
+.container {
+  padding-left: var(--spacing-md);
+  padding-right: var(--spacing-md);
+}
+
+/* End of responsive.css */
