@@ -1,0 +1,382 @@
+/* ===============================
+   Responsive Stylesheet
+   Mobile-First Approach with Media Queries
+   =============================== */
+
+/* ------ Small devices and upwards ------ */
+@media (min-width: 480px) {
+  :root {
+    --font-size-base: clamp(1rem, 1vw + 0.5rem, 1.125rem);
+    --font-size-h1: clamp(2.25rem, 3vw + 1rem, 3.75rem);
+    --font-size-h2: clamp(1.75rem, 2.5vw + 0.75rem, 2.75rem);
+    --font-size-h3: clamp(1.5rem, 2vw + 0.5rem, 2.25rem);
+    --font-size-h4: clamp(1.2rem, 1.5vw + 0.5rem, 1.75rem);
+  }
+
+  .crypto-img {
+    width: 70px;
+    height: 70px;
+  }
+
+  .nav-link {
+    padding: var(--space-sm) var(--space-lg);
+  }
+
+  main {
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+}
+
+/* ------ Tablet devices and upwards (768px) ------ */
+@media (min-width: 768px) {
+  .container {
+    max-width: 1140px;
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
+  }
+/* ------ Tablet devices and upwards (768px) ------ */
+@media (min-width: 768px) {
+  .container {
+    max-width: 1140px;
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
+  }
+
+  .header-container {
+    flex-wrap: nowrap;
+    padding: var(--space-lg) 0;
+  }
+
+  .navigation {
+    justify-content: flex-end;
+  }
+
+  .nav-list {
+    gap: var(--space-xl);
+  }
+
+  /* Hero Section Grid Layout with two columns */
+  .hero-section {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-xl);
+    text-align: left;
+    align-items: center;
+    padding: var(--space-xxl);
+  }
+
+  .hero-content {
+    max-width: 100%;
+  }
+
+  .hero-images {
+    justify-content: flex-start;
+    gap: var(--space-lg);
+  }
+
+  #hero {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    justify-items: start;
+    text-align: left;
+  }
+
+  .features-list {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xl);
+  }
+.features-list {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xl);
+  }
+
+  .footer-container {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0;
+  }
+
+  .footer-nav {
+    width: auto;
+  }
+
+  .market-table {
+    font-size: 1rem;
+  }
+
+  .contact-form {
+    max-width: 500px;
+    padding: var(--space-xl);
+  }
+
+  .form-group {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .form-label {
+    flex: 0 0 150px;
+    margin-bottom: 0;
+    text-align: right;
+  }
+
+  .form-input, .form-textarea {
+    flex: 1 1 auto;
+  }
+
+  #feature-news, #feature-market, #feature-education {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    padding: var(--space-md) 0;
+  }
+}
+
+/* ------ Desktop devices and upwards (1024px) ------ */
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1140px;
+  }
+
+  header {
+    padding: var(--space-lg) var(--space-xl);
+  }
+
+  .nav-list {
+    gap: 3rem;
+  }
+header {
+    padding: var(--space-lg) var(--space-xl);
+  }
+
+  .nav-list {
+    gap: 3rem;
+  }
+
+  .hero-section {
+    grid-template-columns: 2fr 3fr 2fr;
+    gap: var(--space-xxl);
+  }
+
+  .hero-content {
+    max-width: 700px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .hero-images {
+    grid-column: 3 / 4;
+    justify-content: flex-start;
+  }
+
+  .features-list {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .footer-container {
+    padding: var(--space-lg) var(--space-xl);
+  }
+
+  .market-section {
+    padding: var(--space-xxl) var(--space-xl);
+  }
+
+  #about-intro, #about-description, #mission, #educational-content, #team {
+    max-width: 900px;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  #news-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .contact-form {
+    max-width: 600px;
+  }
+}
+
+/* ------ Large desktop devices and upwards (1440px) ------ */
+@media (min-width: 1440px) {
+  .container {
+    max-width: 1380px;
+  }
+.contact-form {
+    max-width: 600px;
+  }
+}
+
+/* ------ Large desktop devices and upwards (1440px) ------ */
+@media (min-width: 1440px) {
+  .container {
+    max-width: 1380px;
+  }
+
+  header, footer {
+    padding-left: var(--space-xxl);
+    padding-right: var(--space-xxl);
+  }
+
+  .nav-list {
+    gap: 4rem;
+  }
+
+  .hero-title {
+    font-size: clamp(3rem, 4vw + 1.5rem, 4.5rem);
+  }
+
+  .features-list {
+    grid-template-columns: repeat(5, 1fr);
+    gap: calc(var(--space-xl) * 1.5);
+  }
+
+  .footer-container {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .market-section {
+    padding-left: var(--space-xxl);
+    padding-right: var(--space-xxl);
+  }
+}
+
+/* ------ Smaller Screens Specific Adjustments ------ */
+
+/* Navigation vertical stack on small screens */
+@media (max-width: 767px) {
+  .navigation {
+    justify-content: center;
+  }
+
+  .nav-list {
+    flex-direction: column;
+    gap: var(--space-md);
+    align-items: center;
+  }
+.nav-list {
+    flex-direction: column;
+    gap: var(--space-md);
+    align-items: center;
+  }
+
+  .nav-link {
+    padding: var(--space-sm) var(--space-md);
+  }
+}
+
+/* Smaller crypto images on very small devices */
+@media (max-width: 479px) {
+  .crypto-img {
+    width: 60px;
+    height: 60px;
+  }
+
+  h1, .hero-title {
+    font-size: 2rem;
+  }
+
+  h2, .section-title {
+    font-size: 1.25rem;
+  }
+
+  h3, .feature-title, .news-title {
+    font-size: 1.125rem;
+  }
+
+  .form-group {
+    margin-bottom: var(--space-md);
+  }
+}
+
+/* Features list for very small devices one column */
+@media (max-width: 599px) {
+  .features-list {
+    grid-template-columns: 1fr;
+  }
+
+  #news-list {
+    grid-template-columns: 1fr;
+    padding: 0 var(--space-md);
+  }
+
+  .news-article {
+    padding: var(--space-md);
+  }
+
+  .news-summary, .intro-text {
+    font-size: 0.95rem;
+  }
+
+  .footer-container {
+    flex-direction: column;
+    gap: var(--space-md);
+    text-align: center;
+  }
+.news-summary, .intro-text {
+    font-size: 0.95rem;
+  }
+
+  .footer-container {
+    flex-direction: column;
+    gap: var(--space-md);
+    text-align: center;
+  }
+
+  .footer-list {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 767px) {
+  #market-data {
+    overflow-x: auto;
+  }
+  .market-table {
+    min-width: 600px;
+  }
+
+  .contact-form {
+    padding: var(--space-md);
+    max-width: 100%;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  button.btn {
+    width: 100%;
+  }
+}
+
+/* Accessibility: reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* ID specific responsive tweaks */
+@media (max-width: 766px) {
+  #main-content {
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+}
+
+#bitcoin-img, #ethereum-img, #litecoin-img {
+  transition: transform 0.35s ease-in-out;
+}
+#bitcoin-img, #ethereum-img, #litecoin-img {
+  transition: transform 0.35s ease-in-out;
+}
+
+#bitcoin-img:hover, #ethereum-img:hover, #litecoin-img:hover,
+#bitcoin-img:focus, #ethereum-img:focus, #litecoin-img:focus {
+  transform: scale(1.1);
+  outline: none;
+}
+
+/* End of responsive.css */
