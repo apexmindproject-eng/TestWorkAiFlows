@@ -1,0 +1,730 @@
+/*--------------------------------------------------
+  CSS Reset & Normalize
+--------------------------------------------------*/
+/* Based on modern normalize and reset best practices */
+/* Remove default margin, padding, and box-sizing globally */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Remove default list styles */
+ul,
+ol {
+  list-style: none;
+}
+
+/* Set core body defaults */
+body {
+  min-height: 100vh;
+  line-height: 1.5;
+  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  font-weight: 400;
+}
+
+/* Remove border and background on buttons and inputs */
+button,
+input,
+textarea {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  outline-offset: 2px; /* For better focus visibility */
+}
+button {
+  cursor: pointer;
+}
+
+/* Remove anchor default link styling */
+a {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+a:hover,
+a:focus {
+  color: var(--color-primary);
+  outline: none;
+}
+
+/* Images max width and responsive behavior */
+img {
+  max-width: 100%;
+  display: block;
+  height: auto;
+}
+
+/*--------------------------------------------------
+  CSS Custom Properties (Variables)
+--------------------------------------------------*/
+:root {
+  /* Colors */
+  --color-primary: #6f4e37; /* Coffee Brown */
+  --color-primary-dark: #55382b;
+  --color-primary-light: #d7c4b0;
+  --color-secondary: #c69c6d; /* Light Coffee Cream */
+  --color-secondary-dark: #a27c52;
+  --color-bg: #ffffff;
+  --color-bg-alt: #f9f5f1;
+  --color-text: #3a2f25;
+  --color-text-light: #7a6f6a;
+  --color-error: #d9534f;
+  --color-success: #5cb85c;
+  --color-focus: var(--color-primary);
+/* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-xxl: 4rem;
+
+  /* Typography */
+  --font-primary: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --font-header: 'Merriweather', serif;
+  --font-size-base: 1rem; /* 16px */
+  --font-size-sm: 0.875rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.5rem;
+  --font-size-xxl: 2.25rem;
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Shadows */
+  --shadow-md: 0 4px 8px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 16px rgba(0,0,0,0.15);
+
+  /* Transition */
+  --transition-fast: 0.2s ease-in-out;
+}
+
+/*--------------------------------------------------
+  Typography Styles
+--------------------------------------------------*/
+h1, h2, h3 {
+  font-family: var(--font-header);
+  color: var(--color-primary-dark);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-sm);
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, var(--font-size-xxl));
+}
+
+h2 {
+  font-size: clamp(1.5rem, 4vw, var(--font-size-xl));
+}
+
+h3 {
+  font-size: clamp(1.25rem, 3vw, var(--font-size-lg));
+}
+
+p {
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  line-height: 1.6;
+  margin-bottom: var(--space-md);
+}
+
+/* Links inside text blocks */
+a {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+  transition: color var(--transition-fast);
+}
+
+a:hover,
+a:focus {
+  color: var(--color-primary-dark);
+  outline: none;
+  text-decoration: underline;
+}
+
+/*--------------------------------------------------
+  Layout & Structure
+--------------------------------------------------*/
+html, body {
+  height: 100%;
+  scroll-behavior: smooth;
+  background-color: var(--color-bg);
+}
+
+.container {
+  width: 90vw;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-md);
+  padding-right: var(--space-md);
+}
+
+/* Header Styling */
+#site-header {
+  background-color: var(--color-primary-light);
+  padding: var(--space-md) 0;
+  border-bottom: 2px solid var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.site-logo {
+  font-family: var(--font-header);
+  font-size: var(--font-size-xl);
+  color: var(--color-primary-dark);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 2px;
+  user-select: none;
+}
+
+/* Navigation Styles */
+#main-nav {
+  /* Flex container for navigation */
+}
+
+.navigation {
+  display: flex;
+}
+
+.nav-list {
+  display: flex;
+  gap: var(--space-lg);
+  align-items: center;
+}
+
+.nav-item {
+  list-style: none;
+}
+
+.nav-link {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-lg);
+  color: var(--color-primary-dark);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  display: inline-block;
+}
+
+.nav-link:hover,
+.nav-link:focus {
+  background-color: var(--color-primary);
+  color: #fff;
+  outline: none;
+}
+
+.current {
+  background-color: var(--color-primary);
+  color: #fff;
+  font-weight: var(--font-weight-bold);
+}
+
+/* Main Content Area */
+#main-content {
+  padding-top: var(--space-xl);
+  padding-bottom: var(--space-xl);
+  min-height: 60vh;
+  background-color: var(--color-bg-alt);
+}
+
+main {
+  display: block;
+}
+
+/* Sections: uniform padding and background */
+section {
+  margin-bottom: var(--space-xxl);
+  padding: var(--space-lg) 0;
+}
+
+/* Footer Styles */
+#site-footer {
+  background-color: var(--color-primary-dark);
+  color: #fff;
+  padding: var(--space-lg) 0;
+  font-size: var(--font-size-sm);
+}
+
+.footer-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.footer-nav {
+  width: 100%;
+}
+
+.footer-nav-list {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-lg);
+}
+
+.footer-nav-link {
+  color: #ddd;
+  font-weight: var(--font-weight-medium);
+  transition: color var(--transition-fast);
+}
+
+.footer-nav-link:hover,
+.footer-nav-link:focus {
+  color: #fff;
+  outline: none;
+}
+
+/*--------------------------------------------------
+  Hero Section
+--------------------------------------------------*/
+#hero,
+.hero-section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  background-color: var(--color-primary-light);
+  text-align: center;
+  padding: var(--space-xl) 0;
+}
+
+.hero-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.35;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero-text {
+  position: relative;
+  z-index: 1;
+  max-width: 700px;
+  color: var(--color-primary-dark);
+}
+
+.hero-title {
+  font-size: clamp(2.5rem, 6vw, 3.5rem);
+  margin-bottom: var(--space-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.hero-description {
+  font-size: var(--font-size-lg);
+  color: var(--color-primary-dark);
+  font-weight: var(--font-weight-regular);
+}
+
+/*--------------------------------------------------
+  Buttons
+--------------------------------------------------*/
+.btn {
+  display: inline-block;
+  text-align: center;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
+  user-select: none;
+  transition: background-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+  border: 2px solid transparent;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--color-primary-dark);
+  box-shadow: 0 0 8px var(--color-primary-dark);
+  outline-offset: 3px;
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary);
+  color: var(--color-primary-dark);
+  border-color: var(--color-secondary-dark);
+}
+
+.btn-secondary:hover,
+.btn-secondary:focus {
+  background-color: var(--color-secondary-dark);
+  color: #fff;
+  box-shadow: 0 0 8px var(--color-secondary-dark);
+}
+
+/* Accessibility focus visible for keyboard navigation */
+.btn:focus-visible,
+.nav-link:focus-visible,
+.footer-nav-link:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 4px var(--color-focus);
+}
+/*--------------------------------------------------
+  Featured Section
+--------------------------------------------------*/
+.featured-section {
+  background-color: var(--color-bg);
+  padding: var(--space-xl) 0;
+}
+
+.section-title {
+  text-align: center;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+/*--------------------------------------------------
+  Brewing Cards & Lists
+--------------------------------------------------*/
+.brewing-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+}
+
+.brewing-card {
+  background-color: var(--color-bg-alt);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.brewing-card:hover,
+.brewing-card:focus-within {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+  outline: none;
+}
+
+.brewing-image {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+  object-fit: cover;
+  box-shadow: rgba(0,0,0,0.1) 0 2px 6px;
+}
+
+.brewing-title {
+  font-size: var(--font-size-xl);
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.brewing-description {
+  font-size: var(--font-size-base);
+  color: var(--color-text-light);
+  line-height: 1.5;
+}
+
+/*--------------------------------------------------
+  About Section
+--------------------------------------------------*/
+#about-section,
+.about-section {
+  background-color: var(--color-bg-alt);
+  padding: var(--space-xl) var(--space-md);
+}
+.page-title {
+  font-size: clamp(2rem, 5vw, var(--font-size-xxl));
+  color: var(--color-primary);
+  margin-bottom: var(--space-md);
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+}
+
+.intro-text {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-light);
+  margin-bottom: var(--space-lg);
+  text-align: center;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.about-content {
+  display: grid;
+  gap: var(--space-xl);
+  grid-template-columns: 1fr;
+}
+
+.offerings-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/*--------------------------------------------------
+  Brewing Section and Methods
+--------------------------------------------------*/
+#brewing-methods,
+.brewing-section,
+.brewing-method {
+  padding: var(--space-lg) 0;
+}
+
+.brewing-section {
+  background-color: var(--color-bg);
+}
+
+.brewing-method {
+  margin-bottom: var(--space-lg);
+}
+
+/*--------------------------------------------------
+  Coffee Types Section
+--------------------------------------------------*/
+#coffee-types,
+.types-section {
+  background-color: var(--color-bg-alt);
+  padding: var(--space-xl) var(--space-md);
+}
+
+.coffee-type {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.type-image {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+  margin-bottom: var(--space-md);
+}
+
+/*--------------------------------------------------
+  Form & Contact Section
+--------------------------------------------------*/
+#contact-section,
+.contact-section {
+  background-color: var(--color-bg);
+  padding: var(--space-xl) var(--space-md);
+}
+.contact-intro {
+  text-align: center;
+  font-size: var(--font-size-lg);
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-lg);
+}
+
+#contact-form,
+.contact-form {
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  display: grid;
+  gap: var(--space-md);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-xs);
+  color: var(--color-primary-dark);
+  font-size: var(--font-size-sm);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="subject"],
+textarea {
+  border: 1.5px solid var(--color-secondary);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-base);
+  color: var(--color-primary-dark);
+  background-color: var(--color-bg-alt);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  resize: vertical;
+}
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="subject"]:focus,
+textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 5px var(--color-primary);
+  outline: none;
+}
+
+textarea {
+  min-height: 120px;
+}
+
+button[type="submit"] {
+  max-width: 200px;
+  margin-top: var(--space-md);
+  align-self: start;
+  background-color: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-lg);
+  font-weight: var(--font-weight-bold);
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+  cursor: pointer;
+}
+
+button[type="submit"]:hover,
+button[type="submit"]:focus {
+  background-color: var(--color-primary-dark);
+  box-shadow: 0 0 8px var(--color-primary-dark);
+  outline-offset: 3px;
+}
+
+/* Form inputs IDs: name, email, subject, message for accessibility */
+#name,
+#email,
+#subject,
+#message {
+  font-family: inherit;
+}
+
+/*--------------------------------------------------
+  Individual IDs Styling
+--------------------------------------------------*/
+/* Espresso Card */
+#espresso-card {
+  grid-area: espresso;
+}
+
+#latte-art-card {
+  grid-area: latteart;
+}
+
+/* Specific brewing method cards can have custom styling if needed */
+#espresso,
+#pour-over,
+#latte-art {
+  display: block;
+}
+
+/* Coffee type specific IDs for semantic purpose, slight emphasis */
+#arabica,
+#robusta,
+#liberica,
+#excelsa {
+  border-top: 3px solid var(--color-primary);
+  padding-top: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+/* Contact Section ID for spacing override if needed */
+#contact-section {
+  padding-top: var(--space-xxl);
+  padding-bottom: var(--space-xxl);
+}
+
+/*--------------------------------------------------
+  Utility & Helpers
+--------------------------------------------------*/
+.text-center {
+  text-align: center;
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mt-md {
+  margin-top: var(--space-lg);
+}
+
+.mb-md {
+  margin-bottom: var(--space-lg);
+}
+
+/*--------------------------------------------------
+  Accessibility Enhancements
+--------------------------------------------------*/
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+/* Screen reader only text for a11y */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0,0,0,0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/*--------------------------------------------------
+  Grid Areas Sample Setup for Brewing Cards Container
+  (Useful for layouts with #espresso-card and #latte-art-card)
+--------------------------------------------------*/
+.brewing-cards {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-auto-rows: auto;
+  grid-gap: var(--space-xl);
+  grid-template-areas:
+    "espresso latteart";
+}
+
+/*--------------------------------------------------
+  Responsive enhancements will be in responsive.css
+--------------------------------------------------*/
+
+/* END OF styles.css */
