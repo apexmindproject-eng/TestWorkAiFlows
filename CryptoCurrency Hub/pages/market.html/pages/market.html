@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market - CryptoCurrency Hub</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body id="market-page">
+    <header id="site-header" class="header">
+        <div class="container header-container">
+            <a href="../index.html" class="logo-link">
+                <img src="../images/crypto_logo.png" alt="CryptoCurrency Hub Logo" id="site-logo" class="logo">
+                <h1 class="site-title">CryptoCurrency Hub</h1>
+            </a>
+            <nav id="main-navigation" class="navigation">
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="../index.html" class="nav-link">Home</a></li>
+                    <li class="nav-item"><a href="about.html" class="nav-link">About</a></li>
+<li class="nav-item"><a href="../index.html" class="nav-link">Home</a></li>
+                    <li class="nav-item"><a href="about.html" class="nav-link">About</a></li>
+                    <li class="nav-item"><a href="news.html" class="nav-link">News</a></li>
+                    <li class="nav-item"><a href="market.html" class="nav-link active" aria-current="page">Market</a></li>
+                    <li class="nav-item"><a href="contact.html" class="nav-link">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+<main id="main-content" class="container">
+        <section id="market-overview" class="market-section">
+            <h2 class="page-title">Market Overview</h2>
+            <p class="market-description">Stay informed about the latest market trends and prices of major cryptocurrencies.</p>
+        </section>
+<section id="market-data" class="market-data-section">
+            <h3 class="section-title">Cryptocurrency Prices</h3>
+            <table id="crypto-market-table" class="market-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Cryptocurrency</th>
+                        <th scope="col">Price (USD)</th>
+                        <th scope="col">24h Change</th>
+                        <th scope="col">Market Cap</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Market data rows will be dynamically inserted by marketData.js -->
+                </tbody>
+            </table>
+        </section>
+<section id="featured-coins" class="featured-coins">
+            <h3 class="section-title">Featured Cryptocurrencies</h3>
+            <div class="coins-list">
+                <article class="coin-card" id="bitcoin">
+                    <img src="../images/bitcoin.png" alt="Bitcoin" class="coin-image">
+                    <h4 class="coin-name">Bitcoin (BTC)</h4>
+                </article>
+                <article class="coin-card" id="ethereum">
+                    <img src="../images/ethereum.png" alt="Ethereum" class="coin-image">
+                    <h4 class="coin-name">Ethereum (ETH)</h4>
+                </article>
+                <article class="coin-card" id="litecoin">
+                    <img src="../images/litecoin.png" alt="Litecoin" class="coin-image">
+                    <h4 class="coin-name">Litecoin (LTC)</h4>
+                </article>
+            </div>
+        </section>
+    </main>
+<footer id="site-footer" class="footer">
+        <div class="container footer-container">
+            <p class="footer-text">&copy; 2024 CryptoCurrency Hub. All rights reserved.</p>
+            <nav class="footer-navigation">
+                <ul class="footer-nav-list">
+                    <li><a href="../index.html" class="footer-nav-link">Home</a></li>
+                    <li><a href="about.html" class="footer-nav-link">About</a></li>
+                    <li><a href="news.html" class="footer-nav-link">News</a></li>
+                    <li><a href="market.html" class="footer-nav-link">Market</a></li>
+                    <li><a href="contact.html" class="footer-nav-link">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </footer>
+
+    <script src="../js/app.js"></script>
+    <script src="../js/marketData.js"></script>
+</body>
+</html>
