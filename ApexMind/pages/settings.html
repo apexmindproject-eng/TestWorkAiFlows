@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ApexMind - Settings</title>
+    <link rel="stylesheet" href="../styles/styles.css" />
+</head>
+<body class="dark-theme" id="settings-page">
+    <header id="site-header" class="header">
+        <div class="container">
+            <a href="homepage.html" class="logo-link" aria-label="ApexMind Homepage">
+                <img src="../assets/ApexMind OG Logo" alt="ApexMind Logo" class="logo" id="logo" />
+            </a>
+            <nav id="main-navigation" aria-label="Primary Navigation">
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="homepage.html" class="nav-link">Home</a></li>
+                    <li class="nav-item"><a href="login page.html" class="nav-link">Login</a></li>
+                    <li class="nav-item"><a href="create account step 1.html" class="nav-link">Create Account</a></li>
+                    <li class="nav-item"><a href="manager dashboard.html" class="nav-link">Manager Dashboard</a></li>
+                    <li class="nav-item"><a href="employee portal.html" class="nav-link">Employee Portal</a></li>
+                    <li class="nav-item"><a href="inventory.html" class="nav-link">Inventory</a></li>
+                    <li class="nav-item"><a href="vendors.html" class="nav-link">Vendors</a></li>
+                    <li class="nav-item"><a href="reports.html" class="nav-link">Reports</a></li>
+                    <li class="nav-item"><a href="settings.html" class="nav-link current" aria-current="page">Settings</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+<main id="main-content" class="settings-main">
+        <section class="settings-overview" aria-labelledby="settings-title">
+            <h1 id="settings-title">Settings</h1>
+            <p>Configure your account and application preferences.</p>
+        </section>
+<section class="settings-form-section" aria-labelledby="account-settings-title">
+            <h2 id="account-settings-title">Account Settings</h2>
+            <form id="account-settings-form" class="settings-form" aria-describedby="account-settings-desc">
+                <p id="account-settings-desc">Update your personal information and password.</p>
+                <div class="form-group">
+                    <label for="user-name">Full Name</label>
+                    <input type="text" id="user-name" name="user-name" class="form-input" placeholder="Enter your full name" />
+                </div>
+                <div class="form-group">
+                    <label for="user-email">Email Address</label>
+                    <input type="email" id="user-email" name="user-email" class="form-input" placeholder="Enter your email" />
+                </div>
+                <div class="form-group">
+                    <label for="current-password">Current Password</label>
+                    <input type="password" id="current-password" name="current-password" class="form-input" placeholder="Current password" />
+                </div>
+                <div class="form-group">
+                    <label for="new-password">New Password</label>
+                    <input type="password" id="new-password" name="new-password" class="form-input" placeholder="New password" />
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm New Password</label>
+                    <input type="password" id="confirm-password" name="confirm-password" class="form-input" placeholder="Confirm new password" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </section>
+<section class="settings-app-preferences" aria-labelledby="app-preferences-title">
+            <h2 id="app-preferences-title">Application Preferences</h2>
+            <form id="app-preferences-form" class="settings-form" aria-describedby="app-preferences-desc">
+                <p id="app-preferences-desc">Adjust your application settings below.</p>
+                <div class="form-group">
+                    <label for="theme-select">Theme</label>
+                    <select id="theme-select" name="theme-select" class="form-input">
+                        <option value="dark" selected>Dark</option>
+                        <option value="light">Light</option>
+                    </select>
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="email-notifications" name="email-notifications" checked />
+                    <label for="email-notifications">Enable Email Notifications</label>
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="sms-notifications" name="sms-notifications" />
+                    <label for="sms-notifications">Enable SMS Notifications</label>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Preferences</button>
+            </form>
+        </section>
+<section class="settings-visual" aria-label="Settings abstract visual">
+            <img src="../assets/Abstract Dashboard Visual" alt="Abstract Dashboard Visual" class="settings-image" />
+        </section>
+    </main>
+
+    <footer id="site-footer" class="footer">
+        <div class="container">
+            <p>&copy; 2024 ApexMind. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../scripts/main.js"></script>
+</body>
+</html>
