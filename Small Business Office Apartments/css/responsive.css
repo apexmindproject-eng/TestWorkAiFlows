@@ -1,0 +1,420 @@
+/*==================================================
+  Responsive Stylesheet for Small Business Office Apartments
+  -----------------------------------------
+  Purpose: Media queries and adaptive layout overrides
+  Mobile-first base assumed from styles.css
+==================================================*/
+
+/*===============
+ Breakpoints
+===============*/
+:root {
+  /* Should correspond to styles.css breakpoints */
+  --bp-small: 480px;
+  --bp-medium: 768px;
+  --bp-large: 1024px;
+  --bp-xlarge: 1280px;
+}
+
+/*==================================================
+ Base font size scaling - improve readability on larger screens
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  html {
+    font-size: 112.5%; /* ~18px base for medium and up */
+  }
+}
+@media (min-width: var(--bp-large)) {
+  html {
+    font-size: 125%; /* 20px base for large and up */
+  }
+}
+@media (min-width: var(--bp-xlarge)) {
+  html {
+    font-size: 135%; /* ~21.6px base for extra large screens */
+  }
+}
+/*==================================================
+ Navigation: Increase spacing, multi-line handling
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  nav#main-navigation {
+    justify-content: flex-start;
+    padding-left: var(--space-md);
+  }
+  .nav-list {
+    gap: var(--space-xl);
+  }
+  .nav-link {
+    padding: var(--space-sm) var(--space-lg);
+    font-size: var(--font-size-large);
+  }
+}
+
+/*==================================================
+ Header and Site Title Adjustments for Larger Screens
+==================================================*/
+@media (min-width: var(--bp-large)) {
+  #site-header {
+    padding-top: var(--space-lg);
+    padding-bottom: var(--space-lg);
+  }
+  .site-title {
+    font-size: var(--font-size-xxl);
+    text-align: left;
+    padding-left: var(--space-md);
+  }
+}
+/*==================================================
+ Hero Section - Layout and Text scaling
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  .hero {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: var(--space-xxl) var(--space-xl);
+    text-align: left;
+  }
+  .hero-text {
+    max-width: 50%;
+    font-size: clamp(1.5rem, 2vw, 2.5rem);
+    background-color: rgba(255 255 255 / 0.9);
+    padding: var(--space-xl);
+  }
+  #hero-image {
+    opacity: 0.4;
+  }
+}
+
+@media (min-width: var(--bp-large)) {
+  .hero-text {
+    font-size: clamp(2rem, 3vw, 3rem);
+    max-width: 45%;
+  }
+}
+
+/*==================================================
+ Features Section - Grid expansion and spacing
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  .features {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xl);
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
+  }
+}
+
+/*==================================================
+ Testimonials Section - Horizontal layout
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  .testimonial-list {
+    flex-direction: row;
+    justify-content: center;
+    gap: var(--space-xl);
+  }
+  .testimonial {
+    flex: 1 1 45%;
+    min-width: 300px;
+  }
+}
+
+@media (min-width: var(--bp-large)) {
+  .testimonial {
+    flex: 1 1 30%;
+  }
+}
+
+/*==================================================
+ Listings Section - Grid layout and flex refinement
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  .listings {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-xl);
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
+  }
+  .listing-item {
+    flex-direction: row;
+  }
+  .listing-image {
+    width: 40%;
+    border-right: 1px solid var(--color-border);
+    border-bottom: none;
+  }
+  .listing-content {
+    width: 60%;
+    padding-left: var(--space-lg);
+  }
+}
+@media (min-width: var(--bp-large)) {
+  .listings {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .listing-item {
+    max-height: 280px;
+  }
+}
+/*==================================================
+ Listing Contact Button - sizing and positioning
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  .listing-contact-btn {
+    align-self: center;
+    margin-top: 0;
+    padding: var(--space-xs) var(--space-lg);
+    font-size: var(--font-size-large);
+  }
+}
+
+/*==================================================
+ About Page - Image & Layout Adjustments
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  .about-intro {
+    font-size: var(--font-size-large);
+  }
+  .about-image#about-image {
+    max-width: 50%;
+    margin-bottom: 0;
+    float: left;
+    shape-outside: circle(50%);
+    shape-margin: var(--space-sm);
+    clip-path: circle(50% at 50% 50%);
+    box-shadow: var(--shadow-medium);
+  }
+  .about-description {
+    max-width: 45%;
+    margin-left: 55%;
+    padding-left: var(--space-lg);
+    font-size: var(--font-size-base);
+  }
+}
+@media (min-width: var(--bp-large)) {
+  .about-intro {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .about-description {
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0;
+  }
+  .about-image#about-image {
+    float: none;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    shape-outside: none;
+    clip-path: none;
+  }
+}
+
+/*==================================================
+ Mission, Team, Values Section - Flex & Grid Layouts
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  .mission, .team {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-xl);
+  }
+  .values-list {
+    justify-content: flex-start;
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+}
+/*==================================================
+ Contact Page - Form Layout and Widths
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  .contact-info {
+    font-size: var(--font-size-large);
+  }
+  .contact-description {
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #contact-form, .contact-form {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+  }
+  .form-group:nth-child(5) {
+    grid-column: 1 / -1;
+  }
+  .form-textarea {
+    grid-column: 1 / -1;
+    min-height: 160px;
+  }
+  #submit-btn {
+    grid-column: 2 / 3;
+    justify-self: start;
+    padding: var(--space-xs) var(--space-lg);
+  }
+}
+
+@media (min-width: var(--bp-large)) {
+  .contact-form-section {
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .form-input, .form-textarea {
+    font-size: var(--font-size-large);
+  }
+  #submit-btn {
+    font-size: var(--font-size-large);
+  }
+}
+/*==================================================
+ Filters Form (Listings page) - Layout responsivity
+==================================================*/
+@media (min-width: var(--bp-small)) {
+  #filter-form {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
+  #apply-filters, #reset-filters {
+    font-size: var(--font-size-smaller);
+  }
+}
+@media (min-width: var(--bp-medium)) {
+  #filter-form {
+    gap: var(--space-md);
+  }
+  #apply-filters, #reset-filters {
+    font-size: var(--font-size-base);
+  }
+}
+@media (min-width: var(--bp-large)) {
+  #apply-filters, #reset-filters {
+    font-size: var(--font-size-large);
+  }
+}
+
+/*==================================================
+ Utilities and accessibility tweaks for larger screens
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  .text-center {
+    text-align: left;
+  }
+}
+/*==================================================
+ Spread some common layout improvements on large screens
+==================================================*/
+@media (min-width: var(--bp-xlarge)) {
+  .container {
+    max-width: 1400px;
+  }
+  main#main-content {
+    padding-left: var(--space-xl);
+    padding-right: var(--space-xl);
+  }
+}
+
+/*==================================================
+ All headings scale smoothly on large viewports
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  h1 {
+    font-size: clamp(2.5rem, 4vw, 3.5rem);
+  }
+  h2 {
+    font-size: clamp(2rem, 3vw, 2.5rem);
+  }
+  h3 {
+    font-size: clamp(1.5rem, 2vw, 2rem);
+  }
+}
+
+/*==================================================
+ Images and media responsive tweaks
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  img {
+    border-radius: calc(var(--border-radius) * 1.5);
+  }
+}
+/*==================================================
+ Footer navigation layout improvements
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  .footer-nav-list {
+    justify-content: flex-start;
+    padding-left: var(--space-md);
+  }
+  #site-footer {
+    text-align: left;
+  }
+}
+
+/*==================================================
+ Button size adaptations
+==================================================*/
+@media (min-width: var(--bp-large)) {
+  .btn, .btn-primary, .btn-secondary, .btn-light, #submit-btn {
+    font-size: var(--font-size-large);
+    padding: var(--space-sm) var(--space-xl);
+  }
+}
+
+/*==================================================
+ Form input height and font scaling
+==================================================*/
+@media (min-width: var(--bp-large)) {
+  .form-input, .form-textarea {
+    min-height: 44px;
+    font-size: var(--font-size-large);
+  }
+}
+/*==================================================
+ Clear floats for about image at smaller screen
+==================================================*/
+@media (max-width: calc(var(--bp-medium) - 1px)) {
+  .about-image#about-image {
+    float: none !important;
+    shape-outside: none !important;
+    clip-path: none !important;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/*==================================================
+ Responsive spacing tweaks for utilities
+==================================================*/
+@media (min-width: var(--bp-medium)) {
+  .space-md-up {
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+  .space-lg-up {
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-lg);
+  }
+}
+/*==================================================
+ Grid tweaks for forms on larger screens
+==================================================*/
+@media (min-width: var(--bp-large)) {
+  .contact-form-section form.contact-form {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+  }
+  .contact-form-section form.contact-form .form-group:nth-last-child(1) {
+    grid-column: 1 / -1;
+  }
+}
+
+/*==================================================
+ End of responsive.css
+==================================================*/
