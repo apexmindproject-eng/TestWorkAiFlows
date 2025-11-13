@@ -1,0 +1,654 @@
+/* ========================================================================== */
+/* Styles.css - Kitties Delight - Base Styles: Reset, Typography, Layout, and Globals */
+/* ========================================================================== */
+
+/* --------------------------------- Reset & Normalize --------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-family: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  font-size: 100%;
+  vertical-align: baseline;
+}
+
+html {
+  line-height: 1.15;
+  -webkit-text-size-adjust: 100%;
+  -moz-tab-size: 4;
+  tab-size: 4;
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-weight: 400;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+ul, li {
+  list-style: none;
+}
+
+/* Remove underline from links by default; accessible color and focus styles later*/
+a {
+  color: var(--color-link);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.3s ease, text-decoration 0.3s ease;
+}
+a:hover, a:focus-visible {
+  color: var(--color-link-hover);
+  text-decoration: underline;
+  outline-offset: 3px;
+  outline: none;
+}
+/* Typography Reset for headings */
+h1, h2, h3, h4 {
+  font-family: var(--font-family-heading);
+  font-weight: 700;
+  color: var(--color-heading);
+  margin-bottom: 0.5em;
+  line-height: 1.2;
+}
+
+h1 { font-size: var(--font-size-h1); }
+h2 { font-size: var(--font-size-h2); }
+h3 { font-size: var(--font-size-h3); }
+h4 { font-size: var(--font-size-h4); }
+
+/* Paragraph styling */
+p {
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+/* Semantic block-level elements display reset */
+header, nav, main, section, footer, article, form {
+  display: block;
+}
+
+/* Images responsive scaling and border-radius for consistency */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--border-radius);
+}
+
+/* Buttons base styling, reusable utility for btn and btn-primary/secondary */
+button, .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  font-weight: 700;
+  padding: 0.6rem 1.3rem;
+  border: none;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  user-select: none;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+}
+
+button:focus-visible, .btn:focus-visible {
+  outline: 3px solid var(--color-primary-light);
+  outline-offset: 3px;
+}
+
+/* Primary Button */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-btn-text);
+  box-shadow: 0 2px 7px rgba(255, 112, 77, 0.6);
+}
+
+.btn-primary:hover, .btn-primary:focus-visible {
+  background-color: var(--color-primary-dark);
+  box-shadow: 0 4px 16px rgba(230, 92, 60, 0.8);
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background-color: var(--color-secondary);
+  color: var(--color-btn-text);
+  box-shadow: 0 2px 6px rgba(100, 100, 100, 0.3);
+}
+
+.btn-secondary:hover, .btn-secondary:focus-visible {
+  background-color: var(--color-secondary-dark);
+  box-shadow: 0 4px 12px rgba(80, 80, 80, 0.5);
+}
+
+button:disabled, .btn:disabled {
+  background-color: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Header style and layout */
+#header, .site-header {
+  background-color: var(--color-header-bg);
+  color: var(--color-header-text);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  border-bottom: 3px solid var(--color-primary);
+  user-select: none;
+}
+
+/* Logo link anchors and images */
+.logo-link, #logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  font-size: var(--font-size-h2);
+  user-select: text;
+}
+
+.logo, .hero-image, .hero-img {
+  border-radius: var(--border-radius);
+  max-height: 60px;
+  width: auto;
+  display: block;
+}
+
+/* Navbar styles */
+.navbar, .nav-menu, #nav-menu {
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+.nav-link, .nav-link:hover, .active {
+  color: var(--color-link);
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--border-radius);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.nav-link:hover, .nav-link:focus-visible, .active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  outline-offset: 3px;
+  outline: none;
+}
+
+/* Mobile menu toggle bars (hamburger) */
+.mobile-menu-toggle {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 25px;
+  height: 21px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  user-select: none;
+}
+
+.mobile-menu-toggle .bar {
+  width: 100%;
+  height: 3px;
+  background-color: var(--color-primary);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+/* Main content styling and layout */
+#main-content, main {
+  flex: 1 1 auto;
+  max-width: 1140px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+/* Hero Section styles */
+.hero-section, #hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem 1rem;
+  gap: 2rem;
+  background-color: var(--color-hero-bg);
+}
+
+.hero-content {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.hero-title {
+  font-size: var(--font-size-h1);
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  margin-bottom: 0.5rem;
+}
+
+.hero-description {
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.hero-image, .hero-img {
+  max-width: 100%;
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 15px rgba(255, 112, 77, 0.3);
+}
+
+/* Featured Section styling */
+.featured-section {
+  padding: 2rem 1rem;
+  background-color: var(--color-article-bg);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+.section-title {
+  font-size: var(--font-size-h2);
+  margin-bottom: 1.25rem;
+  color: var(--color-primary-dark);
+  text-align: center;
+}
+
+/* Kittens Grid using CSS Grid for featured kitten cards */
+.kittens-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(250px,1fr));
+  gap: 1.5rem;
+}
+
+.kitten-card {
+  background-color: var(--color-bg);
+  border-radius: var(--border-radius);
+  box-shadow: 0 3px 7px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.kitten-card:hover, .kitten-card:focus-within {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(255, 112, 77, 0.3);
+  outline: none;
+}
+
+.kitten-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.kitten-name {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--color-primary-dark);
+  margin: 0.75rem 1rem 0.25rem;
+}
+
+.kitten-description {
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  margin: 0 1rem 1rem;
+  line-height: 1.4;
+}
+
+/* Footer styling and layout */
+#footer, .site-footer {
+  background-color: var(--color-footer-bg);
+  color: var(--color-footer-text);
+  padding: 1.5rem 1.5rem;
+  text-align: center;
+  border-top: 3px solid var(--color-primary);
+  user-select: none;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.footer-nav, .footer-menu {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.footer-link {
+  color: var(--color-link);
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+.footer-link:hover, .footer-link:focus-visible {
+  color: var(--color-link-hover);
+  text-decoration: underline;
+  outline-offset: 3px;
+  outline: none;
+}
+/* Gallery Section styles - grid layout and spacing */
+.gallery-section {
+  padding: 2rem 1rem;
+  background-color: var(--color-article-bg);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 7px rgba(0,0,0,0.06);
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(280px,1fr));
+  gap: 1.5rem;
+}
+
+.gallery-item {
+  background-color: var(--color-bg);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+}
+.gallery-item:hover, .gallery-item:focus-within {
+  transform: translateY(-6px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  outline: none;
+}
+
+.gallery-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+/* Care Section styling with side by side layout on large screens */
+.care-section {
+  background-color: var(--color-article-bg);
+  padding: 2rem 1.5rem;
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.section-text {
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.care-list {
+  list-style: disc inside;
+  color: var(--color-text-primary);
+  font-weight: 400;
+  font-size: 1rem;
+  margin-left: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-image {
+  max-width: 400px;
+  border-radius: var(--border-radius);
+  box-shadow: 0 3px 10px rgba(255, 112, 77, 0.2);
+  margin-left: auto;
+  display: block;
+}
+
+/* Breeds Section using CSS Grid for breed cards layout */
+.breeds-section {
+  padding: 2rem 1.5rem;
+}
+
+.breed-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(300px,1fr));
+  gap: 2rem;
+}
+
+.breed-card {
+  background-color: var(--color-article-bg);
+  border-radius: var(--border-radius);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.07);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.35s ease, box-shadow 0.3s ease;
+}
+.breed-card:hover, .breed-card:focus-within {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 22px rgba(255, 112, 77, 0.25);
+  outline: none;
+}
+
+.breed-image {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+
+.breed-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  margin: 1rem;
+}
+
+.breed-description {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+  margin: 0 1rem 1rem 1rem;
+  line-height: 1.5;
+}
+
+/* Contact Section styling for contact info and forms */
+.contact-section {
+  padding: 2rem 1.5rem;
+  background-color: var(--color-article-bg);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.contact-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.contact-method {
+  background-color: var(--color-bg);
+  border-radius: var(--border-radius);
+  padding: 1rem 1.25rem;
+  text-align: center;
+  flex: 1 1 200px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.07);
+  transition: box-shadow 0.3s ease;
+}
+
+.contact-method:hover, .contact-method:focus-within {
+  box-shadow: 0 6px 14px rgba(255, 112, 77, 0.3);
+  outline: none;
+}
+
+.contact-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--color-primary);
+}
+
+.contact-details {
+  font-size: 1rem;
+  color: var(--color-text-primary);
+  font-weight: 600;
+  user-select: text;
+}
+
+.contact-title {
+  font-size: var(--font-size-h3);
+  color: var(--color-primary-dark);
+  margin-bottom: 0.75rem;
+}
+
+/* Form Section and form styling with flex layout and spacing */
+.form-section, #contact-form-section {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem 1rem 2rem;
+  background-color: var(--color-bg);
+  border-radius: var(--border-radius);
+  box-shadow: 0 3px 9px rgba(0,0,0,0.1);
+}
+
+.contact-form, #contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-input, .form-textarea, input, textarea {
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-input-bg);
+  color: var(--color-text-primary);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  min-height: 40px;
+}
+
+.form-input:focus, .form-textarea:focus, input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 6px var(--color-primary-light);
+}
+
+.form-textarea, textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+label, .form-label {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.4rem;
+  display: block;
+}
+
+/* Span inline styles for minor emphasis or secondary text */
+span {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+}
+
+/* Address styling for contact info footer or section */
+address {
+  font-style: normal;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  user-select: text;
+}
+
+/* Horizontal rule replacement with <br> for spacing */
+br {
+  display: block;
+  content: "";
+  margin: 0.75rem 0;
+}
+
+/* Script tag hidden visually */
+script {
+  display: none;
+}
+
+/* Accessibility: visible focus outlines for keyboard users (focus-visible) */
+:focus-visible {
+  outline: 3px solid var(--color-primary-light);
+  outline-offset: 3px;
+}
+/* -------------------------------------------------------------------------- */
+/* CSS Custom Properties - Design Tokens for Kitties Delight Project */
+/* -------------------------------------------------------------------------- */
+:root {
+  /* Colors */
+  --color-primary: #ff704d;
+  --color-primary-dark: #e65c3c;
+  --color-primary-light: #ffd9cc;
+  --color-secondary: #708dff;
+  --color-secondary-dark: #536ed9;
+  --color-bg: #fffefc;
+  --color-text-primary: #222222;
+  --color-text-secondary: #555555;
+  --color-text-strong: #111111;
+  --color-link: var(--color-primary);
+  --color-link-hover: var(--color-primary-dark);
+  --color-border: #dddfe2;
+  --color-border-light: #e7e9eb;
+  --color-header-bg: #fff4f0;
+  --color-header-text: #6b3030;
+  --color-footer-bg: #fff4f0;
+  --color-footer-text: #6b3030;
+  --color-hero-bg: #fff7f4;
+  --color-article-bg: #ffffff;
+  --color-input-bg: #fff;
+  --color-btn-text: #fff;
+  --color-disabled-bg: #e0e0e0;
+  --color-disabled-text: #7a7a7a;
+/* Typography */
+  --font-family-base: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --font-family-heading: "Georgia", serif;
+  --font-size-base: 1rem;
+  --line-height-base: 1.5;
+  --font-size-h1: 2.5rem;
+  --font-size-h2: 2rem;
+  --font-size-h3: 1.5rem;
+  --font-size-h4: 1.25rem;
+
+  /* Border Radius */
+  --border-radius: 6px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* End of base styles - styles.css file - approx 580 lines including comments    */
+/* -------------------------------------------------------------------------- */
