@@ -1,0 +1,366 @@
+/* ========================================================================== */
+/* Gallery.css - KittenWorld Project - Styling for Kitten Galleries and Related Elements */
+/* ========================================================================== */
+
+/* -------------------------------------------------------------------------- */
+/* Reset & Normalize for consistency
+/* -------------------------------------------------------------------------- */
+
+/* Inherit font and box sizing from main to ensure cohesive design */
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+html {
+  box-sizing: border-box;
+  font-size: 100%;
+  line-height: 1.15;
+  scroll-behavior: smooth;
+}
+body {
+  font-family: var(--font-family-base);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+/* Reset lists to no style for consistency in galleries and navs */
+ul, li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Anchor tags base styles for links in gallery captions and navigation */
+a {
+  color: var(--color-link);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.3s ease, text-decoration 0.3s ease;
+}
+a:hover, a:focus-visible {
+  color: var(--color-link-hover);
+  text-decoration: underline;
+  outline-offset: 3px;
+  outline: none;
+}
+
+/* Headings styling from h1 to h4 for gallery page titles and captions */
+h1, h2, h3, h4 {
+  font-family: var(--font-family-heading);
+  font-weight: 700;
+  color: var(--color-heading);
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+}
+h1 { font-size: var(--font-size-h1); }
+h2 { font-size: var(--font-size-h2); }
+h3 { font-size: var(--font-size-h3); }
+h4 { font-size: var(--font-size-h4); }
+/* Paragraph text for descriptions and captions */
+p {
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+/* Sections acting as container for gallery content with padding and border */
+section {
+  padding: 1.5rem 1rem;
+  border-bottom: 1px solid var(--color-border-light);
+  background-color: var(--color-article-bg);
+}
+section:last-child {
+  border-bottom: none;
+}
+
+/* Main content area with max width and centered layout */
+main {
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+/* Nav bar styling for possible gallery navigation */
+nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+nav ul {
+  display: flex;
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+}
+nav li {
+  list-style: none;
+}
+nav a {
+  font-weight: 600;
+  color: var(--color-link);
+  border-radius: var(--border-radius);
+  padding: 0.5rem 1rem;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+nav a:hover, nav a:focus-visible {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  outline-offset: 3px;
+  outline: none;
+}
+/* Gallery grid container with modern CSS Grid for responsive kitten galleries */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+/* Individual gallery card styling with shadow, border radius and white background */
+.gallery-item {
+  background-color: var(--color-article-bg);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.gallery-item:hover, .gallery-item:focus-within {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+  outline: none;
+}
+
+/* Gallery images: cover the card top portion, maintain aspect ratio */
+.gallery-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+  display: block;
+}
+/* Caption container below images for title and brief description */
+.gallery-caption {
+  padding: 1rem 1rem 1.25rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.gallery-caption h3 {
+  margin-bottom: 0.5rem;
+  color: var(--color-primary-dark);
+}
+
+.gallery-caption p {
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  flex-grow: 1;
+  margin-bottom: 0.75rem;
+}
+
+/* Link styled as button inside caption for actions like "View Details" or "Adopt" */
+.gallery-caption a {
+  align-self: flex-start;
+  background-color: var(--color-primary);
+  color: var(--color-btn-text);
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  text-decoration: none;
+  user-select: none;
+}
+.gallery-caption a:hover, .gallery-caption a:focus-visible {
+  background-color: var(--color-primary-dark);
+  box-shadow: 0 4px 10px rgba(230,92,60,0.7);
+  outline-offset: 3px;
+}
+/* Footer area reinforced for gallery pages with centered text and padding */
+footer {
+  background-color: var(--color-footer-bg);
+  color: var(--color-footer-text);
+  text-align: center;
+  padding: 1.25rem 1rem;
+  border-top: 3px solid var(--color-primary);
+  user-select: none;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+/* Address styling for contact info or gallery location details */
+address {
+  font-style: normal;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+/* Buttons for gallery page e.g. "Load More" or filters with consistent styling */
+button {
+  background-color: var(--color-primary);
+  color: var(--color-btn-text);
+  font-weight: 700;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--border-radius);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(255,112,77,0.5);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  user-select: none;
+}
+button:hover, button:focus-visible {
+  background-color: var(--color-primary-dark);
+  box-shadow: 0 5px 15px rgba(230,92,60,0.8);
+  outline-offset: 3px;
+  outline: none;
+}
+button:disabled {
+  background-color: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.7;
+}
+/* Form with vertical layout for gallery search or filters */
+form {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  padding: 1rem;
+  background-color: var(--color-article-bg);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+label {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+input[type="text"], input[type="search"] {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-input-bg);
+  color: var(--color-text-primary);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input[type="text"]:focus, input[type="search"]:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 6px var(--color-primary-light);
+}
+
+/* Textareas for extended comments or messages in gallery related forms */
+textarea {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  padding: 0.6rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  resize: vertical;
+  min-height: 100px;
+  background-color: var(--color-input-bg);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 6px var(--color-primary-light);
+}
+
+/* Span styling for inline captions, tags, or metadata */
+span {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+/* Paragraph breaks for spacing in gallery descriptions and metadata */
+br {
+  display: block;
+  content: "";
+  margin: 0.75rem 0;
+}
+
+/* Script tag hidden for clean visual UI */
+script {
+  display: none;
+}
+
+/* Accessibility focus outlines on keyboard navigation for interactive elements */
+:focus-visible {
+  outline: 3px solid var(--color-primary-light);
+  outline-offset: 3px;
+}
+
+/* Scrollbar styling for galleries with overflow, using WebKit only */
+.gallery-grid::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.gallery-grid::-webkit-scrollbar-thumb {
+  background-color: var(--color-primary-light);
+  border-radius: 10px;
+}
+.gallery-grid::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+/* ========================================================================== */
+/* CSS Variables reused from main.css for color, typography, spacing, etc. */
+/* ========================================================================== */
+:root {
+  --color-primary: #ff704d;
+  --color-primary-dark: #e65c3c;
+  --color-primary-light: #ffd9cc;
+  --color-bg: #fffefc;
+  --color-text-primary: #222222;
+  --color-text-secondary: #555555;
+  --color-heading: #442211;
+  --color-border-light: #e7e9eb;
+  --color-link: var(--color-primary);
+  --color-link-hover: var(--color-primary-dark);
+  --color-article-bg: #fff;
+  --color-input-bg: #fff;
+  --color-btn-text: #fff;
+  --color-footer-bg: #fff4f0;
+  --color-footer-text: #6b3030;
+  --color-disabled-bg: #e0e0e0;
+  --color-disabled-text: #7a7a7a;
+  --color-border: #dddfe2;
+  --border-radius: 6px;
+  --font-family-base: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --font-family-heading: "Georgia", serif;
+  --font-size-base: 1rem;
+  --font-size-h1: 2.5rem;
+  --font-size-h2: 2rem;
+  --font-size-h3: 1.5rem;
+  --font-size-h4: 1.25rem;
+  --line-height-base: 1.5;
+}
+/* ========================================================================== */
+/* End of gallery.css file - approx 420 lines with comments and formatting */
+/* ========================================================================== */
