@@ -1,0 +1,387 @@
+/* ========================================================================== */
+/* Reset and Normalize CSS - KittenWorld Main Stylesheet */
+/* ========================================================================== */
+
+/* Box sizing reset */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border: 0;
+  font-family: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  font-size: 100%;
+  vertical-align: baseline;
+}
+
+/* Default line height for html element */
+html {
+  line-height: 1.15;
+  -webkit-text-size-adjust: 100%;
+  -moz-tab-size: 4;
+  tab-size: 4;
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+/* Remove default list styles for ul and li */
+ul, li {
+  list-style: none;
+}
+
+/* Body reset and global font styling */
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-base);
+  font-weight: 400;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Remove link underlines by default but keep color and pointer cursor */
+a {
+  background-color: transparent;
+  cursor: pointer;
+  color: var(--color-link);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+/* Links hover and focus states for accessibility */
+a:hover, a:focus-visible {
+  color: var(--color-link-hover);
+  text-decoration: underline;
+  outline-offset: 3px;
+  outline: none;
+}
+
+/* Strong tag for emphasis with bold and distinct color */
+strong {
+  font-weight: 700;
+  color: var(--color-text-strong);
+}
+
+/* Headings typography and spacing */
+h1, h2, h3, h4 {
+  font-family: var(--font-family-heading);
+  font-weight: 700;
+  color: var(--color-heading);
+  line-height: 1.2;
+  margin-bottom: 0.5em;
+}
+
+h1 { font-size: var(--font-size-h1); }
+h2 { font-size: var(--font-size-h2); }
+h3 { font-size: var(--font-size-h3); }
+h4 { font-size: var(--font-size-h4); }
+
+/* Paragraph styling with appropriate spacing and line height */
+p {
+  margin-bottom: 1em;
+  color: var(--color-text-primary);
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+/* Block elements footer, header, main, nav, section, article set to block display */
+footer, header, main, nav, section, article {
+  display: block;
+}
+
+/* Header styling: flex layout with space-between alignment, padding, background, text color */
+header {
+  background-color: var(--color-header-bg);
+  color: var(--color-header-text);
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 3px solid var(--color-primary);
+  user-select: none;
+}
+
+/* Header h1 - site title with strong color accent */
+header h1 {
+  font-size: var(--font-size-h2);
+  font-weight: 700;
+  color: var(--color-primary);
+  user-select: text;
+}
+
+/* Navigation styling - flex container with horizontal list */
+nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+nav ul {
+  display: flex;
+  gap: 1.5rem;
+  padding-left: 0;
+  margin: 0;
+}
+
+nav li {
+  list-style: none;
+}
+
+nav a {
+  font-weight: 600;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--border-radius);
+  transition: background-color 0.3s, color 0.3s;
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+nav a:hover, nav a:focus-visible {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  outline-offset: 3px;
+  outline: none;
+}
+
+/* Main content area styling and layout with max width center alignment */
+main {
+  flex: 1 0 auto;
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Sections for content grouping with padding and subtle border bottom */
+section {
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 1.5rem;
+}
+
+section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* Article styling with spacing and shadow, background white with subtle radius */
+article {
+  background-color: var(--color-article-bg);
+  border-radius: var(--border-radius);
+  padding: 1rem 1.5rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+/* Images scaling responsively with block display and border radius */
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--border-radius);
+}
+
+/* Buttons styling with brand colors, padding, border radius and subtle shadow */
+button {
+  background-color: var(--color-primary);
+  color: var(--color-btn-text);
+  font-weight: 700;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  border: none;
+  box-shadow: 0 2px 5px rgba(255,112,77,0.5);
+  user-select: none;
+}
+button:hover, button:focus-visible {
+  background-color: var(--color-primary-dark);
+  box-shadow: 0 4px 11px rgba(230,92,60,0.8);
+  outline-offset: 3px;
+  outline: none;
+}
+
+button:disabled {
+  background-color: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+/* Form styling with vertical flex layout and spacing */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Labels styled for clarity and spacing */
+label {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+/* Textarea styling consistent with inputs, with resizable vertical only */
+textarea {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  padding: 0.6rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-input-bg);
+  color: var(--color-text-primary);
+  resize: vertical;
+  min-height: 100px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 5px var(--color-primary-light);
+}
+
+/* Input styling matches textarea for consistency */
+input {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-input-bg);
+  color: var(--color-text-primary);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 5px var(--color-primary-light);
+}
+
+/* Address styling for contact info footer or content, non-italic with lighter text */
+address {
+  font-style: normal;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+/* Footer styling: background, center aligned, smaller text, padding */
+footer {
+  background-color: var(--color-footer-bg);
+  color: var(--color-footer-text);
+  padding: 1rem 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  border-top: 3px solid var(--color-primary);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* Span elements: inline elements with subtle secondary color */
+span {
+  color: var(--color-text-secondary);
+}
+
+/* Break line element with margin to separate content visually */
+br {
+  display: block;
+  content: "";
+  margin: 0.75rem 0;
+}
+
+/* Script tags hidden by default for accessibility and clarity */
+script {
+  display: none;
+}
+
+/* Accessibility: visible focus outlines on keyboard focus (focus-visible) for interactive elements */
+:focus-visible {
+  outline: 3px solid var(--color-primary-light);
+  outline-offset: 3px;
+}
+
+/* Utility: flex-center and flex-column helpers for layout reuse */
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+/* Custom scrollbar styles for textarea and inputs on WebKit browsers */
+textarea::-webkit-scrollbar, input::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+textarea::-webkit-scrollbar-thumb, input::-webkit-scrollbar-thumb {
+  background-color: var(--color-primary-light);
+  border-radius: 10px;
+}
+textarea::-webkit-scrollbar-track, input::-webkit-scrollbar-track {
+  background: transparent;
+}
+/* ========================================================================== */
+/* CSS Variables - Design Tokens for KittenWorld */
+/* ========================================================================== */
+:root {
+  /* Colors */
+  --color-primary: #ff704d;
+  --color-primary-dark: #e65c3c;
+  --color-primary-light: #ffd9cc;
+  --color-bg: #fffefc;
+  --color-text-primary: #222222;
+  --color-text-secondary: #555555;
+  --color-text-strong: #111111;
+  --color-link: var(--color-primary);
+  --color-link-hover: var(--color-primary-dark);
+  --color-border: #dddfe2;
+  --color-border-light: #e7e9eb;
+  --color-header-bg: #fff4f0;
+  --color-header-text: #6b3030;
+  --color-footer-bg: #fff4f0;
+  --color-footer-text: #6b3030;
+  --color-article-bg: #ffffff;
+  --color-input-bg: #fff;
+  --color-btn-text: #fff;
+  --color-disabled-bg: #e0e0e0;
+  --color-disabled-text: #7a7a7a;
+  --color-disabled-border: #b5b5b5;
+/* Typography */
+  --font-family-base: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --font-family-heading: "Georgia", serif;
+  --font-size-base: 1rem;
+  --line-height-base: 1.5;
+  --font-size-h1: 2.5rem;
+  --font-size-h2: 2rem;
+  --font-size-h3: 1.5rem;
+  --font-size-h4: 1.25rem;
+
+  /* Border and radius */
+  --border-radius: 6px;
+}
+
+/* ========================================================================== */
+/* End of main.css file - 535 lines approx including comments and whitespace  */
+/* ========================================================================== */
