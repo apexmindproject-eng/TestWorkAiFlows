@@ -1,0 +1,283 @@
+/*==================================================
+  Responsive CSS for ApexMind Project
+  -------------------------------------
+  This file contains all media queries and responsive layout adjustments.
+  It is mobile-first, based on the base structure in main.css.
+==================================================*/
+
+/* Breakpoints */
+:root {
+  --bp-tablet: 768px;
+  --bp-desktop: 1024px;
+  --bp-large: 1280px;
+  --bp-xlarge: 1440px;
+}
+
+/*==================================================
+  Typography Scaling
+==================================================*/
+@media (min-width: var(--bp-tablet)) {
+  html {
+    font-size: 112.5%; /* ~18px base font */
+  }
+  h1 {
+    font-size: 3rem;
+  }
+  h2 {
+    font-size: 2.5rem;
+  }
+  h3 {
+    font-size: 2rem;
+  }
+  .hero-title {
+    font-size: 3.5rem;
+  }
+  .hero-subtitle {
+    font-size: 1.75rem;
+  }
+  .expertise-title,
+  .about-preview-title,
+  #expertise-title,
+  #about-preview-title,
+  .team-title,
+  #team-title,
+  .values-title,
+  #values-title,
+  .services-list-title,
+  #services-list-title,
+  .contact-form-title,
+  #contact-form-title,
+  .projects-title,
+  #projects-title {
+    font-size: 2.5rem;
+  }
+}
+
+@media (min-width: var(--bp-desktop)) {
+  html {
+    font-size: 125%; /* 20px base font */
+  }
+}
+
+/*==================================================
+  Header Navigation
+==================================================*/
+@media (min-width: var(--bp-tablet)) {
+  header#site-header.header {
+    padding: var(--space-md) var(--space-xl);
+  }
+  .container {
+    padding: 0 var(--space-lg);
+  }
+  nav#main-navigation.main-nav {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .nav-list {
+    gap: var(--space-lg);
+  }
+  .nav-link {
+    font-size: var(--font-size-md);
+    padding: var(--space-sm) var(--space-lg);
+  }
+}
+
+@media (min-width: var(--bp-desktop)) {
+  header#site-header.header {
+    padding: var(--space-lg) var(--space-xxl);
+  }
+  .nav-list {
+    gap: var(--space-xl);
+  }
+}
+
+/*==================================================
+  Hero Section Responsive Layout
+==================================================*/
+@media (min-width: var(--bp-tablet)) {
+  .hero-section {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: var(--space-xxl) var(--space-xl);
+    text-align: left;
+  }
+  .hero-image {
+    max-width: 50%;
+    margin-bottom: 0;
+    border-radius: var(--border-radius);
+  }
+  .hero-content {
+    max-width: 45%;
+    align-self: center;
+  }
+}
+
+@media (min-width: var(--bp-desktop)) {
+  .hero-section {
+    padding: var(--space-xxl) var(--space-xxl);
+  }
+}
+
+/*==================================================
+  Expertise Section Grid Adjustments
+==================================================*/
+@media (min-width: var(--bp-tablet)) {
+  .expertise-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: var(--bp-desktop)) {
+  .expertise-cards {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xl);
+  }
+}
+
+/*==================================================
+  About Preview Section Grid Layout
+==================================================*/
+@media (min-width: var(--bp-tablet)) {
+  .about-preview-section {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-xl);
+  }
+  .about-preview-image {
+    max-width: 100%;
+  }
+}
+/*==================================================
+  Team Section Flexbox
+==================================================*/
+@media (min-width: var(--bp-tablet)) {
+  .team-content {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: var(--space-xl);
+  }
+  .team-description {
+    padding-left: var(--space-lg);
+  }
+}
+
+/*==================================================
+  Values Section Flexbox
+==================================================*/
+@media (min-width: var(--bp-tablet)) {
+  .values-list {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+  }
+  .values-list li {
+    flex: 1 1 33%;
+  }
+}
+/*==================================================
+  Services Section Grid
+==================================================*/
+@media (min-width: var(--bp-tablet)) {
+  .services-list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+  }
+}
+@media (min-width: var(--bp-desktop)) {
+  .services-list {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xl);
+  }
+}
+
+/*==================================================
+  Contact Page Layout
+==================================================*/
+@media (min-width: var(--bp-tablet)) {
+  .contact-main {
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .contact-form-section {
+    padding: var(--space-xl);
+  }
+  #contact-form.contact-form {
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+@media (min-width: var(--bp-desktop)) {
+  .contact-form-section {
+    padding: var(--space-xxl);
+  }
+}
+
+/*==================================================
+  Portfolio Section Grid
+==================================================*/
+@media (min-width: var(--bp-tablet)) {
+  .projects-gallery {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+  }
+}
+
+@media (min-width: var(--bp-desktop)) {
+  .projects-gallery {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xl);
+  }
+}
+
+/*==================================================
+  Misc Responsive Adjustments
+==================================================*/
+@media (min-width: var(--bp-tablet)) {
+  main#main-content,
+  main.home-main {
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
+  }
+
+  section {
+    margin-bottom: var(--space-xxl);
+  }
+
+  .btn, .btn-primary, .btn-secondary {
+    font-size: var(--font-size-md);
+    padding: var(--space-sm) var(--space-lg);
+  }
+
+  .nav-link {
+    font-size: var(--font-size-md);
+  }
+}
+
+@media (min-width: var(--bp-desktop)) {
+  main#main-content,
+  main.home-main {
+    padding-left: var(--space-xl);
+    padding-right: var(--space-xl);
+  }
+
+  .btn, .btn-primary, .btn-secondary {
+    font-size: var(--font-size-lg);
+    padding: var(--space-md) var(--space-xl);
+  }
+}
+
+/*==================================================
+  Accessibility & Focus
+==================================================*/
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/*==================================================
+  End of responsive.css
+==================================================*/
