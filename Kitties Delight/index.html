@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Kitties Delight - A charming website dedicated to all things kitties, featuring adorable photos, kitty facts, and fun kitty-themed pages.">
+  <title>Kitties Delight - Home</title>
+  <link rel="stylesheet" href="styles/styles.css">
+  <link rel="stylesheet" href="styles/gallery.css">
+</head>
+<body>
+  <header id="site-header" class="site-header">
+    <nav class="navbar container">
+      <a href="index.html" class="logo-link">
+        <img src="images/logo.png" alt="Kitties Delight Logo" id="logo" class="logo">
+      </a>
+      <ul class="nav-menu">
+        <li><a href="index.html" class="nav-link active">Home</a></li>
+        <li><a href="gallery.html" class="nav-link">Gallery</a></li>
+        <li><a href="about.html" class="nav-link">About</a></li>
+        <li><a href="contact.html" class="nav-link">Contact</a></li>
+      </ul>
+      <button class="mobile-menu-toggle" aria-label="Toggle navigation">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+    </nav>
+  </header>
+<main id="main-content" class="container">
+    <section id="hero" class="hero-section">
+      <div class="hero-content">
+        <div class="hero-text">
+          <h1 class="hero-title">Welcome to Kitties Delight</h1>
+          <p class="hero-description">Discover adorable photos, fun facts, and everything delightful about kitties. Browse our gallery and learn more about your favorite furry friends.</p>
+          <div class="hero-buttons">
+            <a href="gallery.html" class="btn btn-primary">View Gallery</a>
+            <a href="about.html" class="btn btn-secondary">About Us</a>
+          </div>
+        </div>
+        <div class="hero-image">
+          <img src="images/cute_kitty_1.jpg" alt="Cute kitty" class="hero-img">
+        </div>
+      </div>
+    </section>
+<section id="featured-kitties" class="featured-section">
+      <h2 class="section-title">Featured Kitties</h2>
+      <div class="kitties-grid">
+        <article class="kitty-card">
+          <img src="images/cute_kitty_2.jpg" alt="Adorable kitty 1" class="kitty-img">
+          <h3 class="kitty-name">Whiskers</h3>
+          <p class="kitty-description">A playful kitty who loves to chase toys and nap in sunny spots.</p>
+        </article>
+        <article class="kitty-card">
+          <img src="images/cute_kitty_3.jpg" alt="Adorable kitty 2" class="kitty-img">
+          <h3 class="kitty-name">Luna</h3>
+          <p class="kitty-description">Curious and sweet, Luna enjoys cuddles and exploring new places.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+<footer id="site-footer" class="site-footer container">
+    <p>&copy; 2024 Kitties Delight. All rights reserved.</p>
+    <nav class="footer-nav">
+      <ul class="footer-menu">
+        <li><a href="index.html" class="footer-link">Home</a></li>
+        <li><a href="gallery.html" class="footer-link">Gallery</a></li>
+        <li><a href="about.html" class="footer-link">About</a></li>
+        <li><a href="contact.html" class="footer-link">Contact</a></li>
+      </ul>
+    </nav>
+  </footer>
+
+  <script src="scripts/main.js"></script>
+  <script src="scripts/gallery.js"></script>
+</body>
+</html>
