@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ApexMind - Create Account Employee Setup</title>
+    <link rel="stylesheet" href="../styles/styles.css" />
+</head>
+<body class="dark-theme" id="create-account-employee-setup">
+    <header id="site-header" class="header">
+        <div class="container">
+            <a href="homepage.html" class="logo-link" aria-label="ApexMind Homepage">
+                <img src="../assets/ApexMind OG Logo" alt="ApexMind Logo" class="logo" id="logo" />
+            </a>
+            <nav id="main-navigation" aria-label="Primary Navigation">
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="homepage.html" class="nav-link">Home</a></li>
+                    <li class="nav-item"><a href="login page.html" class="nav-link">Login</a></li>
+                    <li class="nav-item"><a href="create account step 1.html" class="nav-link">Create Account</a></li>
+                    <li class="nav-item"><a href="manager dashboard.html" class="nav-link">Manager Dashboard</a></li>
+                    <li class="nav-item"><a href="employee portal.html" class="nav-link">Employee Portal</a></li>
+                    <li class="nav-item"><a href="inventory.html" class="nav-link">Inventory</a></li>
+                    <li class="nav-item"><a href="vendors.html" class="nav-link">Vendors</a></li>
+                    <li class="nav-item"><a href="reports.html" class="nav-link">Reports</a></li>
+                    <li class="nav-item"><a href="settings.html" class="nav-link">Settings</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+<main id="main-content" class="create-account-employee-setup-main">
+        <section class="employee-setup-section" aria-labelledby="employee-setup-title">
+            <h2 id="employee-setup-title">Employee Account Setup</h2>
+            <form id="employee-setup-form" class="employee-setup-form" action="#" method="post" novalidate>
+                <div class="form-group">
+                    <label for="full-name">Full Name</label>
+                    <input type="text" id="full-name" name="full-name" required placeholder="Your full name" class="form-input" aria-required="true" />
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required placeholder="you@example.com" class="form-input" aria-required="true" />
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="Choose a strong password" class="form-input" aria-required="true" />
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" name="confirm-password" required placeholder="Confirm your password" class="form-input" aria-required="true" />
+                </div>
+                <div class="form-group">
+                    <label for="employee-id">Employee ID</label>
+                    <input type="text" id="employee-id" name="employee-id" required placeholder="Your employee ID" class="form-input" aria-required="true" />
+                </div>
+                <button type="submit" class="btn btn-primary" id="employee-create-account-btn">Create Account</button>
+            </form>
+        </section>
+    </main>
+<footer id="site-footer" class="footer">
+        <div class="container">
+            <p>&copy; 2024 ApexMind. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../scripts/main.js"></script>
+</body>
+</html>
