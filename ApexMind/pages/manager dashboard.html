@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ApexMind - Manager Dashboard</title>
+    <link rel="stylesheet" href="../styles/styles.css" />
+</head>
+<body class="dark-theme" id="manager-dashboard">
+    <header id="site-header" class="header">
+        <div class="container">
+            <a href="homepage.html" class="logo-link" aria-label="ApexMind Homepage">
+                <img src="../assets/ApexMind OG Logo" alt="ApexMind Logo" class="logo" id="logo" />
+            </a>
+            <nav id="main-navigation" aria-label="Primary Navigation">
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="homepage.html" class="nav-link">Home</a></li>
+                    <li class="nav-item"><a href="login page.html" class="nav-link">Login</a></li>
+                    <li class="nav-item"><a href="create account step 1.html" class="nav-link">Create Account</a></li>
+                    <li class="nav-item"><a href="manager dashboard.html" class="nav-link current" aria-current="page">Manager Dashboard</a></li>
+                    <li class="nav-item"><a href="employee portal.html" class="nav-link">Employee Portal</a></li>
+                    <li class="nav-item"><a href="inventory.html" class="nav-link">Inventory</a></li>
+                    <li class="nav-item"><a href="vendors.html" class="nav-link">Vendors</a></li>
+                    <li class="nav-item"><a href="reports.html" class="nav-link">Reports</a></li>
+                    <li class="nav-item"><a href="settings.html" class="nav-link">Settings</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+<main id="main-content" class="manager-dashboard-main">
+        <section class="dashboard-overview" aria-labelledby="dashboard-overview-title">
+            <h1 id="dashboard-overview-title">Manager Dashboard</h1>
+            <div class="dashboard-widgets">
+                <article class="widget scheduling-widget" id="scheduling-widget">
+                    <h2 class="widget-title">Scheduling</h2>
+                    <p>Manage employee schedules, shifts, and availability.</p>
+                    <a href="employee portal.html" class="btn btn-secondary">Go to Employee Portal</a>
+                </article>
+
+                <article class="widget inventory-widget" id="inventory-widget">
+                    <h2 class="widget-title">Inventory</h2>
+                    <p>Keep track of stock, supplies, and inventory levels.</p>
+                    <a href="inventory.html" class="btn btn-secondary">View Inventory</a>
+                </article>
+<article class="widget vendors-widget" id="vendors-widget">
+                    <h2 class="widget-title">Vendors</h2>
+                    <p>Manage vendor information and orders.</p>
+                    <a href="vendors.html" class="btn btn-secondary">Manage Vendors</a>
+                </article>
+
+                <article class="widget reports-widget" id="reports-widget">
+                    <h2 class="widget-title">Reports</h2>
+                    <p>View and generate business reports and analytics.</p>
+                    <a href="reports.html" class="btn btn-secondary">View Reports</a>
+                </article>
+<article class="widget settings-widget" id="settings-widget">
+                    <h2 class="widget-title">Settings</h2>
+                    <p>Update account and application settings.</p>
+                    <a href="settings.html" class="btn btn-secondary">Settings</a>
+                </article>
+            </div>
+        </section>
+        <section class="dashboard-visual" aria-label="Dashboard visual">
+            <img src="../assets/Abstract Dashboard Visual" alt="Abstract Dashboard Visual" class="dashboard-image" />
+        </section>
+    </main>
+
+    <footer id="site-footer" class="footer">
+        <div class="container">
+            <p>&copy; 2024 ApexMind. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../scripts/main.js"></script>
+</body>
+</html>
