@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="KittenWorld Gallery - Browse our collection of adorable kitten photos from various breeds including Persian, Tabby, Siamese, Maine Coon, Ragdoll, and British Shorthair.">
+    <meta name="keywords" content="kitten gallery, cat photos, kitten breeds, Persian kittens, Tabby kittens, Siamese kittens">
+    <title>Gallery - KittenWorld</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/gallery.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <header id="header">
+        <nav class="navbar">
+            <div class="container nav-container">
+<h1 class="logo">
+                    <a href="../index.html">KittenWorld</a>
+                </h1>
+                <ul class="nav-menu">
+                    <li><a href="../index.html" class="nav-link">Home</a></li>
+                    <li><a href="gallery.html" class="nav-link active">Gallery</a></li>
+                    <li><a href="care-tips.html" class="nav-link">Care Tips</a></li>
+                    <li><a href="adoption.html" class="nav-link">Adoption</a></li>
+                    <li><a href="contact.html" class="nav-link">Contact</a></li>
+                </ul>
+                <button class="mobile-menu-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </nav>
+    </header>
+<main id="main">
+        <section id="gallery-hero" class="hero-section">
+            <div class="container hero-container">
+                <div class="hero-content">
+                    <div class="hero-text">
+                        <h2 class="hero-title">Kitten Gallery</h2>
+                        <p class="hero-description">Explore our adorable collection of kitten photos featuring various breeds and personalities. Each photo captures the unique charm of these precious feline friends.</p>
+                    </div>
+                    <div class="hero-image">
+                        <img src="../images/kitten-hero.jpg" alt="Adorable kittens in gallery" class="main-hero-image">
+                    </div>
+                </div>
+            </div>
+        </section>
+<section id="gallery-filters" class="filters-section">
+            <div class="container">
+                <h3 class="filters-title">Filter by Breed</h3>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">All Kittens</button>
+                    <button class="filter-btn" data-filter="persian">Persian</button>
+                    <button class="filter-btn" data-filter="tabby">Tabby</button>
+                    <button class="filter-btn" data-filter="siamese">Siamese</button>
+                    <button class="filter-btn" data-filter="maine-coon">Maine Coon</button>
+                    <button class="filter-btn" data-filter="ragdoll">Ragdoll</button>
+                    <button class="filter-btn" data-filter="british-shorthair">British Shorthair</button>
+                </div>
+            </div>
+        </section>
+<section id="photo-gallery" class="gallery-section">
+            <div class="container">
+                <div class="gallery-grid" id="galleryGrid">
+                    <article class="gallery-item" data-category="persian">
+                        <div class="gallery-card">
+                            <img src="../images/persian-kitten.jpg" alt="Persian kitten with fluffy white and gray fur" class="gallery-image" loading="lazy">
+                            <div class="gallery-overlay">
+                                <div class="gallery-info">
+                                    <h4 class="gallery-title">Persian Beauty</h4>
+                                    <p class="gallery-breed">Persian</p>
+                                    <p class="gallery-description">Fluffy Persian kitten with beautiful blue eyes and a gentle, calm personality perfect for quiet homes.</p>
+                                </div>
+                                <button class="gallery-btn" data-image="../images/persian-kitten.jpg">View Large</button>
+                            </div>
+                        </div>
+                    </article>
+<article class="gallery-item" data-category="tabby">
+                        <div class="gallery-card">
+                            <img src="../images/tabby-kitten.jpg" alt="Orange tabby kitten playing" class="gallery-image" loading="lazy">
+                            <div class="gallery-overlay">
+                                <div class="gallery-info">
+                                    <h4 class="gallery-title">Tabby Explorer</h4>
+                                    <p class="gallery-breed">Tabby Mix</p>
+                                    <p class="gallery-description">Energetic orange tabby kitten who loves to play and explore. Perfect companion for active families.</p>
+                                </div>
+                                <button class="gallery-btn" data-image="../images/tabby-kitten.jpg">View Large</button>
+                            </div>
+                        </div>
+                    </article>
+<article class="gallery-item" data-category="siamese">
+                        <div class="gallery-card">
+                            <img src="../images/siamese-kitten.jpg" alt="Siamese kitten with blue eyes" class="gallery-image" loading="lazy">
+                            <div class="gallery-overlay">
+                                <div class="gallery-info">
+                                    <h4 class="gallery-title">Siamese Princess</h4>
+                                    <p class="gallery-breed">Siamese</p>
+                                    <p class="gallery-description">Elegant Siamese kitten with striking blue eyes. Intelligent, social, and loves to communicate.</p>
+                                </div>
+                                <button class="gallery-btn" data-image="../images/siamese-kitten.jpg">View Large</button>
+                            </div>
+                        </div>
+                    </article>
+<article class="gallery-item" data-category="maine-coon">
+                        <div class="gallery-card">
+                            <img src="../images/maine-coon-kitten.jpg" alt="Maine Coon kitten with long fur" class="gallery-image" loading="lazy">
+                            <div class="gallery-overlay">
+                                <div class="gallery-info">
+                                    <h4 class="gallery-title">Maine Coon Giant</h4>
+                                    <p class="gallery-breed">Maine Coon Mix</p>
+                                    <p class="gallery-description">Large, fluffy Maine Coon kitten with a gentle giant personality. Friendly and great with families.</p>
+                                </div>
+                                <button class="gallery-btn" data-image="../images/maine-coon-kitten.jpg">View Large</button>
+                            </div>
+                        </div>
+                    </article>
+<article class="gallery-item" data-category="ragdoll">
+                        <div class="gallery-card">
+                            <img src="../images/ragdoll-kitten.jpg" alt="Ragdoll kitten with blue point coloring" class="gallery-image" loading="lazy">
+                            <div class="gallery-overlay">
+                                <div class="gallery
