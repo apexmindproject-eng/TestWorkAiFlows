@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Small Business Office Apartments - Listings</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+    <header id="site-header">
+        <div class="container">
+            <h1 class="site-title">Small Business Office Apartments</h1>
+            <nav id="main-navigation" aria-label="Primary Navigation">
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="index.html" class="nav-link">Home</a></li>
+                    <li class="nav-item"><a href="listings.html" class="nav-link current" aria-current="page">Listings</a></li>
+                    <li class="nav-item"><a href="about.html" class="nav-link">About</a></li>
+                    <li class="nav-item"><a href="contact.html" class="nav-link">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+<main id="main-content">
+        <h2 class="page-title">Available Office Apartments</h2>
+<section class="filters" aria-label="Filters to narrow down listings">
+            <form id="filter-form" class="filter-form">
+                <fieldset>
+                    <legend>Filter by Size</legend>
+                    <label for="size-small">
+                        <input type="checkbox" id="size-small" name="size" value="small">
+                        Small (up to 300 sq ft)
+                    </label>
+                    <label for="size-medium">
+                        <input type="checkbox" id="size-medium" name="size" value="medium">
+                        Medium (300-600 sq ft)
+                    </label>
+                    <label for="size-large">
+                        <input type="checkbox" id="size-large" name="size" value="large">
+                        Large (600+ sq ft)
+                    </label>
+                </fieldset>
+                <fieldset>
+                    <legend>Filter by Price Range</legend>
+                    <label for="price-low">
+                        <input type="checkbox" id="price-low" name="price" value="low">
+                        $500 - $1000
+                    </label>
+                    <label for="price-mid">
+                        <input type="checkbox" id="price-mid" name="price" value="mid">
+                        $1000 - $2000
+                    </label>
+                    <label for="price-high">
+                        <input type="checkbox" id="price-high" name="price" value="high">
+                        $2000+
+                    </label>
+                </fieldset>
+                <button type="button" id="apply-filters" class="btn btn-secondary">Apply Filters</button>
+                <button type="reset" id="reset-filters" class="btn btn-light">Reset</button>
+            </form>
+        </section>
+<section id="listings" class="listings" aria-label="Office apartment listings">
+            <article class="listing-item" data-size="small" data-price="low" id="listing1">
+                <img src="../images/small_office_interior.jpg" alt="Interior of a small office apartment" class="listing-image">
+                <div class="listing-content">
+                    <h3 class="listing-title">Cozy Small Office Space</h3>
+                    <p class="listing-description">Ideal for startups or solo entrepreneurs, this compact office offers all essentials for productivity.</p>
+                    <p class="listing-size"><strong>Size:</strong> 250 sq ft</p>
+                    <p class="listing-price"><strong>Price:</strong> $700/month</p>
+                    <a href="contact.html" class="btn btn-primary listing-contact-btn">Contact for Availability</a>
+                </div>
+            </article>
+<article class="listing-item" data-size="medium" data-price="mid" id="listing2">
+                <img src="../images/business_meeting.jpg" alt="Medium office space setup with a conference table" class="listing-image">
+                <div class="listing-content">
+                    <h3 class="listing-title">Medium Office with Meeting Area</h3>
+                    <p class="listing-description">Spacious office apartment with room for meetings and team collaboration.</p>
+                    <p class="listing-size"><strong>Size:</strong> 450 sq ft</p>
+                    <p class="listing-price"><strong>Price:</strong> $1500/month</p>
+                    <a href="contact.html" class="btn btn-primary listing-contact-btn">Contact for Availability</a>
+                </div>
+            </article>
+<article class="listing-item" data-size="large" data-price="high" id="listing3">
+                <img src="../images/office_building.jpg" alt="Large office space inside a modern building" class="listing-image">
+                <div class="listing-content">
+                    <h3 class="listing-title">Large Executive Office Apartment</h3>
+                    <p class="listing-description">Premium office space for established businesses seeking a prestigious address.</p>
+                    <p class="listing-size"><strong>Size:</strong> 750 sq ft</p>
+                    <p class="listing-price"><strong>Price:</strong> $2500/month</p>
+                    <a href="contact.html" class="btn btn-primary listing-contact-btn">Contact for Availability</a>
+                </div>
+            </article>
+        </section>
+    </main>
+<footer id="site-footer">
+        <div class="container">
+            <p>&copy; 2024 Small Business Office Apartments. All rights reserved.</p>
+            <nav aria-label="Footer Navigation">
+                <ul class="footer-nav-list">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="listings.html">Listings</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/listingFilter.js"></script>
+</body>
+</html>
