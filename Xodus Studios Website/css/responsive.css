@@ -1,0 +1,237 @@
+/* ========================================================================== */
+/* responsive.css - Xodus Studios Website
+   Responsive design media queries
+   Mobile-first approach
+   Condensed to ensure all tags, classes, IDs styled responsively
+/* ========================================================================== */
+
+/* --------------------------------------- */
+/* Extra small devices - Up to 479px       */
+/* --------------------------------------- */
+@media (max-width: 479px) {
+  /* Navigation: hide main nav, show mobile toggle */
+  nav#main-nav, .nav-list, .nav-link { display: none !important; }
+  .mobile-menu-toggle { display: flex !important; }
+
+  /* Make site-header padding smaller */
+  #site-header { padding: 12px 16px !important; }
+
+  /* Logo smaller */
+  .logo { width: 100px !important; }
+
+  /* Hero: stack content and image vertically */
+  .hero-section { display: flex; flex-direction: column; padding: 16px !important; }
+  .hero-content, .hero-image { width: 100% !important; margin-bottom: 16px; }
+  .hero-title { font-size: 1.8rem !important; }
+
+  /* Fan hub links full width and centered */
+  .fan-hub-links { justify-content: center; flex-wrap: wrap; gap: 12px; }
+  .fan-hub-link { flex: 1 1 100%; text-align: center; }
+
+  /* Projects list single column */
+  .projects-list { grid-template-columns: 1fr !important; gap: 16px; }
+
+  /* News items stacked */
+  .news-section { padding: 12px; }
+  .news-item { margin-bottom: 16px; }
+
+  /* Footer: stack nav vertically */
+  footer#site-footer .footer-content { flex-direction: column; gap: 16px; align-items: center; }
+  .footer-nav-list { flex-direction: column; gap: 8px; }
+
+  /* Merch list single column */
+  .merch-list { grid-template-columns: 1fr !important; }
+  .merch-item-card { width: 100% !important; }
+
+  /* Trailers & shorts gallery single column */
+  .trailers-gallery-section, .trailers-hero-section, .trailers-gallery-section .trailer-item,
+  .shorts-gallery-section, .shorts-hero-section, .shorts-gallery-section .short-clip {
+    padding: 12px !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Social links flex wrap and centered */
+  .social-links-list { justify-content: center; flex-wrap: wrap; gap: 12px; }
+  .social-link-item { flex: 1 1 100%; text-align: center; }
+
+  /* About hero and mission text centered */
+  #about-hero, .mission-text { text-align: center !important; }
+  .team-members { grid-template-columns: 1fr !important; }
+
+  /* Characters gallery stacked */
+  .characters-gallery-section { grid-template-columns: 1fr !important; }
+  .character-card { width: 100% !important; }
+
+  /* Videogames gallery stacked */
+  .videogames-gallery-section { grid-template-columns: 1fr !important; }
+  .videogame-card { width: 100% !important; }
+}
+
+/* --------------------------------------- */
+/* Small devices - 480px to 767px           */
+/* --------------------------------------- */
+@media (min-width: 480px) and (max-width: 767px) {
+  nav#main-nav, .nav-list { display: flex !important; gap: 10px; }
+  .mobile-menu-toggle { display: none !important; }
+
+  .logo { width: 120px; }
+
+  /* Hero: two column with image smaller */
+  .hero-section { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px; }
+  .hero-title { font-size: 2.2rem; }
+  .hero-content, .hero-image { width: 100%; }
+
+  /* Fan hub links inline, wrap on small screen */
+  .fan-hub-links { justify-content: center; flex-wrap: wrap; }
+  .fan-hub-link { flex: 1 1 auto; min-width: 150px; }
+
+  /* Projects list 2 columns */
+  .projects-list { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+
+  /* Merch list 2 columns */
+  .merch-list { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+
+  /* News section moderate padding */
+  .news-section { padding: 16px; }
+
+  /* Trailers and shorts 2 columns */
+  .trailers-gallery-section, .shorts-gallery-section { grid-template-columns: repeat(2, 1fr); padding: 16px; gap: 16px; }
+
+  /* Social links 2 columns */
+  .social-links-list { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  
+  /* About mission and team with multi column grid */
+  .team-members { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+
+  /* Characters gallery 2 columns */
+  .characters-gallery-section { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+
+  /* Videogames gallery 2 columns */
+  .videogames-gallery-section { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+}
+
+/* --------------------------------------- */
+/* Medium devices - 768px to 991px          */
+/* --------------------------------------- */
+@media (min-width: 768px) and (max-width: 991px) {
+  nav#main-nav, .nav-list { gap: 16px; }
+  .logo { width: 140px; }
+/* Hero grid with fixed left col */
+  .hero-section { display: grid; grid-template-columns: 2fr 3fr; gap: 24px; padding: 24px; }
+  .hero-title { font-size: 2.8rem; }
+
+  /* Fan hub links flex wrap */
+  .fan-hub-links { justify-content: flex-start; flex-wrap: wrap; gap: 16px; }
+  .fan-hub-link { min-width: 180px; }
+
+  /* Projects 3 columns */
+  .projects-list { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+  /* Merch 3 columns */
+  .merch-list { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+  /* News padding and font scaling */
+  .news-section { padding: 24px; }
+  .news-title { font-size: 1.2rem; }
+
+  /* Trailers and shorts 3 columns */
+  .trailers-gallery-section, .shorts-gallery-section { grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 20px; }
+
+  /* Social flex layout wrap */
+  .social-links-list { display: flex; flex-wrap: wrap; gap: 20px; }
+
+  /* About team larger grid */
+  .team-members { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+  /* Characters and videogames grids with more columns */
+  .characters-gallery-section { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .videogames-gallery-section { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+}
+
+/* --------------------------------------- */
+/* Large devices - 992px to 1199px         */
+/* --------------------------------------- */
+@media (min-width: 992px) and (max-width: 1199px) {
+  nav#main-nav, .nav-list { gap: 20px; }
+  .logo { width: 160px; }
+
+  .hero-section { grid-template-columns: 1fr 1fr; padding: 32px; gap: 32px; }
+  .hero-title { font-size: 3.6rem; }
+
+  /* Fan hub links as inline flex with bigger gap */
+  .fan-hub-links { justify-content: flex-start; gap: 24px; }
+  .fan-hub-link { min-width: 200px; }
+
+  .projects-list { grid-template-columns: repeat(4, 1fr); gap: 24px; }
+  .merch-list { grid-template-columns: repeat(4, 1fr); gap: 24px; }
+  .news-section { padding: 32px; }
+
+  .trailers-gallery-section, .shorts-gallery-section { grid-template-columns: repeat(4, 1fr); padding: 32px; gap: 24px; }
+  .social-links-list { display: flex; flex-wrap: nowrap; gap: 24px; justify-content: flex-start; }
+
+  .team-members { grid-template-columns: repeat(4, 1fr); gap: 24px; }
+  .characters-gallery-section { grid-template-columns: repeat(4, 1fr); gap: 24px; }
+  .videogames-gallery-section { grid-template-columns: repeat(4, 1fr); gap: 24px; }
+}
+/* --------------------------------------- */
+/* Extra large devices - 1200px and up      */
+/* --------------------------------------- */
+@media (min-width: 1200px) {
+  #site-header { padding: 24px 48px; }
+  .logo { width: 180px; }
+
+  main#main-content { max-width: 1320px; padding-inline: 48px; }
+
+  .hero-section { max-width: 1200px; margin: 0 auto; grid-template-columns: 1fr 2fr; padding: 48px; gap: 48px; }
+  .hero-title { font-size: 4rem; }
+
+  .fan-hub-links { gap: 32px; justify-content: flex-start; }
+  .fan-hub-link { min-width: 220px; }
+
+  .projects-list { grid-template-columns: repeat(5, 1fr); gap: 32px; }
+  .merch-list { grid-template-columns: repeat(5, 1fr); gap: 32px; }
+  .news-section { padding: 48px; }
+
+  .trailers-gallery-section, .shorts-gallery-section { grid-template-columns: repeat(5, 1fr); padding: 48px; gap: 32px; }
+  .social-links-list { display: flex; flex-wrap: nowrap; gap: 32px; justify-content: flex-start; }
+.team-members { grid-template-columns: repeat(5, 1fr); gap: 32px; }
+  .characters-gallery-section { grid-template-columns: repeat(5, 1fr); gap: 32px; }
+  .videogames-gallery-section { grid-template-columns: repeat(5, 1fr); gap: 32px; }
+}
+
+/* ---------------------- ID-specific responsive tweaks ------------------- */
+@media (max-width: 599px) {
+  #hero { padding: 16px !important; }
+  #fan-hub { padding: 12px !important; }
+  #latest-projects { padding: 12px !important; }
+  #news-and-updates { padding: 12px !important; }
+  #site-footer { padding: 16px !important; }
+}
+
+@media (min-width: 600px) {
+  #hero { padding: 24px !important; }
+  #fan-hub { padding: 24px !important; }
+  #latest-projects { padding: 24px !important; }
+  #news-and-updates { padding: 24px !important; }
+  #site-footer { padding: 24px !important; }
+}
+@media (min-width: 900px) {
+  #merch-intro, #merch-items { padding: 32px !important; }
+  #trailers-hero, #trailers-gallery { padding: 32px !important; }
+  #shorts-hero, #shorts-gallery { padding: 32px !important; }
+  #social-hero, #social-media-links { padding: 32px !important; }
+  #about-hero, #our-mission, #our-team { padding: 32px !important; }
+  #projects-intro, #projects-list { padding: 32px !important; }
+  #characters-hero, #characters-gallery { padding: 32px !important; }
+  #videogames-hero, #videogames-gallery { padding: 32px !important; }
+}
+
+/* Accessibility: ensure focus visible outlines on all screens */
+@media (min-width: 320px) {
+  .nav-link:focus-visible, .btn:focus-visible, .fan-hub-link:focus-visible, .project-link:focus-visible, .footer-link:focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+}
+
+/* End of responsive.css */
