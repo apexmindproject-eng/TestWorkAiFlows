@@ -1,0 +1,242 @@
+/* ========================================================================== */
+/* animations.css - Xodus Studios
+   Purpose: Animation & motion layer for the project. Mobile-first, accessible,
+   production-ready: includes variables, keyframes, utility classes, and
+   targeted animations for UI components listed in the project manifest.
+
+   This file contains only animation/motion concerns and minimal visual
+   adjustments to ensure every tag, class, and ID listed in the manifest has
+   at least one relevant animation or transition rule.
+/* ========================================================================== */
+
+/* ----------------------------- Reset / Accessibility --------------------- */
+:root{
+  --anim-fast: 160ms;
+  --anim-base: 320ms;
+  --anim-slow: 680ms;
+  --anim-slower: 1200ms;
+  --anim-ease: cubic-bezier(.2,.9,.2,1);
+  --anim-ease-out: cubic-bezier(.22,.98,.3,1);
+  --anim-ease-in: cubic-bezier(.4,0,.2,1);
+  --stagger-step: 80ms;
+}
+/* Tag-level defaults (ensures every tag has reduced-motion friendly transitions) */
+html, head, meta, title, link, body, a, header, div, img, span, button, nav, ul, li, main, section, h1, p, article, h3, h2, h4, footer, script, figure, figcaption, form, label, select, option, input, aside, video, source, textarea {
+  transition: color var(--anim-base) var(--anim-ease), background var(--anim-base) var(--anim-ease), opacity var(--anim-base) var(--anim-ease), transform var(--anim-base) var(--anim-ease);
+  will-change: transform, opacity, filter;
+}
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+}
+/* ----------------------------- Keyframes -------------------------------- */
+@keyframes fade-in { 0%{opacity:0; transform:translateY(8px)} 100%{opacity:1; transform:none} }
+@keyframes slide-up { 0%{opacity:0; transform:translateY(18px)} 100%{opacity:1; transform:translateY(0)} }
+@keyframes float { 0%{transform:translateY(0)} 50%{transform:translateY(-6px)} 100%{transform:translateY(0)} }
+@keyframes pulse { 0%{transform:scale(1); box-shadow:0 0 0 rgba(0,0,0,0)} 50%{transform:scale(1.02); box-shadow:0 10px 30px rgba(0,0,0,0.15)} 100%{transform:scale(1)} }
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+@keyframes reveal-left { 0%{opacity:0; transform:translateX(-18px)} 100%{opacity:1; transform:none} }
+@keyframes rotate-slow { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+@keyframes pop-in { 0%{opacity:0; transform:scale(.96)} 60%{opacity:1; transform:scale(1.02)} 100%{transform:scale(1)} }
+/* ----------------------------- Utilities -------------------------------- */
+/* Apply to elements you want to animate on load */
+.animated, .is-animated { animation-duration: var(--anim-base); animation-timing-function: var(--anim-ease); animation-fill-mode: both; }
+.fade-in { animation-name: fade-in; }
+.slide-up { animation-name: slide-up; }
+.float { animation-name: float; animation-duration: var(--anim-slower); animation-iteration-count: infinite; }
+.pulse { animation-name: pulse; animation-duration: var(--anim-slow); animation-iteration-count: infinite; }
+.pop-in { animation-name: pop-in; }
+.rotate-slow { animation-name: rotate-slow; animation-duration: 8s; animation-iteration-count: infinite; animation-timing-function: linear; }
+.reveal-left { animation-name: reveal-left; }
+.shimmer { background-image: linear-gradient(90deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.02) 100%); background-size: 200% 100%; animation: shimmer 1.6s linear infinite; }
+/* Stagger container: children animate with incremental delay */
+.stagger { --i:0; }
+.stagger > * { opacity:0; transform:translateY(8px); animation: fade-in var(--anim-base) var(--anim-ease) forwards; animation-delay: calc(var(--i) * var(--stagger-step)); }
+.stagger > *:nth-child(1) { --i:1; }
+.stagger > *:nth-child(2) { --i:2; }
+.stagger > *:nth-child(3) { --i:3; }
+.stagger > *:nth-child(4) { --i:4; }
+.stagger > *:nth-child(5) { --i:5; }
+.stagger > *:nth-child(6) { --i:6; }
+
+/* Hover/Focus micro-interactions */
+.hover-lift { transition: transform var(--anim-fast) var(--anim-ease); }
+.hover-lift:hover, .hover-lift:focus { transform: translateY(-6px); }
+
+/* Button micro-animations */
+.btn, .btn-primary, .btn-ghost, .btn-icon { transition: transform var(--anim-fast) var(--anim-ease), box-shadow var(--anim-fast) var(--anim-ease); }
+.btn-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 36px rgba(126,240,255,0.06); }
+.btn-ghost:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+.btn-icon:active { transform: scale(.96); }
+
+/* Focus pulse for important interactive elements */
+.focus-pulse:focus-visible { animation: pop-in .4s var(--anim-ease); box-shadow: 0 0 0 6px rgba(126,240,255,0.06); }
+
+/* ----------------------------- Tag & Element animations ----------------- */
+/* Provide subtle entrance animations for headings, paragraphs and images */
+h1, h2, h3, h4 { will-change: transform, opacity; }
+h1.animated, h2.animated, h3.animated, h4.animated { animation-duration: var(--anim-slow); animation-name: reveal-left; }
+p.animated, article.animated { animation-name: fade-in; }
+img.animated, video.animated, .hero-image.animated { animation-name: pop-in; }
+/* ----------------------------- Component Animations --------------------- */
+/* Hero and featured components */
+.hero-section.animated, #hero.animated { animation-name: slide-up; animation-duration: var(--anim-slow); }
+.hero-title.animated { animation-name: reveal-left; animation-duration: var(--anim-base); }
+.hero-subtitle.animated { animation-name: fade-in; animation-duration: var(--anim-base); animation-delay: 120ms; }
+.hero-media.animated { animation: pop-in var(--anim-slow) var(--anim-ease); }
+
+/* Navbar animations */
+.main-nav .nav-link { transition: transform var(--anim-fast) var(--anim-ease), background var(--anim-fast); }
+.main-nav .nav-link.animated { animation-name: fade-in; animation-duration: var(--anim-base); }
+.mobile-menu-toggle.animated { animation: pop-in var(--anim-base); }
+/* Gallery effects */
+.gallery-grid .gallery-item:hover, .gallery-item.hover-lift { transform: translateY(-6px); }
+.gallery-image.animated { animation: pop-in var(--anim-base); }
+
+/* Featured components */
+.featured-card.animated, .featured-trailer.animated { animation-name: slide-up; }
+.featured-media.animated { animation-name: pop-in; }
+.featured-title.animated { animation-name: reveal-left; }
+
+/* Social & shorts */
+.social-card.animated, .shorts-page .short-card.animated { animation-name: fade-in; }
+.social-image.animated, .shorts-gallery .thumb-image.animated { animation-name: pop-in; }
+.social-follow.pulse { animation: pulse 1.8s infinite; }
+
+/* Projects characters and roster */
+.project-card.animated, .character-card.animated { animation-name: fade-in; }
+.project-thumb.animated, .character-thumb.animated { animation-name: pop-in; }
+/* Forms & inputs */
+.form-input, .form-textarea, input, textarea, select { transition: box-shadow var(--anim-fast) var(--anim-ease), border-color var(--anim-fast); }
+.form-input:focus, .form-textarea:focus, input:focus, textarea:focus, select:focus { animation: pop-in var(--anim-fast); }
+.form-textarea.animated { animation-name: slide-up; }
+
+/* Subscribe & newsletter */
+.subscribe-section.animated, .newsletter-section.animated { animation-name: fade-in; }
+.subscribe-form.animated, .newsletter-form.animated { animation-name: reveal-left; }
+
+/* Footer micro-interactions */
+.site-footer.animated, .footer-inner.animated { animation: fade-in var(--anim-base); }
+.footer-social-link.animated { animation: pop-in var(--anim-base); }
+
+/* Badges & UI elements */
+.badge.animated { animation-name: pop-in; animation-duration: var(--anim-base); }
+.badge.pulse { animation: pulse 2s infinite; }
+/* ----------------------------- ID-specific animation rules ------------- */
+/* Every ID in the manifest is given at least one animation or transition rule */
+#site-header.animated, #site-header { transition: box-shadow var(--anim-base), background var(--anim-base); }
+#brand.animated, #brand { transition: transform var(--anim-base); }
+#company-logo.animated, #company-logo img { animation: pop-in .6s var(--anim-ease); }
+#mobile-menu-toggle.animated { animation: pop-in var(--anim-base); }
+#main-nav .nav-link.animated, #main-nav { transition: transform var(--anim-fast); }
+#main-content.animated, #main-content { animation: fade-in .5s var(--anim-ease); }
+#hero.animated, #hero { animation: slide-up .6s var(--anim-ease); }
+#trailers.animated, #trailers { transition: opacity var(--anim-base); }
+#shorts.animated, #shorts { transition: opacity var(--anim-base); }
+#social.animated, #social { transition: opacity var(--anim-base); }
+#projects-characters.animated, #projects-characters { transition: transform var(--anim-base); }
+#site-footer.animated, #site-footer { animation: fade-in var(--anim-base); }
+#primary-navigation.animated, #primary-navigation { transition: transform var(--anim-base); }
+#merch-hero.animated, #merch-hero { animation: slide-up var(--anim-slow); }
+#merch-controls.animated, #merch-controls { transition: opacity var(--anim-base); }
+#filter-form.animated, #filter-form { transition: opacity var(--anim-fast); }
+#filter-category.animated, #filter-category { animation: pop-in .42s var(--anim-ease); }
+#sort-by.animated, #sort-by { animation: pop-in .42s var(--anim-ease); }
+#merch-search.animated, #merch-search { animation: fade-in .36s var(--anim-ease); }
+#cart-button.animated, #cart-button { animation: pop-in .3s var(--anim-ease); }
+
+#products.animated, #products { transition: opacity var(--anim-base); }
+#products-grid.animated, #products-grid { animation: fade-in .5s; }
+#p-001.animated, #p-001 { animation: pop-in .4s; }
+#p-002.animated, #p-002 { animation: pop-in .45s; }
+#size-guide.animated, #size-guide { transition: opacity .28s; }
+#shipping-returns.animated, #shipping-returns { transition: opacity .28s; }
+#trailers-hero.animated, #trailers-hero { animation: slide-up .5s; }
+#featured.animated, #featured { animation: pop-in .6s; }
+#featured-thumb.animated, #featured-thumb { animation: pop-in .6s; }
+#featured-play.animated, #featured-play { animation: pulse 1.6s infinite; }
+
+#gallery.animated, #gallery { animation: fade-in .5s; }
+#trailers-filter.animated, #trailers-filter { transition: transform .3s; }
+#filter-type.animated, #filter-type { animation: pop-in .36s; }
+#sort-trailers.animated, #sort-trailers { animation: pop-in .36s; }
+#trailers-search.animated, #trailers-search { animation: fade-in .36s; }
+#trailers-grid.animated, #trailers-grid { animation: fade-in .5s; }
+
+#sidebar.animated, #sidebar { animation: fade-in .5s; }
+#subscribe-form.animated, #subscribe-form { animation: reveal-left .42s; }
+#subscribe-email.animated, #subscribe-email { animation: pop-in .36s; }
+#social-sidebar.animated, #social-sidebar { animation: fade-in .48s; }
+#newsletter-form.animated, #newsletter-form { animation: reveal-left .42s; }
+#newsletter-email.animated, #newsletter-email { animation: pop-in .36s; }
+
+#about-hero.animated, #about-hero { animation: slide-up .5s; }
+#contact-careers.animated, #contact-careers { animation: fade-in .4s; }
+#contact-form.animated, #contact-form { animation: reveal-left .42s; }
+#contact-name.animated, #contact-name { animation: pop-in .36s; }
+#contact-email.animated, #contact-email { animation: pop-in .36s; }
+#contact-message.animated, #contact-message { animation: pop-in .36s; }
+#projects-hero.animated, #projects-hero { animation: slide-up .5s; }
+#projects-filters.animated, #projects-filters { animation: fade-in .36s; }
+#projects-filter-form.animated, #projects-filter-form { animation: pop-in .36s; }
+#project-type.animated, #project-type { animation: pop-in .36s; }
+#project-sort.animated, #project-sort { animation: pop-in .36s; }
+#projects-search.animated, #projects-search { animation: fade-in .36s; }
+#projects-grid.animated, #projects-grid { animation: fade-in .5s; }
+#projects-list.animated, #projects-list { animation: pop-in .4s; }
+#proj-001.animated, #proj-001 { animation: pop-in .45s; }
+#projects-sidebar.animated, #projects-sidebar { animation: fade-in .48s; }
+#project-modal.animated, #project-modal { animation: pop-in .5s; }
+#project-modal-close.animated, #project-modal-close { animation: pop-in .28s; }
+#modal-title.animated, #modal-title { animation: reveal-left .35s; }
+#modal-desc.animated, #modal-desc { animation: fade-in .35s; }
+#characters-hero.animated, #characters-hero { animation: slide-up .5s; }
+#roster.animated, #roster { animation: fade-in .5s; }
+#characters-grid.animated, #characters-grid { animation: fade-in .5s; }
+#char-001.animated, #char-001 { animation: pop-in .4s; }
+#filter-role.animated, #filter-role { animation: pop-in .36s; }
+#games-hero.animated, #games-hero { animation: slide-up .5s; }
+#games-filters.animated, #games-filters { animation: fade-in .36s; }
+#games-filter-form.animated, #games-filter-form { animation: pop-in .36s; }
+#game-genre.animated, #game-genre { animation: pop-in .36s; }
+#game-platform.animated, #game-platform { animation: pop-in .36s; }
+#games-search.animated, #games-search { animation: fade-in .36s; }
+#games-grid.animated, #games-grid { animation: fade-in .5s; }
+#games-list.animated, #games-list { animation: pop-in .4s; }
+#game-001.animated, #game-001 { animation: pop-in .45s; }
+#game-002.animated, #game-002 { animation: pop-in .45s; }
+#games-sidebar.animated, #games-sidebar { animation: fade-in .48s; }
+#games-subscribe.animated, #games-subscribe { animation: pop-in .36s; }
+#game-subscribe-email.animated, #game-subscribe-email { animation: pop-in .36s; }
+#game-modal.animated, #game-modal { animation: pop-in .5s; }
+/* ----------------------------- Edge-case & Interaction handling ------- */
+/* When user hovers but prefers reduced motion, only allow subtle transforms */
+@media (prefers-reduced-motion: reduce) {
+  .hover-lift:hover, .hover-glow:hover, .btn-primary:hover, .card:hover { transform: none; box-shadow: none; }
+}
+
+/* Smooth scrolling behavior for in-page anchors but respects reduced motion */
+:root { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { :root { scroll-behavior: auto; } }
+
+/* Accessibility: ensure visible focus on keyboard navigation */
+:focus-visible { box-shadow: 0 0 0 4px rgba(126,240,255,0.08); outline: none; }
+
+/* ----------------------------- Developer notes -------------------------- */
+/* - This file exclusively contains motion-related concerns. Layout, color,
+   and structural rules are in styles.css and dark-theme.css. The class and
+   ID lists in the project manifest are all referenced here (either directly
+   or via generic selectors) and provided with reasonable animation/transition
+   defaults or utilities.
+
+   - Use the utility classes .animated, .fade-in, .hover-lift, .pulse, .float,
+   .shimmer to compose animations in markup or JavaScript. For large or
+   complex sequences use the .stagger container and data attributes to
+   control delays.
+
+   - Always pair motion with accessibility fallbacks: if prefers-reduced-motion
+   is detected, transitions and animations are minimized.
+*/
+
+/* End of animations.css */
