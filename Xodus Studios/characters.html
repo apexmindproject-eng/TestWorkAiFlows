@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Characters — Xodus Studios character roster and spotlights for Equitis: The Dragon Wars and other projects (placeholders).">
+  <title>Characters — Xodus Studios</title>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="styles/styles.css">
+  <link rel="stylesheet" href="styles/dark-theme.css">
+  <link rel="stylesheet" href="styles/neon-accents.css">
+  <link rel="stylesheet" href="styles/responsive.css">
+  <link rel="stylesheet" href="styles/animations.css">
+</head>
+<body class="dark-theme characters-page">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+<header id="site-header" class="site-header">
+    <div class="header-inner container">
+      <a href="index.html" class="brand" id="brand">
+        <img src="images/company-logo.png" alt="Xodus Studios logo" class="logo" id="company-logo">
+      </a>
+
+      <button id="mobile-menu-toggle" class="mobile-menu-toggle" aria-controls="primary-navigation" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="hamburger"></span>
+      </button>
+<nav id="primary-navigation" class="primary-nav" role="navigation" aria-label="Primary navigation">
+        <ul class="nav-list">
+          <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="merch.html">Merch</a></li>
+          <li class="nav-item"><a class="nav-link" href="trailers.html">Trailers</a></li>
+          <li class="nav-item"><a class="nav-link" href="shorts.html">Shorts</a></li>
+          <li class="nav-item"><a class="nav-link" href="social.html">Social</a></li>
+          <li class="nav-item"><a class="nav-link" href="about.html">About</a></li>
+          <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
+          <li class="nav-item"><a class="nav-link active" href="characters.html">Characters</a></li>
+          <li class="nav-item"><a class="nav-link" href="videogames.html">Games</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+<main id="main-content" class="main-content container">
+    <section id="characters-hero" class="hero-section neon-panel">
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <h1 class="hero-title">Characters</h1>
+          <p class="hero-subtitle">Discover the roster and character spotlights from Xodus Studios. All profiles and imagery below are placeholders for layout and design purposes.</p>
+          <div class="hero-actions">
+            <a href="#roster" class="btn btn-primary">View Roster</a>
+            <a href="#featured-character" class="btn btn-ghost">Featured Character</a>
+          </div>
+        </div>
+        <figure class="hero-media">
+          <img src="images/character-placeholder-1.png" alt="Characters hero placeholder" class="hero-image">
+          <figcaption class="sr-only">Character hero placeholder artwork</figcaption>
+        </figure>
+      </div>
+    </section>
+<section id="featured-character" class="featured-character container">
+      <header class="section-header">
+        <h2 class="section-title">Featured Character</h2>
+        <p class="section-subtitle">Spotlight: Placeholder character from Equitis: The Dragon Wars.</p>
+      </header>
+<section id="roster" class="roster-section container">
+      <header class="section-header">
+        <h2 class="section-title">Roster</h2>
+        <p class="section-subtitle">A responsive grid of character cards (placeholders). Click any card to view more details in a modal.</p>
+      </header>
+
+      <div id="characters-grid" class="grid" aria-live="polite">
+        <article class="character-card" data-character-id="char-001">
+          <figure class="character-figure">
+            <img src="images/character-placeholder-1.png" alt="Character placeholder 1" class="character-thumb">
+            <button class="btn btn-icon play" aria-label="Open character Aurelia (placeholder)" data-character-id="char-001">View</button>
+            <figcaption class="character-caption">Aurelia Drakon — Placeholder</figcaption>
+          </figure>
+        </article>
+<article class="character-card" data-character-id="char-002">
+          <figure class="character-figure">
+            <img src="images/character-placeholder-2.png" alt="Character placeholder 2" class="character-thumb">
+            <button class="btn btn-icon play" aria-label="Open character Varun (placeholder)" data-character-id="char-002">View</button>
+            <figcaption class="character-caption">Varun Kaito — Placeholder</figcaption>
+          </figure>
+        </article>
+
+        <article class="character-card" data-character-id="char-003">
+          <figure class="character-figure">
+            <img src="images/character-placeholder-3.png" alt="Character placeholder 3" class="character-thumb">
+            <button class="btn btn-icon play" aria-label="Open character Selene (placeholder)" data-character-id="char-003">View</button>
+            <figcaption class="character-caption">Selene Arashi — Placeholder</figcaption>
+          </figure>
+        </article>
+<article class="character-card" data-character-id="char-004">
+          <figure class="character-figure">
+            <img src="images/character-placeholder-1.png" alt="Character placeholder 4" class="character-thumb">
+            <button class="btn btn-icon play" aria-label="Open character Rook (placeholder)" data-character-id="char-004">View</button>
+            <figcaption class="character-caption">Rook Varis — Placeholder</figcaption>
+          </figure>
+        </article>
+      </div>
+
+      <div class="roster-footer">
+        <a class="btn btn-ghost" href="#" aria-label="Load more characters (placeholder)">Load More (Placeholder)</a>
+      </div>
+    </section>
+
+    <aside id="characters-sidebar" class="sidebar container">
+      <section class="filters">
+        <h3 class="sidebar-title">Filters</h3>
+        <form id="characters-filter-form" class="filter-form" aria-label="Filter characters">
+          <label for="filter-affiliation" class="sr-only">Affiliation</label>
+          <select id="filter-affiliation" name="affiliation" class="select">
+            <option value="all">All Affiliations</option>
+            <option value="equitis">House Equitis</option>
+            <option value="rebels">Rebels (Placeholder)</option>
+          </select>
+<label for="filter-role" class="sr-only">Role</label>
+          <select id="filter-role" name="role" class="select">
+            <option value="all">All Roles</option>
+            <option value="protagonist">Protagonist</option>
+            <option value="antagonist">Antagonist</option>
+            <option value="support">Support</option>
+          </select>
+        </form>
+      </section>
+
+      <section class="related-links">
+        <h3 class="sidebar-title">Related</h3>
+        <ul class="related-list">
+          <li><a href="projects.html">Projects (Placeholder)</a></li>
+          <li><a href="trailers.html">Trailers (Placeholder)</a></li>
+          <li><a href="about.html">About (Placeholder)</a></li>
+        </ul>
+      </section>
+</main>
+
+  <footer id="site-footer" class="site-footer">
+    <div class="footer-inner container">
+      <div class="footer-brand">
+        <img src="images/company-logo.png" alt="Xodus Studios logo" class="footer-logo">
+        <p class="footer-copy">Xodus Studios — character placeholders and spotlights. &copy; 2025</p>
+      </div>
+
+      <nav class="footer-nav" aria-label="Footer navigation">
+        <ul class="footer-list">
+          <li><a href="about.html">About</a></li>
+          <li><a href="projects.html">Projects</a></li>
+          <li><a href="videogames.html">Games</a></li>
+          <li><a href="social.html">Social</a></li>
+        </ul>
+      </nav>
+
+      <div class="footer-legal">
+        <p class="muted">All character profiles and imagery are placeholders to illustrate layout and UX. Replace with official assets for production use.</p>
+      </div>
+    </div>
+  </footer>
+<!-- Scripts -->
+  <script src="scripts/main.js"></script>
+  <script src="scripts/mobile-menu.js"></script>
+  <script src="scripts/transitions.js"></script>
+  <script src="scripts/video-player.js"></script>
+  <script src="scripts/gallery.js"></script>
+</body>
+</html>
