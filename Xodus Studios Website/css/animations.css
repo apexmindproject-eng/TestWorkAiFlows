@@ -1,0 +1,299 @@
+/* ========================================================================== */
+/* animations.css - Xodus Studios Website
+   Purpose: Provide all animation, transition, and motion styles for project
+   Modular design: includes variables, keyframes, utility classes
+   and specific animation tweaks for tags, classes, and IDs listed.
+   Mobile-first approach and accessibility-centric.
+/* ========================================================================== */
+
+/* -------------------------------- Variables -------------------------------- */
+:root {
+  --anim-duration-fast: 0.18s;
+  --anim-duration-base: 0.35s;
+  --anim-duration-slow: 0.6s;
+  --anim-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --anim-ease-out: cubic-bezier(0.0, 0, 0.2, 1);
+  --anim-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --anim-shadow-glow: 0 0 20px var(--color-accent);
+}
+/* ------------------------------ Keyframes --------------------------------- */
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes popScale {
+  0% { opacity: 0; transform: scale(0.95); }
+  70% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: var(--anim-shadow-glow); }
+}
+
+@keyframes floatUpDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes slideInLeft {
+  0% { opacity: 0; transform: translateX(-24px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmerEffect {
+  0% { background-position: -150% 0; }
+  100% { background-position: 150% 0; }
+}
+
+/* ------------------------------ Utility Classes --------------------------- */
+.animated {
+  animation-fill-mode: both;
+  animation-timing-function: var(--anim-ease-in-out);
+  animation-duration: var(--anim-duration-base);
+  will-change: opacity, transform;
+}
+
+.fade-in-up {
+  animation-name: fadeInUp;
+}
+
+.fade-in {
+  animation-name: fadeIn;
+}
+
+.pop-scale {
+  animation-name: popScale;
+}
+
+.pulse-glow {
+  animation-name: pulseGlow;
+  animation-iteration-count: infinite;
+  animation-duration: 1.6s;
+}
+
+.float-up-down {
+  animation-name: floatUpDown;
+  animation-iteration-count: infinite;
+  animation-duration: 4s;
+  animation-timing-function: ease-in-out;
+}
+
+.slide-in-left {
+  animation-name: slideInLeft;
+}
+
+.shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.06) 75%);
+  background-size: 200% 100%;
+  animation: shimmerEffect 1.6s linear infinite;
+}
+
+/* Stagger container utility (children animate with delay) */
+.stagger > * {
+  opacity: 0;
+  animation-fill-mode: forwards;
+  animation-name: fadeInUp;
+  animation-duration: var(--anim-duration-base);
+  animation-timing-function: var(--anim-ease-in-out);
+}
+.stagger > *:nth-child(1) { animation-delay: 0.08s; }
+.stagger > *:nth-child(2) { animation-delay: 0.16s; }
+.stagger > *:nth-child(3) { animation-delay: 0.24s; }
+.stagger > *:nth-child(4) { animation-delay: 0.32s; }
+.stagger > *:nth-child(5) { animation-delay: 0.40s; }
+.stagger > *:nth-child(6) { animation-delay: 0.48s; }
+/* --------------------------- Interactive States ---------------------------- */
+.btn, .btn-primary, .btn-secondary, .btn:hover, .btn:focus {
+  transition: transform var(--anim-duration-fast), box-shadow var(--anim-duration-fast), background-color var(--anim-duration-fast);
+}
+
+.btn-primary:hover, .btn-primary:focus {
+  transform: translateY(-4px);
+  box-shadow: var(--anim-shadow-glow);
+  outline: none;
+}
+
+.btn-secondary:hover, .btn-secondary:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 0 8px rgba(126, 110, 199, 0.3);
+  outline: none;
+}
+
+.nav-link {
+  transition: color var(--anim-duration-fast), text-shadow var(--anim-duration-fast);
+}
+.nav-link:hover, .nav-link:focus {
+  color: var(--color-accent-alt, #FF6EC7);
+  text-shadow: 0 0 12px var(--color-accent-alt, #FF6EC7);
+  outline: none;
+}
+
+/* Button icon press animation */
+.btn-icon:active {
+  transform: scale(0.95);
+  transition: transform 0.12s ease-in-out;
+}
+
+/* Focus ring animations for accessibility */
+:focus-visible {
+  outline: 3px solid var(--color-accent, #7EF0FF);
+  outline-offset: 3px;
+  transition: outline-color var(--anim-duration-fast);
+}
+
+/* ----------------------------- Tag Animations ---------------------------- */
+h1.animated, h2.animated, h3.animated, h4.animated {
+  animation-name: slideInLeft;
+  animation-duration: var(--anim-duration-slow);
+  animation-fill-mode: both;
+}
+
+p.animated, article.animated {
+  animation-name: fadeInUp;
+  animation-duration: var(--anim-duration-base);
+}
+
+img.animated, video.animated {
+  animation-name: popScale;
+  animation-duration: var(--anim-duration-base);
+}
+
+/* -------------------------- Hero Section Animations ------------------------ */
+.hero-section.animated {
+  animation-name: fadeInUp;
+  animation-duration: var(--anim-duration-slow);
+}
+.hero-title.animated {
+  animation-name: slideInLeft;
+  animation-duration: var(--anim-duration-base);
+}
+.hero-subtitle.animated {
+  animation-name: fadeIn;
+  animation-duration: var(--anim-duration-base);
+  animation-delay: 0.14s;
+}
+.hero-image.animated {
+  animation-name: popScale;
+  animation-duration: var(--anim-duration-base);
+}
+
+/* --------------------------- Navigation Animations ------------------------- */
+nav#main-nav .nav-link.animated {
+  animation-name: fadeIn;
+  animation-duration: var(--anim-duration-base);
+}
+.mobile-menu-toggle.animated {
+  animation-name: popScale;
+  animation-duration: var(--anim-duration-base);
+}
+/* ---------------------------- Cards & Lists Animations ----------------------- */
+.projects-list .project-card.animated,
+.merch-list .merch-item-card.animated,
+.trailers-gallery-section .trailer-item.animated,
+.shorts-gallery-section .short-clip.animated,
+.social-media-section .social-link-item.animated,
+.characters-gallery-section .character-card.animated,
+.videogames-gallery-section .videogame-card.animated {
+  animation-name: fadeInUp;
+  animation-duration: var(--anim-duration-base);
+}
+
+.project-image.animated, .merch-image.animated, .trailer-video.animated,
+.short-video.animated, .social-icon.animated, .character-image.animated,
+.videogame-image.animated {
+  animation-name: popScale;
+  animation-duration: var(--anim-duration-base);
+}
+
+/* Trailer play button pulse animation */
+.play-btn.pulse-glow, .play-large.pulse-glow {
+  animation-name: pulseGlow;
+  animation-iteration-count: infinite;
+  animation-duration: 1.6s;
+}
+
+/* ----------------------------- Footer Animations --------------------------- */
+footer#site-footer.animated, .footer-content.animated {
+  animation-name: fadeIn;
+  animation-duration: var(--anim-duration-base);
+}
+
+.footer-link.animated {
+  animation-name: popScale;
+  animation-duration: var(--anim-duration-base);
+}
+
+/* ---------------------------- Other Section Animations --------------------- */
+.fan-hub-section.animated, .fan-hub-link.animated {
+  animation-name: fadeInUp;
+}
+
+.news-section.animated, .news-item.animated {
+  animation-name: fadeInUp;
+}
+
+.about-hero-section.animated, .mission-section.animated {
+  animation-name: fadeInUp;
+}
+
+.team-section.animated, .team-member.animated {
+  animation-name: fadeInUp;
+}
+
+.projects-intro-section.animated, .projects-list-section.animated {
+  animation-name: fadeInUp;
+}
+
+.characters-hero-section.animated, .characters-gallery-section.animated {
+  animation-name: fadeInUp;
+}
+
+.videogames-hero-section.animated, .videogames-gallery-section.animated {
+  animation-name: fadeInUp;
+}
+
+/* ---------------------------- Modal & Video Animations ------------------- */
+.video-modal.animated, .modal.animated {
+  animation-name: popScale;
+  animation-duration: var(--anim-duration-fast);
+}
+
+.video-modal-close.animated, .modal-close.animated {
+  animation-name: popScale;
+  animation-duration: var(--anim-duration-fast);
+}
+
+.video-wrapper.animated, .player.animated {
+  animation-name: fadeIn;
+  animation-duration: var(--anim-duration-slow);
+}
+
+.video-metadata.animated, .player-title.animated, .player-desc.animated {
+  animation-name: slideInLeft;
+  animation-duration: var(--anim-duration-base);
+}
+
+/* ---------------------------- Form & Input Animations -------------------- */
+.form-input.animated, .form-textarea.animated, input.animated, textarea.animated, select.animated {
+  animation-name: fadeInUp;
+  animation-duration: var(--anim-duration-base);
+}
+
+/* -------------------------- Accessibility & Reduced Motion -------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* End of animations.css */
