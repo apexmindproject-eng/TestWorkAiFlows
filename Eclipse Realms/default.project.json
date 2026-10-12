@@ -1,0 +1,56 @@
+{
+  "name": "EclipseRealms",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "Shared": { "$path": "src/ReplicatedStorage/Shared" },
+      "Remotes": {
+        "$className": "Folder",
+        "SelectRace": { "$className": "RemoteFunction" },
+        "RaceAssigned": { "$className": "RemoteEvent" }
+      }
+    },
+
+    "ServerScriptService": { "$path": "src/ServerScriptService" },
+
+    "StarterGui": { "$path": "src/StarterGui" },
+
+    "StarterPlayer": {
+      "$properties": { "CharacterWalkSpeed": 20, "CameraMaxZoomDistance": 120 },
+      "StarterPlayerScripts": { "$path": "src/StarterPlayerScripts" }
+    },
+
+    "Teams": {
+      "$className": "Teams",
+      "Vampires": { "$className": "Team", "$properties": { "TeamColor": { "BrickColor": 1004 }, "AutoAssignable": false } },
+      "Wolves":   { "$className": "Team", "$properties": { "TeamColor": { "BrickColor": 106 }, "AutoAssignable": false } },
+      "Witches":  { "$className": "Team", "$properties": { "TeamColor": { "BrickColor": 1031 }, "AutoAssignable": false } },
+      "Humans":   { "$className": "Team", "$properties": { "TeamColor": { "BrickColor": 23 }, "AutoAssignable": false } },
+      "Monks":    { "$className": "Team", "$properties": { "TeamColor": { "BrickColor": 24 }, "AutoAssignable": false } }
+    },
+
+    "Lighting": {
+      "$properties": {
+        "ClockTime": 18.5,
+        "Brightness": 1.5,
+        "Ambient": [0.25, 0.25, 0.32],
+        "OutdoorAmbient": [0.35, 0.35, 0.45],
+        "FogColor": [0.35, 0.32, 0.45],
+        "FogStart": 300,
+        "FogEnd": 1400,
+        "GlobalShadows": true
+      },
+      "Atmosphere": {
+        "$className": "Atmosphere",
+        "$properties": { "Density": 0.35, "Haze": 1.5, "Glare": 0.2 }
+      },
+      "Bloom": { "$className": "BloomEffect", "$properties": { "Intensity": 0.4, "Size": 24, "Threshold": 1.2 } }
+    },
+
+    "Workspace": {
+      "Lobby": { "$className": "Folder" },
+      "Map": { "$className": "Folder" }
+    }
+  }
+}
