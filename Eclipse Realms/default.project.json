@@ -17,7 +17,7 @@
     "StarterGui": { "$path": "src/StarterGui" },
 
     "StarterPlayer": {
-      "$properties": { "CharacterWalkSpeed": 20, "CameraMaxZoomDistance": 120 },
+      "$properties": { "CharacterWalkSpeed": 22, "CameraMaxZoomDistance": 60, "CameraMinZoomDistance": 2 },
       "StarterPlayerScripts": { "$path": "src/StarterPlayerScripts" }
     },
 
@@ -32,24 +32,38 @@
 
     "Lighting": {
       "$properties": {
-        "ClockTime": 18.5,
-        "Brightness": 1.5,
-        "Ambient": [0.25, 0.25, 0.32],
-        "OutdoorAmbient": [0.35, 0.35, 0.45],
-        "FogColor": [0.35, 0.32, 0.45],
-        "FogStart": 300,
-        "FogEnd": 1400,
-        "GlobalShadows": true
+        "Technology": "Future",
+        "ClockTime": 17.9,
+        "GeographicLatitude": 30,
+        "Brightness": 2.2,
+        "ExposureCompensation": 0.15,
+        "Ambient": [0.16, 0.15, 0.2],
+        "OutdoorAmbient": [0.33, 0.3, 0.4],
+        "ColorShift_Top": [1.0, 0.85, 0.7],
+        "ColorShift_Bottom": [0.45, 0.4, 0.55],
+        "EnvironmentDiffuseScale": 0.7,
+        "EnvironmentSpecularScale": 0.7,
+        "GlobalShadows": true,
+        "ShadowSoftness": 0.25,
+        "FogColor": [0.55, 0.48, 0.58],
+        "FogStart": 600,
+        "FogEnd": 3200
+      },
+      "Sky": {
+        "$className": "Sky",
+        "$properties": { "StarCount": 4500, "MoonAngularSize": 16, "SunAngularSize": 18, "CelestialBodiesShown": true }
       },
       "Atmosphere": {
         "$className": "Atmosphere",
-        "$properties": { "Density": 0.35, "Haze": 1.5, "Glare": 0.2 }
+        "$properties": { "Density": 0.38, "Offset": 0.3, "Color": [0.78, 0.7, 0.75], "Decay": [0.42, 0.36, 0.5], "Glare": 0.35, "Haze": 2.4 }
       },
-      "Bloom": { "$className": "BloomEffect", "$properties": { "Intensity": 0.4, "Size": 24, "Threshold": 1.2 } }
+      "Bloom": { "$className": "BloomEffect", "$properties": { "Intensity": 0.55, "Size": 32, "Threshold": 1.4 } },
+      "SunRays": { "$className": "SunRaysEffect", "$properties": { "Intensity": 0.12, "Spread": 0.7 } },
+      "ColorCorrection": { "$className": "ColorCorrectionEffect", "$properties": { "Contrast": 0.08, "Saturation": -0.04, "TintColor": [1.0, 0.97, 0.94] } }
     },
 
     "Workspace": {
-      "Lobby": { "$className": "Folder" },
+      "HoldingChamber": { "$className": "Folder" },
       "Map": { "$className": "Folder" }
     }
   }
