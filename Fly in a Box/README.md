@@ -64,11 +64,28 @@ published model, and what is a modelling decision made for this project.
 - Nothing else. No learning, no neuromodulation, no hunger state, no spontaneous activity: this
   brain is silent until a sense drives it.
 
+## The male dataset, and why the nerve cord is still a stand-in
+
+`cns.py` loads the complete male central nervous system (MaleCNS v1.0, Janelia 2026: 211,577
+neurons, 25.6 million connections, brain plus ventral nerve cord) into the same neuron model. Two
+things come out of it:
+
+- The escape circuit is real end to end: driving the giant fibre fires the wing power-muscle motor
+  neurons, as in the living fly.
+- Walking does not. With the walking command neurons driven, about 40 of the 381 leg motor neurons
+  switch on and stay on, extensors only, with no rhythm and no left-right difference, for forward,
+  backward and turning commands alike. Leg sense-organ feedback and stronger synapses do not change
+  this. Nearly any strong input (smell, a dark object, looming) collapses the model into the same
+  state. So the nerve cord, simulated as identical simple neurons, carries no steering and no
+  stepping, and the pattern generator remains the stand-in. That is a limit of the neuron model,
+  not of the data.
+
 ## Files
 
 ```
 brain.py     whole-brain LIF simulator (numba), loads FlyWire v783 connectivity + annotations
 flybox.py    the closed loop: senses -> brain -> descending neurons -> legs, in the arena
+cns.py       whole-CNS simulator for the male dataset (brain + nerve cord), used for the tests above
 render.py    composes the video: body cameras, both eyes, brain activity, descending-neuron meters
 ```
 

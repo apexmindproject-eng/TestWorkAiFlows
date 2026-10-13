@@ -77,8 +77,8 @@ print(f"[map] {len(photo_idx)} photoreceptor neurons mapped onto 2 x {retina.num
 # Visual projection neurons that carry known features from the optic lobe into the central brain
 lc10a = (b.find("LC10a", "left"), b.find("LC10a", "right"))                       # small dark object -> pursuit / turning toward it
 loom = (np.concatenate([b.find("LC4", "left"), b.find("LPLC2", "left")]), np.concatenate([b.find("LC4", "right"), b.find("LPLC2", "right")]))   # looming -> giant fibre escape
-BLACK = 0.08          # luminance below which an ommatidium is seeing a black object (floor squares are ~0.25)
-black_frac = np.zeros(2); black_frac_prev = np.zeros(2); vis_feat = np.zeros(4)
+# black-object detection per eye, time-smoothed so a thin stripe does not flicker
+dark_mass = np.zeros(2); dark_slow = np.zeros(2); vis_feat = np.zeros(4)
 food_orn = np.flatnonzero(a["type"].isin(["ORN_DM1", "ORN_DM4", "ORN_VA2", "ORN_DM2"]).to_numpy())
 food_orn_L = food_orn[side[food_orn] == "left"]; food_orn_R = food_orn[side[food_orn] == "right"]
 sugar = np.flatnonzero(a["cell_sub_class"].isin(["sugar", "sugar/low_salt"]).to_numpy())
@@ -104,6 +104,10 @@ if args.spawn:
     start_xy, start_yaw = args.spawn[:2], np.deg2rad(args.spawn[2])
 world.add_fly(fly, [start_xy[0], start_xy[1], 0.5], Rotation3D("quat", [np.cos(start_yaw / 2), 0, 0, np.sin(start_yaw / 2)]))
 wb = world.mjcf_root.worldbody
+# the eye cameras skip geom group 2; put the legs there too so the fly does not watch its own legs
+for g in world.mjcf_root.geoms:
+    if g.name and g.name.startswith("fly/") and any(leg in g.name for leg in ("lf_", "lm_", "lh_", "rf_", "rm_", "rh_")):
+        g.group = 2
 H, W, T = 12.0, 30.0, 0.5
 for name, p_, size in [("wall_n", [W, 0, H / 2], [T, W, H / 2]), ("wall_s", [-W, 0, H / 2], [T, W, H / 2]), ("wall_e", [0, -W, H / 2], [W, T, H / 2]), ("wall_w", [0, W, H / 2], [W, T, H / 2])]:
     wb.add_geom(name=name, type=mj.mjtGeom.mjGEOM_BOX, size=size, pos=p_, rgba=[0.86, 0.84, 0.80, 1])
@@ -164,13 +168,14 @@ for tick in range(n_ticks):
         rate = np.clip(40.0 * lum + 160.0 * change, 0, 200)  # Hz: sustained + transient
         b.rates[photo_idx] = rate[photo_eye, photo_omm]
         # optic-lobe feature extraction (the spiking model cannot do this part itself)
-        black_frac_prev = black_frac.copy()
-        black_frac = (lum < BLACK).mean(axis=1)                                   # per eye
-        growth = (black_frac - black_frac_prev) / (VISION_EVERY * CHUNK * DT)        # per second
+        darkness = (lum < 0.08).sum(axis=1).astype(float)                          # ommatidia seeing a black object (floor squares ~0.25, legs ~0.3)
+        dt_v = VISION_EVERY * CHUNK * DT
+        dark_mass += (darkness - dark_mass) * (dt_v / 0.08)                          # 80 ms smoothing (photoreceptor + lamina dynamics)
+        dark_slow += (dark_mass - dark_slow) * (dt_v / 0.4)                           # what the object looked like ~0.4 s ago
         for e in range(2):
-            obj = float(np.clip(black_frac[e] / 0.01, 0, 1))                         # a fly-sized dark object covers ~1% of the eye
-            expansion = growth[e] / (black_frac[e] + 0.005)                           # relative growth rate, 1/s
-            lm = float(np.clip((expansion - 1.0) / 2.0, 0, 1))                       # looming: apparent size more than doubling per second
+            obj = float(np.clip(dark_mass[e] / 6.0, 0, 1))                            # a fly-sized dark object covers ~6 ommatidia
+            expansion = (dark_mass[e] - dark_slow[e]) / (0.4 * (dark_slow[e] + 1.0))  # relative growth rate, 1/s
+            lm = float(np.clip((expansion - 1.0) / 2.0, 0, 1)) if dark_slow[e] > 2.0 else 0.0   # looming: a seen object more than doubling per second
             b.rates[lc10a[e]] = 150.0 * obj
             b.rates[loom[e]] = 150.0 * lm
             vis_feat[e] = obj; vis_feat[2 + e] = lm
@@ -180,7 +185,7 @@ for tick in range(n_ticks):
     for k, (antenna, idx) in enumerate(((head[:2] + 0.45 * leftv, food_orn_L), (head[:2] - 0.45 * leftv, food_orn_R))):
         c = np.exp(-np.linalg.norm(antenna - FOOD) ** 2 / (2 * 14.0 ** 2))
         odour_adapt[k] += (c - odour_adapt[k]) * (CHUNK * DT / 0.8)      # receptor adaptation, ~0.8 s
-        b.rates[idx] = 120.0 * (0.3 * c + 0.7 * max(0.0, c - odour_adapt[k]))
+        b.rates[idx] = 60.0 * (0.3 * c + 0.7 * max(0.0, c - odour_adapt[k]))
     tasting = d_food < 3.0
     b.rates[sugar] = 100.0 if tasting else 0.0
     # nearest obstacle and which side of the head it is on
@@ -209,7 +214,7 @@ for tick in range(n_ticks):
     turn = (popR - popL) / (popR + popL + 2.0)        # fraction of left-right imbalance across all descending neurons
     back = min(rates["MDN"].mean() / 40.0, 1.5)
     left, right = fwd + 1.0 * turn - back, fwd - 1.0 * turn - back
-    if rates["MN9"].mean() > 20:           # proboscis motor neurons firing: feeding, stand still
+    if rates["MN9"].mean() > 30:           # proboscis motor neuron firing hard (sugar gives ~40 Hz, vision spill-over ~15): feeding, stand still
         left = right = 0.0; events["feeding"] += 1
     if rates["DNp01"].mean() > 20:         # giant fibre: startle, back off
         left = right = -1.0; events["startle"] += 1
