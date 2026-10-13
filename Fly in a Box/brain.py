@@ -60,6 +60,7 @@ class Brain:
             ann["side"] = ann.side.fillna("center")
             self.ann = ann
 
+        self.vth = np.full(self.N, VTH, dtype=np.float32)   # per-neuron spike threshold (mV)
         self.reset()
         if verbose:
             print(f"[brain] {self.N} neurons, {self.n_syn} connections, loaded in {time.time()-t0:.1f}s")
@@ -84,6 +85,26 @@ class Brain:
         self.adapt_b = 0.0                                 # mV added per spike; 0 = the published model
         self.step = 0
 
+    def apply_biology_fixes(self, verbose=True):
+        """Two corrections to the wiring-only model, both from established fly physiology:
+        1. Sensory neurons spike from their own stimulus only (central feedback modulates their
+           release, it does not make them fire).
+        2. Antennal-lobe local interneurons are inhibitory (GABA / glutamate). The transmitter
+           predictions label a third of them cholinergic or serotonergic, which turns the antennal
+           lobe into a runaway excitatory loop that floods the whole brain on any smell."""
+        sc = self.ann["super_class"].fillna("").to_numpy(); cls = self.ann["cell_class"].fillna("").to_numpy()
+        self.clamp_inputs(np.flatnonzero(np.isin(sc, ["sensory", "sensory_ascending"])))
+        alln = np.flatnonzero(cls == "ALLN")
+        rows = np.repeat(np.arange(self.N), np.diff(self.indptr))
+        out = np.isin(rows, alln); self.weights[out] = -np.abs(self.weights[out])
+        if verbose:
+            print(f"[brain] biology fixes: sensory neurons stimulus-only; {len(alln)} antennal-lobe local neurons set inhibitory")
+
+    def clamp_inputs(self, idx):
+        """Zero every synapse onto these neurons: they fire from their own stimulus only (sensory neurons)."""
+        mask = np.zeros(self.N, dtype=bool); mask[idx] = True
+        self.weights[mask[self.indices]] = 0.0
+
     def set_rates(self, idx, hz):
         self.rates[idx] = hz
 
@@ -97,13 +118,13 @@ class Brain:
         spk_t = np.empty(max_spikes, dtype=np.int32)
         spk_i = np.empty(max_spikes, dtype=np.int32)
         n = _run(n_steps, self.step, self.v, self.g, self.gbuf, self.refr, self.rates,
-                 self.indptr, self.indices, self.weights, spk_t, spk_i, int(seed), self.wad, float(self.adapt_b))
+                 self.indptr, self.indices, self.weights, spk_t, spk_i, int(seed), self.wad, float(self.adapt_b), self.vth)
         self.step += n_steps
         return spk_t[:n], spk_i[:n]
 
 
 @njit(cache=True, fastmath=True)
-def _run(n_steps, step0, v, g, gbuf, refr, rates, indptr, indices, weights, spk_t, spk_i, seed, wad, adapt_b):
+def _run(n_steps, step0, v, g, gbuf, refr, rates, indptr, indices, weights, spk_t, spk_i, seed, wad, adapt_b, vth):
     np.random.seed(seed)
     N = v.shape[0]
     D = gbuf.shape[0]
@@ -135,7 +156,7 @@ def _run(n_steps, step0, v, g, gbuf, refr, rates, indptr, indices, weights, spk_
                 wad[i] *= A_W
                 if p_poi[i] > 0.0 and np.random.random() < p_poi[i]:
                     v[i] += w_poi
-            if v[i] > VTH:
+            if v[i] > vth[i]:
                 v[i] = V0
                 g[i] = 0.0
                 wad[i] += adapt_b

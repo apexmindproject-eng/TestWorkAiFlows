@@ -39,6 +39,11 @@ CLASS_COLORS = {
     "visual_centrifugal": (90, 190, 230), "endocrine": (200, 200, 200),
 }
 colors = np.array([CLASS_COLORS.get(str(c), (160, 160, 160)) for c in sclass], dtype=np.uint8)
+HIGHLIGHT = {}   # neuron index -> colour, drawn as 5x5 blocks
+if os.path.exists(f"{args.run}/highlight.json"):
+    for name, (idx_list, col) in json.load(open(f"{args.run}/highlight.json")).items():
+        for j in idx_list: HIGHLIGHT[int(j)] = tuple(col)
+hl_idx = np.array(sorted(HIGHLIGHT), dtype=int); hl_col = np.array([HIGHLIGHT[j] for j in hl_idx], dtype=np.float32) if len(hl_idx) else np.zeros((0, 3), np.float32)
 # faint background of every neuron
 bg = np.zeros((H, W, 3), np.uint8); bg[:] = (12, 12, 16)
 brain_bg = np.zeros((BH, BW), np.float32)
@@ -55,6 +60,11 @@ def paint_spikes(img, ids, decay):
         # make spiking neurons 2 px wide
         GLOW[np.minimum(py[ids] + 1, H - 1), px[ids]] = np.maximum(GLOW[np.minimum(py[ids] + 1, H - 1), px[ids]], colors[ids] * 0.7)
         GLOW[py[ids], np.minimum(px[ids] + 1, W - 1)] = np.maximum(GLOW[py[ids], np.minimum(px[ids] + 1, W - 1)], colors[ids] * 0.7)
+    if len(hl_idx):
+        fired = np.isin(hl_idx, ids)
+        for j, c, f in zip(hl_idx, hl_col, fired):
+            y0, x0 = py[j], px[j]
+            GLOW[max(y0-2,0):y0+3, max(x0-2,0):x0+3] = np.maximum(GLOW[max(y0-2,0):y0+3, max(x0-2,0):x0+3], c if f else c * 0.25)
     region = GLOW[BY:BY + BH, BX:BX + BW]
     img[BY:BY + BH, BX:BX + BW] = np.clip(img[BY:BY + BH, BX:BX + BW] + region, 0, 255).astype(np.uint8)
 
@@ -67,7 +77,7 @@ def eye_image(px, size):
         img[max(r_ - 3, 0):r_ + 4, max(c_ - 3, 0):c_ + 4] = v
     return (np.clip(img, 0, 1) * 255).astype(np.uint8)
 
-METERS = [("DNa02", "turn (ipsilateral)"), ("DNp01", "giant fibre: escape"), ("DNg12", "grooming command"), ("MN9", "proboscis: feed"), ("PAMrw", "reward dopamine (PAM)")]
+METERS = [("DNa02", "turn (ipsilateral)"), ("DNp01", "giant fibre: escape"), ("DNg12", "grooming command"), ("MN9", "proboscis: feed"), ("PAMrw", "reward dopamine")]
 
 writer = imageio.get_writer(args.out, fps=args.fps, codec="libx264", quality=8, macro_block_size=1)
 for i in range(n_frames):
@@ -96,7 +106,7 @@ for i in range(n_frames):
     d.text((BX, BY - 36), f"brain activity  ({len(ids):,} neurons fired this frame)", font=FONT, fill=(220, 220, 230))
     # legend
     lx = BX; ly = BY + BH + 8
-    for k, (name, col) in enumerate([("optic lobe", CLASS_COLORS["optic"]), ("visual projection", CLASS_COLORS["visual_projection"]), ("central brain", CLASS_COLORS["central"]), ("sensory", CLASS_COLORS["sensory"]), ("descending", CLASS_COLORS["descending"]), ("motor", CLASS_COLORS["motor"])]):
+    for k, (name, col) in enumerate([("optic lobe", CLASS_COLORS["optic"]), ("visual projection", CLASS_COLORS["visual_projection"]), ("central brain", CLASS_COLORS["central"]), ("sensory", CLASS_COLORS["sensory"]), ("descending", CLASS_COLORS["descending"]), ("reward (PAM)", (255, 80, 200))]):
         xx = lx + (k % 3) * 190; yy = ly + (k // 3) * 24
         d.rectangle([xx, yy + 6, xx + 12, yy + 18], fill=col); d.text((xx + 18, yy), name, font=FONT_S, fill=(190, 190, 200))
     # meters

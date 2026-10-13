@@ -35,6 +35,7 @@ p.add_argument("--base", type=float, default=0.5, help="baseline walking drive o
 p.add_argument("--seed", type=int, default=1)
 p.add_argument("--spawn", type=float, nargs=3, default=None, help="x y yaw_deg")
 p.add_argument("--demo-groom", type=float, default=0.0, help="debug: force a grooming bout for the first N seconds")
+p.add_argument("--published-brain", action="store_true", help="use the published model without the antennal-lobe and sensory corrections")
 p.add_argument("--turn-gain", type=float, default=100.0, help="Hz of DNa02 left-right difference that gives a full-strength turn")
 args = p.parse_args()
 os.makedirs(args.out + "/frames", exist_ok=True)
@@ -46,6 +47,8 @@ FRAME_EVERY = 3.3333      # ticks between video frames (30 fps)
 
 # ----------------------------------------------------------------------------- brain
 b = Brain("Drosophila_brain_model/Completeness_783.csv", "Drosophila_brain_model/Connectivity_783.parquet", "data/flywire_annotations_783.tsv")
+if not args.published_brain:
+    b.apply_biology_fixes()
 a = b.ann
 pos = a[["pos_x", "pos_y", "pos_z"]].to_numpy() * np.array([4, 4, 40]) / 1000.0
 side = a["side"].to_numpy()
@@ -413,4 +416,5 @@ for tick in range(n_ticks):
 np.savez_compressed(f"{args.out}/spikes.npz", **{f"f{i}": s for i, s in enumerate(spike_frames)})
 json.dump(log, open(f"{args.out}/log.json", "w"))
 np.save(f"{args.out}/soma_xy.npy", pos[:, [0, 1]]); np.save(f"{args.out}/super_class.npy", sc.astype(str))
+json.dump({"reward dopamine": [reward_pam.tolist(), [255, 80, 200]], "giant fibre": [groups["DNp01"][0].tolist() + groups["DNp01"][1].tolist(), [255, 90, 60]], "MN9": [mn9.tolist(), [255, 255, 255]]}, open(f"{args.out}/highlight.json", "w"))
 print(f"[done] {frame_i} frames in {time.time()-t_wall:.0f}s; events {events}")

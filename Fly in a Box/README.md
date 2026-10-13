@@ -93,29 +93,44 @@ published fly behaviour and clearly separated in the video ("inner state"):
 The real brain's own steering signal (left-right imbalance of all descending neurons) is added to
 the turn command throughout. The video shows the three contributions separately.
 
-## What fires when: reward, smell and the saturation problem
+## What fires when: reward, smell and the saturation problem (solved)
 
-Measured on a 36 s run and in isolated probes (`brain.py`):
+Measured in isolated probes (`brain.py`) and on the box runs:
 
-- Taste is specific: the sugar neurons fire only while feeding, and 109 neurons switch on only
-  during the meal, including the proboscis motor neuron MN9 (77 Hz for sugar alone).
+- Taste is specific: the sugar neurons fire only while feeding, and the proboscis motor neuron
+  MN9 goes to about 80 Hz for sugar alone.
 - Sugar alone does not reach the PAM reward dopamine neurons (0 Hz). In the living fly that link
   depends on hunger-state neuromodulation, which a wiring-only model cannot express.
-- Any food smell, even at 5 Hz on the receptor neurons, flips the brain into one fixed state of
-  about 10,400 active neurons with the PAM dopamine neurons at 50 Hz and 75% of the mushroom-body
-  Kenyon cells on. Sugar on top changes nothing there, and the smell suppresses MN9 (77 -> 7 Hz).
-  Real brains keep these responses sparse through inhibition that identical model neurons do not
-  balance. Spike-frequency adaptation (optional in `brain.py`, off by default) lowers the rates
-  but not the number of neurons recruited, so it is not a fix.
-- So in the box: feeding, escape, grooming and steering are driven by their real circuits, but
-  "reward" is not something this brain produces on its own. It is therefore delivered the way
-  reward experiments deliver it in the lab: while a hungry fly eats, the behaviour layer drives
-  the real sweet-reward dopamine neurons (PAM02, PAM07, PAM08, PAM11: the PAM-beta'2, gamma4
-  and alpha1 subtypes of Burke 2012, Liu 2012, Yamagata 2015, Huetteroth 2015) at up to 100 Hz,
-  scaled by hunger so the burst fades as the fly fills up. Everything downstream of those
-  neurons is the real wiring. Because the model cannot rewrite synapses, the memory consequence
-  (a learned attraction to the food smell) is tracked in the behaviour layer as "food memory",
-  built while reward and smell coincide.
+- **The saturation problem, as first found.** With the brain exactly as published, any food smell,
+  even at 5 Hz on the receptor neurons, flipped the brain into one fixed state of about 10,400
+  active neurons with the PAM dopamine neurons at 50-70 Hz and 75% of the mushroom-body Kenyon
+  cells on, and the smell suppressed MN9 (77 -> 7 Hz). That is not a fly; it is a seizure.
+- **The cause, in the wiring table.** Two things that the connectome annotation gets wrong for a
+  spiking model:
+  1. The antennal-lobe local neurons (`ALLN`, 429 cells). The real ones are GABAergic and
+     glutamatergic, i.e. inhibitory, and they are the brakes of the olfactory system. The
+     neurotransmitter predictions in FlyWire label 120 of them acetylcholine or serotonin, so the
+     model treated the brakes as accelerators and the smell response ran away.
+  2. Sensory neurons (`sensory`, `sensory_ascending`) received synaptic input from the brain. In the
+     model this fed the runaway state back into the receptors. The real receptor neurons are driven
+     by the stimulus, so their inputs are now stimulus-only.
+- **The fix** (`Brain.apply_biology_fixes()`, on by default; `--published-brain` turns it off):
+  every ALLN output is made inhibitory and the sensory neurons are clamped to their stimulus.
+  Nothing else changes: same neurons, same synapse counts, same weights.
+- **Result.** A faint smell now recruits 319 neurons instead of 10,405; 4% of Kenyon cells respond
+  instead of 75% (real flies: 5-10%); MN9 keeps firing at about 80 Hz with smell present; the PAM
+  reward neurons sit at about 1 Hz until driven. The LC10a -> DNa02 steering check is unchanged.
+  In the box, spikes per 10 ms frame fell from about 12,000 to about 3,000.
+- **Reward.** Feeding, escape, grooming and steering are driven by their real circuits, but
+  "reward" is not something this brain produces on its own. It is delivered the way reward
+  experiments deliver it in the lab: while a hungry fly eats, the behaviour layer drives the real
+  sweet-reward dopamine neurons (PAM02, PAM07, PAM08, PAM11: the PAM-beta'2, gamma4 and alpha1
+  subtypes of Burke 2012, Liu 2012, Yamagata 2015, Huetteroth 2015; 95 cells) at up to 100 Hz,
+  scaled by hunger so the burst fades as the fly fills up. Those 95 cells are drawn in pink on the
+  brain panel so you can see them light up during the meal. Everything downstream of them is the
+  real wiring. Because the model cannot rewrite synapses, the memory consequence (a learned
+  attraction to the food smell) is tracked in the behaviour layer as "food memory", built while
+  reward and smell coincide.
 
 ## The male dataset, and why the nerve cord is still a stand-in
 
