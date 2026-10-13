@@ -205,7 +205,7 @@ for tick in range(n_ticks):
         for e in range(2):
             obj = float(np.clip(dark_mass[e] / 6.0, 0, 1))                            # a fly-sized dark object covers ~6 ommatidia
             expansion = (dark_mass[e] - dark_slow[e]) / (0.4 * (dark_slow[e] + 1.0))  # relative growth rate, 1/s
-            lm = float(np.clip((expansion - 1.0) / 2.0, 0, 1)) if dark_slow[e] > 2.0 else 0.0   # looming: a seen object more than doubling per second
+            lm = float(np.clip((expansion - 2.0) / 3.0, 0, 1)) if dark_slow[e] > 2.0 else 0.0   # looming: a seen object growing more than threefold per second
             b.rates[lc10a[e]] = 150.0 * obj
             b.rates[loom[e]] = 150.0 * lm
             vis_feat[e] = obj; vis_feat[2 + e] = lm
@@ -275,14 +275,15 @@ for tick in range(n_ticks):
     elif inner.mode == "wall" and inner.bout_t <= 0:
         inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 8.0)
     # food: the brain's own proboscis motor neuron (sugar -> MN9) says eat; eating fills the fly
-    if tasting and rates["MN9"].mean() > 30 and h > 0.15:
+    if tasting and rates["MN9"].mean() > 10 and h > 0.15:
         inner.mode = "feed"; feeding_now = True
         inner.hunger = max(0.0, inner.hunger - 0.08 * dt_c)
     elif inner.mode == "feed":
         inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 6.0)
     # escape: the brain's giant fibre fired on a looming object
-    if rates["DNp01"].mean() > 20:
-        inner.mode = "escape"; inner.bout_t = 0.4; events["startle"] += 1
+    inner.gf_refractory = max(0.0, getattr(inner, "gf_refractory", 0.0) - dt_c)
+    if rates["DNp01"].mean() > 40 and inner.gf_refractory <= 0 and inner.mode != "escape":
+        inner.mode = "escape"; inner.bout_t = 0.4; inner.gf_refractory = 3.0; events["startle"] += 1   # giant fibre habituates for a few seconds
     elif inner.mode == "escape":
         if inner.bout_t <= 0:
             inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 6.0)
