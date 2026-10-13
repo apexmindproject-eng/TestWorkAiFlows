@@ -286,7 +286,7 @@ for tick in range(n_ticks):
     inner.dust = min(1.0, inner.dust + (0.25 * dt_c if touching else 0.0)); inner.dust *= (1 - 0.02 * dt_c)
     if inner.mode in ("walk", "pause") and inner.bout_t <= 0:
         if inner.mode == "walk":
-            if rng.random() < 0.35 + 0.5 * inner.dust:                                      # flies groom in many of their pauses
+            if rng.random() < 0.45 + 0.5 * inner.dust + 0.3 * (1 - h):                      # flies groom in many of their pauses, more when full
                 inner.mode = "groom"; inner.bout_t = rng.uniform(2.0, 4.0); inner.groom_kind = rng.choice(["front rub", "head groom", "hind rub"]); inner.groom_t = 0.0
             else:
                 inner.mode = "pause"; inner.bout_t = rng.uniform(0.4, 1.5) * (1.5 - h)      # hungry flies pause less
@@ -331,7 +331,8 @@ for tick in range(n_ticks):
         if tasting and h > 0.15:
             feeding_now = True; inner.hunger = max(0.0, inner.hunger - 0.08 * dt_c)
         else:
-            inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 6.0)
+            # after a meal a fly almost always grooms (post-feeding grooming), then wanders
+            inner.mode = "groom"; inner.bout_t = rng.uniform(3.0, 6.0); inner.groom_kind = "front rub"; inner.groom_t = 0.0
     elif tasting and h > 0.15 and inner.mode not in ("escape",):
         inner.mode = "feed"; feeding_now = True
     # escape: the brain's giant fibre fired on a looming object
