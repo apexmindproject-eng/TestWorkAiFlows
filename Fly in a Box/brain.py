@@ -18,6 +18,7 @@ T_RFC = 2.2e-3        # s refractory
 T_DLY = 1.8e-3        # s synaptic delay
 W_SYN = 0.275         # mV per synapse
 F_POI = 250           # Poisson input weight factor (w_syn * f_poi added straight to v)
+ADAPT_TAU = 0.3       # s, decay of spike-frequency adaptation (0 = off)
 
 D_STEPS = int(round(T_DLY / DT))
 R_STEPS = int(round(T_RFC / DT))
@@ -25,6 +26,7 @@ A_M = np.exp(-DT / T_MBR)
 A_S = np.exp(-DT / TAU)
 # exact solution of dv/dt = (v0 - v + g)/t_mbr with g decaying exponentially
 G_COEF = (A_S - A_M) / (1.0 - T_MBR / TAU)
+A_W = np.exp(-DT / ADAPT_TAU)
 
 
 class Brain:
@@ -78,6 +80,8 @@ class Brain:
         self.gbuf = np.zeros((D_STEPS, self.N), dtype=np.float32)
         self.refr = np.zeros(self.N, dtype=np.int32)
         self.rates = np.zeros(self.N, dtype=np.float32)   # Hz of Poisson drive per neuron
+        self.wad = np.zeros(self.N, dtype=np.float32)     # adaptation variable (mV)
+        self.adapt_b = 0.0                                 # mV added per spike; 0 = the published model
         self.step = 0
 
     def set_rates(self, idx, hz):
@@ -93,13 +97,13 @@ class Brain:
         spk_t = np.empty(max_spikes, dtype=np.int32)
         spk_i = np.empty(max_spikes, dtype=np.int32)
         n = _run(n_steps, self.step, self.v, self.g, self.gbuf, self.refr, self.rates,
-                 self.indptr, self.indices, self.weights, spk_t, spk_i, int(seed))
+                 self.indptr, self.indices, self.weights, spk_t, spk_i, int(seed), self.wad, float(self.adapt_b))
         self.step += n_steps
         return spk_t[:n], spk_i[:n]
 
 
 @njit(cache=True, fastmath=True)
-def _run(n_steps, step0, v, g, gbuf, refr, rates, indptr, indices, weights, spk_t, spk_i, seed):
+def _run(n_steps, step0, v, g, gbuf, refr, rates, indptr, indices, weights, spk_t, spk_i, seed, wad, adapt_b):
     np.random.seed(seed)
     N = v.shape[0]
     D = gbuf.shape[0]
@@ -126,13 +130,15 @@ def _run(n_steps, step0, v, g, gbuf, refr, rates, indptr, indices, weights, spk_
                     continue
             else:
                 gi = g[i]
-                v[i] = V0 + (v[i] - V0) * A_M + gi * G_COEF
+                v[i] = V0 + (v[i] - V0) * A_M + (gi - wad[i]) * G_COEF
                 g[i] = gi * A_S
+                wad[i] *= A_W
                 if p_poi[i] > 0.0 and np.random.random() < p_poi[i]:
                     v[i] += w_poi
             if v[i] > VTH:
                 v[i] = V0
                 g[i] = 0.0
+                wad[i] += adapt_b
                 refr[i] = 0 if p_poi[i] > 0.0 else R_STEPS
                 if nspk < spk_t.shape[0]:
                     spk_t[nspk] = t

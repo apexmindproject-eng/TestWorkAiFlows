@@ -93,6 +93,23 @@ published fly behaviour and clearly separated in the video ("inner state"):
 The real brain's own steering signal (left-right imbalance of all descending neurons) is added to
 the turn command throughout. The video shows the three contributions separately.
 
+## What fires when: reward, smell and the saturation problem
+
+Measured on a 36 s run and in isolated probes (`brain.py`):
+
+- Taste is specific: the sugar neurons fire only while feeding, and 109 neurons switch on only
+  during the meal, including the proboscis motor neuron MN9 (77 Hz for sugar alone).
+- Sugar alone does not reach the PAM reward dopamine neurons (0 Hz). In the living fly that link
+  depends on hunger-state neuromodulation, which a wiring-only model cannot express.
+- Any food smell, even at 5 Hz on the receptor neurons, flips the brain into one fixed state of
+  about 10,400 active neurons with the PAM dopamine neurons at 50 Hz and 75% of the mushroom-body
+  Kenyon cells on. Sugar on top changes nothing there, and the smell suppresses MN9 (77 -> 7 Hz).
+  Real brains keep these responses sparse through inhibition that identical model neurons do not
+  balance. Spike-frequency adaptation (optional in `brain.py`, off by default) lowers the rates
+  but not the number of neurons recruited, so it is not a fix.
+- So in the box: feeding, escape, grooming and steering are driven by their real circuits, but
+  "reward" is not something this brain produces on its own.
+
 ## The male dataset, and why the nerve cord is still a stand-in
 
 `cns.py` loads the complete male central nervous system (MaleCNS v1.0, Janelia 2026: 211,577
