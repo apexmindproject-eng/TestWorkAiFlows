@@ -146,6 +146,24 @@ sim.warmup()
 segs = fly.get_bodysegs_order()
 I_HEAD, I_THORAX = segs.index(BodySegment("c_head")), segs.index(BodySegment("c_thorax"))
 
+# ----------------------------------------------------------------------------- behaviour layer
+# Internal state and nerve-cord-level behaviour that the wiring-only model cannot produce, built from
+# published fly behaviour (see README): walking bouts and pauses, spontaneous turns, wall following,
+# odour-gradient turning scaled by hunger, feeding to satiety, blocked-leg reflex.
+class Inner:
+    def __init__(self, rng):
+        self.rng = rng
+        self.hunger = 0.9                 # 0 full .. 1 starved (a starved fly walks more and chases smell)
+        self.mode = "walk"                # walk | pause | feed | wall | escape
+        self.bout_t = rng.uniform(2.0, 6.0)   # time left in the current bout
+        self.turn_bias = 0.0              # current spontaneous turn command (-1 left .. +1 right)
+        self.turn_t = 0.0                 # time left in the current spontaneous turn
+        self.wall_side = 0.0              # +1 wall on the right, -1 on the left
+        self.odour_prev = 0.0
+        self.search = 0.0                 # local-search intensity after losing the odour
+inner = Inner(rng)
+odour_LR = np.zeros(2)
+
 # ----------------------------------------------------------------------------- loop
 n_ticks = int(args.seconds / (CHUNK * DT))
 rates = {k: np.zeros(2) for k in groups}          # smoothed Hz, [left, right]
@@ -198,6 +216,7 @@ for tick in range(n_ticks):
         c = np.exp(-np.linalg.norm(antenna - FOOD) ** 2 / (2 * 14.0 ** 2))
         odour_adapt[k] += (c - odour_adapt[k]) * (CHUNK * DT / 0.8)      # receptor adaptation, ~0.8 s
         b.rates[idx] = 60.0 * (0.3 * c + 0.7 * max(0.0, c - odour_adapt[k]))
+        odour_LR[k] = c
     tasting = d_food < 3.0
     b.rates[sugar] = 100.0 if tasting else 0.0
     # nearest obstacle and which side of the head it is on
@@ -221,15 +240,69 @@ for tick in range(n_ticks):
         rates[k] += (inst - rates[k]) * alpha
 
     # --- descending neurons -> nerve cord pattern generator -> legs
-    fwd = args.base + 0.5 * min(rates["DNp09"].mean() / 50.0, 1.5)
+    dt_c = CHUNK * DT
     popL, popR = rates["DNpop"]
-    turn = (popR - popL) / (popR + popL + 2.0)        # fraction of left-right imbalance across all descending neurons
-    back = min(rates["MDN"].mean() / 40.0, 1.5)
+    brain_turn = (popR - popL) / (popR + popL + 2.0)        # what the real brain says, left-right imbalance of all descending neurons
+    fwd = 0.0; turn = brain_turn; back = 0.0
+    feeding_now = False
+
+    # hunger drives everything: a starved fly walks more, faster, and follows smell
+    h = inner.hunger
+    inner.bout_t -= dt_c
+    if inner.mode in ("walk", "pause") and inner.bout_t <= 0:
+        if inner.mode == "walk":
+            inner.mode = "pause"; inner.bout_t = rng.uniform(0.4, 1.5) * (1.5 - h)      # hungry flies pause less
+        else:
+            inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 8.0) * (0.5 + h)
+    # spontaneous turns (saccade-like, roughly one every 1-2 s while walking)
+    inner.turn_t -= dt_c
+    if inner.turn_t <= 0:
+        if rng.random() < dt_c / 1.5:
+            inner.turn_bias = rng.choice([-1.0, 1.0]) * rng.uniform(0.3, 0.8); inner.turn_t = rng.uniform(0.2, 0.5)
+        else:
+            inner.turn_bias = 0.0
+    # smell: turn toward the antenna that smells more food (bilateral comparison), scaled by hunger;
+    # if the smell is fading, search harder (local search)
+    od = odour_LR.mean()
+    grad = (odour_LR[1] - odour_LR[0]) / (od + 0.02)          # +: right antenna smells more
+    inner.search += (max(0.0, inner.odour_prev - od) * 40.0 - inner.search) * dt_c / 1.0
+    inner.odour_prev = od
+    odour_turn = np.clip(grad * 6.0, -1, 1) * h * min(1.0, od * 4)
+    # wall: a fly that meets a wall turns to run along it, and leaves it now and then
+    if touching:
+        if inner.mode != "wall":
+            inner.mode = "wall"; inner.wall_side = 1.0 if bearing_s < 0 else -1.0; inner.bout_t = rng.uniform(1.0, 4.0)
+    elif inner.mode == "wall" and inner.bout_t <= 0:
+        inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 8.0)
+    # food: the brain's own proboscis motor neuron (sugar -> MN9) says eat; eating fills the fly
+    if tasting and rates["MN9"].mean() > 30 and h > 0.15:
+        inner.mode = "feed"; feeding_now = True
+        inner.hunger = max(0.0, inner.hunger - 0.08 * dt_c)
+    elif inner.mode == "feed":
+        inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 6.0)
+    # escape: the brain's giant fibre fired on a looming object
+    if rates["DNp01"].mean() > 20:
+        inner.mode = "escape"; inner.bout_t = 0.4; events["startle"] += 1
+    elif inner.mode == "escape":
+        if inner.bout_t <= 0:
+            inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 6.0)
+
+    if inner.mode == "walk":
+        fwd = 0.45 + 0.5 * h
+        turn = brain_turn + inner.turn_bias + odour_turn + inner.search * rng.uniform(-1, 1)
+    elif inner.mode == "pause":
+        fwd = 0.0; turn = 0.0
+    elif inner.mode == "wall":
+        fwd = 0.35 + 0.3 * h
+        turn = brain_turn + 0.9 * (-inner.wall_side) * (1.0 if touching else 0.3) + odour_turn   # turn away from the wall, then run along it
+        if touching and obst_d < -0.3:
+            back = 0.6                                                                          # blocked: back off first
+    elif inner.mode == "feed":
+        fwd = 0.0; turn = 0.0; events["feeding"] += 1
+    elif inner.mode == "escape":
+        fwd = -1.0; turn = 0.0
+    turn = float(np.clip(turn, -1.0, 1.0))
     left, right = fwd + 1.0 * turn - back, fwd - 1.0 * turn - back
-    if rates["MN9"].mean() > 30:           # proboscis motor neuron firing hard (sugar gives ~40 Hz, vision spill-over ~15): feeding, stand still
-        left = right = 0.0; events["feeding"] += 1
-    if rates["DNp01"].mean() > 20:         # giant fibre: startle, back off
-        left = right = -1.0; events["startle"] += 1
     drive = np.clip([left, right], -1.0, 1.2)
     if abs(drive[0]) < 0.08 and abs(drive[1]) < 0.08:
         drive = np.array([0.0, 0.0])
@@ -256,11 +329,11 @@ for tick in range(n_ticks):
         for k in groups:
             log["rates"][k].append(rates[k].tolist())
         log["inputs"].append([float(odour), bool(tasting), bool(touching), float(lum.mean()), float(vis_feat[0]), float(vis_feat[1]), float(vis_feat[2]), float(vis_feat[3])])
-        log["events"].append(dict(events)); log["frames"].append(frame_i)
+        log["events"].append(dict(events)); log["frames"].append(frame_i); log.setdefault("inner", []).append([inner.mode, float(inner.hunger), float(brain_turn), float(odour_turn), float(inner.turn_bias)])
         np.save(f"{args.out}/frames/eyes_{frame_i:05d}.npy", rgb.astype(np.float16))
         frame_i += 1
     if tick % 50 == 0:
-        print(f"  t={t:5.1f}s  wall={time.time()-t_wall:6.0f}s  pos=({thorax[0]:5.1f},{thorax[1]:5.1f}) yaw={np.degrees(yaw):5.0f}  drive={drive.round(2)}  "
+        print(f"  t={t:5.1f}s  wall={time.time()-t_wall:6.0f}s  pos=({thorax[0]:5.1f},{thorax[1]:5.1f}) yaw={np.degrees(yaw):5.0f}  drive={drive.round(2)} mode={inner.mode} hunger={inner.hunger:.2f}  "
               f"DNpop {rates['DNpop'].round(1)} DNa02 {rates['DNa02'].round(0)} DNp09 {rates['DNp09'].round(0)} MDN {rates['MDN'].round(0)} MN9 {rates['MN9'].mean():.0f}  odour={odour:.2f} obj={vis_feat[0]:.2f}/{vis_feat[1]:.2f} loom={vis_feat[2]:.2f}/{vis_feat[3]:.2f} touch={touching} head=({head[0]:.1f},{head[1]:.1f},{head[2]:.1f}) obst={obst_d:.1f}  spikes/10ms={len(si)}", flush=True)
 
 np.savez_compressed(f"{args.out}/spikes.npz", **{f"f{i}": s for i, s in enumerate(spike_frames)})

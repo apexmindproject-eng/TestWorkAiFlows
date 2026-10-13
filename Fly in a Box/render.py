@@ -116,9 +116,18 @@ for i in range(n_frames):
     d.text((BX, my), f"senses in:  odour {odour:4.2f}   taste {'YES' if tasting else 'no '}   head touch {'YES' if touching else 'no '}", font=FONT_S, fill=(140, 210, 140)); my += 26
     d.text((BX, my), f"eyes:  dark object L {objL:4.2f} R {objR:4.2f}   looming L {loomL:4.2f} R {loomR:4.2f}", font=FONT_S, fill=(140, 190, 230)); my += 28
     d.text((BX, my), f"legs out:   left drive {dl:+.2f}   right drive {dr:+.2f}", font=FONT_S, fill=(210, 190, 120)); my += 28
-    ev = log["events"][i]
-    if ev["feeding"]: d.text((BX, my), "FEEDING", font=FONT_B, fill=(255, 120, 200))
-    if ev["startle"]: d.text((BX + 200, my), "STARTLE", font=FONT_B, fill=(255, 90, 60))
+    if "inner" in log:
+        mode, hunger, brain_turn, odour_turn, spont = log["inner"][i]
+        my += 6
+        d.text((BX, my), "inner state (behaviour layer, not the wiring):", font=FONT_S, fill=(200, 170, 120)); my += 26
+        d.text((BX, my), f"hunger", font=FONT_S, fill=(200, 200, 210))
+        d.rectangle([BX + 80, my + 4, BX + 230, my + 20], outline=(70, 70, 80)); d.rectangle([BX + 80, my + 4, BX + 80 + int(hunger * 150), my + 20], fill=(230, 160, 70))
+        d.text((BX + 240, my), {"walk": "walking", "pause": "pausing", "wall": "following the wall", "feed": "FEEDING", "escape": "ESCAPE"}.get(mode, mode), font=FONT_B if mode in ("feed", "escape") else FONT, fill=(255, 120, 200) if mode == "feed" else (255, 90, 60) if mode == "escape" else (220, 220, 230)); my += 30
+        d.text((BX, my), f"steering:  brain {brain_turn:+.2f}   smell {odour_turn:+.2f}   spontaneous {spont:+.2f}", font=FONT_S, fill=(200, 200, 210))
+    else:
+        ev = log["events"][i]
+        if ev["feeding"]: d.text((BX, my), "FEEDING", font=FONT_B, fill=(255, 120, 200))
+        if ev["startle"]: d.text((BX + 200, my), "STARTLE", font=FONT_B, fill=(255, 90, 60))
     writer.append_data(np.asarray(pil))
     if i % 100 == 0: print(f"  frame {i}/{n_frames}", flush=True)
 writer.close(); print("saved", args.out)

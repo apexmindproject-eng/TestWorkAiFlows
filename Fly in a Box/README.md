@@ -66,6 +66,26 @@ published model, and what is a modelling decision made for this project.
 - Nothing else. No learning, no neuromodulation, no hunger state, no spontaneous activity: this
   brain is silent until a sense drives it.
 
+## The behaviour layer
+
+The wiring-only model reacts but does not want, explore, or get off a wall (see the findings
+below). On top of the real brain there is therefore an explicit behaviour layer, written from
+published fly behaviour and clearly separated in the video ("inner state"):
+
+- *Hunger* (0 full, 1 starved). Starved flies walk more, pause less and follow food smell
+  (octopamine / NPF / dopamine effects in the real fly). Feeding fills the fly up.
+- *Walking bouts and pauses*, a few seconds each, and *spontaneous turns* roughly every 1 to 2
+  seconds, as in free-walking flies.
+- *Wall following*: a fly that meets a wall backs off if blocked, turns to run along it, and leaves
+  it now and then (thigmotaxis in open-field arenas).
+- *Odour turning*: turning toward the antenna that smells more food, scaled by hunger, with local
+  search when the smell fades (bilateral olfactory comparison in walking flies).
+- *Feeding*: only when the real brain's sugar-to-MN9 circuit fires on contact with the food.
+- *Escape*: only when the real brain's giant fibre fires on a looming object.
+
+The real brain's own steering signal (left-right imbalance of all descending neurons) is added to
+the turn command throughout. The video shows the three contributions separately.
+
 ## The male dataset, and why the nerve cord is still a stand-in
 
 `cns.py` loads the complete male central nervous system (MaleCNS v1.0, Janelia 2026: 211,577
