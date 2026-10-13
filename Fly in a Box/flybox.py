@@ -31,6 +31,7 @@ p.add_argument("--seconds", type=float, default=20.0)
 p.add_argument("--out", default="out/run1")
 p.add_argument("--base", type=float, default=0.5, help="baseline walking drive of the nerve-cord pattern generator")
 p.add_argument("--seed", type=int, default=1)
+p.add_argument("--spawn", type=float, nargs=3, default=None, help="x y yaw_deg")
 p.add_argument("--turn-gain", type=float, default=100.0, help="Hz of DNa02 left-right difference that gives a full-strength turn")
 args = p.parse_args()
 os.makedirs(args.out + "/frames", exist_ok=True)
@@ -77,6 +78,7 @@ food_orn = np.flatnonzero(a["type"].isin(["ORN_DM1", "ORN_DM4", "ORN_VA2", "ORN_
 food_orn_L = food_orn[side[food_orn] == "left"]; food_orn_R = food_orn[side[food_orn] == "right"]
 sugar = np.flatnonzero(a["cell_sub_class"].isin(["sugar", "sugar/low_salt"]).to_numpy())
 head_bristle = np.flatnonzero((a["cell_sub_class"].isin(["head bristle"]) | a["type"].isin(["BM_Ant"])).to_numpy())
+head_bristle_L = head_bristle[side[head_bristle] == "left"]; head_bristle_R = head_bristle[side[head_bristle] == "right"]
 mn9 = np.array([b.id2i[720575940660219265]])   # MN9, proboscis extension motor neuron (ID from Shiu et al. 2024)
 groups = {k: (b.find(k, "left"), b.find(k, "right")) for k in ["DNa02", "DNa01", "DNp09", "MDN", "DNp01", "DNa03", "DNb01", "aDN1", "aDN2"]}
 groups["MN9"] = (mn9, mn9)
@@ -92,8 +94,10 @@ fly.add_vision()
 follow = fly.add_tracking_camera(name="follow", pos_offset=(-3, -12, 12), rotation=Rotation3D("xyaxes", (1, 0, 0, 0, 0.72, 0.69)), fovy=42.0)
 world = FlatGroundWorld()
 rng = np.random.default_rng(args.seed)
-start_yaw = rng.uniform(-np.pi, np.pi)
-world.add_fly(fly, [0, 0, 0.5], Rotation3D("quat", [np.cos(start_yaw / 2), 0, 0, np.sin(start_yaw / 2)]))
+start_yaw = rng.uniform(-np.pi, np.pi); start_xy = [0.0, 0.0]
+if args.spawn:
+    start_xy, start_yaw = args.spawn[:2], np.deg2rad(args.spawn[2])
+world.add_fly(fly, [start_xy[0], start_xy[1], 0.5], Rotation3D("quat", [np.cos(start_yaw / 2), 0, 0, np.sin(start_yaw / 2)]))
 wb = world.mjcf_root.worldbody
 H, W, T = 12.0, 30.0, 0.5
 for name, p_, size in [("wall_n", [W, 0, H / 2], [T, W, H / 2]), ("wall_s", [-W, 0, H / 2], [T, W, H / 2]), ("wall_e", [0, -W, H / 2], [W, T, H / 2]), ("wall_w", [0, W, H / 2], [W, T, H / 2])]:
@@ -103,6 +107,13 @@ POST = np.array([12.0, -10.0]); FOOD = np.array([18.0, 8.0])
 wb.add_geom(name="post", type=mj.mjtGeom.mjGEOM_CYLINDER, size=[0.8, 4, 0], pos=[POST[0], POST[1], 4], rgba=[0.1, 0.1, 0.1, 1])
 wb.add_geom(name="food", type=mj.mjtGeom.mjGEOM_CYLINDER, size=[2.5, 0.05, 0], pos=[FOOD[0], FOOD[1], 0.05], rgba=[0.75, 0.35, 0.15, 1], contype=0, conaffinity=0)
 wb.add_camera(name="overhead", pos=[0, 0, 95], quat=[1, 0, 0, 0], fovy=42)
+spec = world.mjcf_root
+fly_geoms = [pr.geomname1 for pr in spec.pairs if pr.geomname2 == "ground_plane" and not any(leg in pr.geomname1 for leg in ("lf_", "lm_", "lh_", "rf_", "rm_", "rh_"))]
+for obstacle in ["wall_n", "wall_s", "wall_e", "wall_w", "post"]:
+    for g in fly_geoms:
+        pr = spec.add_pair(); pr.geomname1 = g; pr.geomname2 = obstacle
+        pr.solref = [0.002, 1.0]; pr.solimp = [0.95, 0.99, 0.001, 0.5, 2.0]; pr.margin = 0.2   # stiff wall
+print(f"[box] {len(fly_geoms)} body parts collide with the walls and post:", fly_geoms)
 sim = Simulation(world)
 sim.set_renderer([follow, "overhead"], camera_res=(480, 640), playback_speed=1.0, output_fps=30, buffer_frames=True)
 
@@ -135,6 +146,7 @@ for tick in range(n_ticks):
     head, thorax = bp[I_HEAD], bp[I_THORAX]
     heading = HybridControllerObservation.from_sim(sim, "fly").fly_heading
     yaw = np.arctan2(heading[1], heading[0])
+    head = thorax + 1.4 * np.array([heading[0], heading[1], 0.0])      # the face, in front of the thorax
 
     # --- senses -> sensory neurons
     if tick % VISION_EVERY == 0:
@@ -155,11 +167,16 @@ for tick in range(n_ticks):
         b.rates[idx] = 120.0 * (0.3 * c + 0.7 * max(0.0, c - odour_adapt[k]))
     tasting = d_food < 3.0
     b.rates[sugar] = 100.0 if tasting else 0.0
-    wall_d = W - T - np.abs(head[:2]).max()
-    post_d = np.linalg.norm(head[:2] - POST) - 0.8
-    touching = (wall_d < 1.2) or (post_d < 1.0)
+    # nearest obstacle and which side of the head it is on
+    walls = [(W - T - head[0], np.array([-1.0, 0.0])), (W - T + head[0], np.array([1.0, 0.0])), (W - T - head[1], np.array([0.0, -1.0])), (W - T + head[1], np.array([0.0, 1.0]))]
+    to_post = POST - head[:2]; walls.append((np.linalg.norm(to_post) - 0.8, to_post / (np.linalg.norm(to_post) + 1e-9)))
+    obst_d, obst_dir = min(walls, key=lambda w: w[0])
+    touching = obst_d < 1.4
+    bearing_s = float(heading[0] * obst_dir[1] - heading[1] * obst_dir[0])        # +1 obstacle on the left, -1 on the right
     touch_adapt += ((1.0 if touching else 0.0) - touch_adapt) * (CHUNK * DT / 0.5)
-    b.rates[head_bristle] = 80.0 * (0.3 + 0.7 * max(0.0, 1.0 - touch_adapt)) if touching else 0.0
+    strength = 80.0 * (0.3 + 0.7 * max(0.0, 1.0 - touch_adapt)) if touching else 0.0
+    b.rates[head_bristle_L] = strength * (0.5 + 0.5 * bearing_s)
+    b.rates[head_bristle_R] = strength * (0.5 - 0.5 * bearing_s)
 
     # --- brain: 10 ms of every neuron
     st, si = b.run(CHUNK, seed=args.seed * 100000 + tick, max_spikes=3_000_000)
@@ -209,9 +226,9 @@ for tick in range(n_ticks):
         log["events"].append(dict(events)); log["frames"].append(frame_i)
         np.save(f"{args.out}/frames/eyes_{frame_i:05d}.npy", lum.astype(np.float16))
         frame_i += 1
-    if tick % 100 == 0:
+    if tick % 50 == 0:
         print(f"  t={t:5.1f}s  wall={time.time()-t_wall:6.0f}s  pos=({thorax[0]:5.1f},{thorax[1]:5.1f}) yaw={np.degrees(yaw):5.0f}  drive={drive.round(2)}  "
-              f"DNpop {rates['DNpop'].round(1)} DNa02 {rates['DNa02'].round(0)} DNp09 {rates['DNp09'].round(0)} MDN {rates['MDN'].round(0)} MN9 {rates['MN9'].mean():.0f}  odour={odour:.2f} touch={touching}  spikes/10ms={len(si)}", flush=True)
+              f"DNpop {rates['DNpop'].round(1)} DNa02 {rates['DNa02'].round(0)} DNp09 {rates['DNp09'].round(0)} MDN {rates['MDN'].round(0)} MN9 {rates['MN9'].mean():.0f}  odour={odour:.2f} touch={touching} head=({head[0]:.1f},{head[1]:.1f},{head[2]:.1f}) obst={obst_d:.1f}  spikes/10ms={len(si)}", flush=True)
 
 np.savez_compressed(f"{args.out}/spikes.npz", **{f"f{i}": s for i, s in enumerate(spike_frames)})
 json.dump(log, open(f"{args.out}/log.json", "w"))
