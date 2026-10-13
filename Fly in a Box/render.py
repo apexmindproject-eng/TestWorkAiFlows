@@ -72,8 +72,10 @@ METERS = [("DNa02", "turn (ipsilateral)"), ("DNa01", "turn, slow"), ("DNp09", "w
 writer = imageio.get_writer(args.out, fps=args.fps, codec="libx264", quality=8, macro_block_size=1)
 for i in range(n_frames):
     img = bg.copy()
-    follow = np.asarray(Image.open(f"{args.run}/frames/follow_{i:05d}.png").resize((1120, 840)))
-    over = np.asarray(Image.open(f"{args.run}/frames/overhead_{i:05d}.png").resize((400, 300)))
+    if os.path.exists(f"{args.run}/frames/follow_{i:05d}.png"):
+        last_follow = np.asarray(Image.open(f"{args.run}/frames/follow_{i:05d}.png").resize((1120, 840)))
+        last_over = np.asarray(Image.open(f"{args.run}/frames/overhead_{i:05d}.png").resize((400, 300)))
+    follow, over = last_follow, last_over
     img[60:900, 40:1160] = follow
     img[920:920 + 150, 40:40 + 200] = np.asarray(Image.fromarray(over).resize((200, 150)))
     lum = np.load(f"{args.run}/frames/eyes_{i:05d}.npy").astype(np.float32)
