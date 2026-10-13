@@ -33,10 +33,12 @@ published model, and what is a modelling decision made for this project.
 
 **Glue (our decisions)**
 
-- *Photoreceptors.* The body's compound eyes render 721 ommatidia per eye. Each of the 10,582
-  photoreceptor neurons in the connectome is assigned to an ommatidium by position (anterior to
-  posterior along the lamina, dorsal to ventral), and fires at 40 Hz x brightness plus 160 Hz x
-  change-in-brightness with 200 ms adaptation. The real photoreceptor is a graded-potential cell
+- *Photoreceptors.* The body's compound eyes render 721 ommatidia per eye in colour. Each of the
+  10,582 photoreceptor neurons in the connectome is assigned to an ommatidium by position (anterior
+  to posterior along the lamina, dorsal to ventral). R1-6 cells get the ommatidium's brightness,
+  R8 cells get its colour channel (blue in pale ommatidia, green in yellow ones, as in the real
+  retina), and R7 cells, which see ultraviolet in the real fly, get blue because the renderer has
+  no UV. Each fires at 40 Hz x input plus 160 Hz x change-in-input with 200 ms adaptation. The real photoreceptor is a graded-potential cell
   and its neurotransmitter is not in the sign predictions, so, as the probes showed, light in this
   model stays in the optic lobe and does not reach the central brain. The eyes are on and the
   optic lobe lights up, but vision does not currently steer the fly.

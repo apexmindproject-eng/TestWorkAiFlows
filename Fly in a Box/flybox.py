@@ -53,9 +53,9 @@ sc = a["super_class"].to_numpy()
 retina = Retina()
 cent = np.load("out/omm_centroids.npy")           # (721, 2) row, col in the eye image
 omm_norm = np.stack([cent[:, 0] / retina.nrows, cent[:, 1] / retina.ncols], 1)
-photo_idx, photo_omm, photo_eye = [], [], []
+photo_idx, photo_omm, photo_eye, photo_cls = [], [], [], []
 for eye, sname in enumerate(["left", "right"]):
-    for t in ["R1-6", "R7", "R8"]:
+    for ci, t in enumerate(["R1-6", "R7", "R8"]):
         idx = np.intersect1d(b.find(t), np.flatnonzero(side == sname))
         P = pos[idx] - pos[idx].mean(0)
         _, _, vt = np.linalg.svd(P, full_matrices=False)
@@ -70,8 +70,18 @@ for eye, sname in enumerate(["left", "right"]):
         elev = (omm_norm[:, 0] - omm_norm[:, 0].min()) / np.ptp(omm_norm[:, 0])
         target = np.stack([lat, elev], 1)
         d = ((np.stack([u, v], 1)[:, None, :] - target[None, :, :]) ** 2).sum(-1)
-        photo_idx.append(idx); photo_omm.append(d.argmin(1)); photo_eye.append(np.full(len(idx), eye))
-photo_idx = np.concatenate(photo_idx); photo_omm = np.concatenate(photo_omm); photo_eye = np.concatenate(photo_eye)
+        photo_idx.append(idx); photo_omm.append(d.argmin(1)); photo_eye.append(np.full(len(idx), eye)); photo_cls.append(np.full(len(idx), ci))
+photo_idx = np.concatenate(photo_idx); photo_omm = np.concatenate(photo_omm); photo_eye = np.concatenate(photo_eye); photo_cls = np.concatenate(photo_cls)
+# per-ommatidium colour from the raw eye images: mean RGB over each ommatidium's pixels
+omm_ids = retina.ommatidia_id_map.ravel(); omm_px = retina.num_pixels_per_ommatidia.astype(float)
+pale = retina.pale_type_mask.astype(bool)          # pale ommatidia sample blue, yellow ones sample green (R8p / R8y)
+def eye_rgb(raw):                                   # raw: (2, H, W, 3) -> (2, 721, 3) in [0, 1]
+    out = np.zeros((2, retina.num_ommatidia_per_eye, 3))
+    for e in range(2):
+        flat = raw[e].reshape(-1, 3).astype(float)
+        for ch in range(3):
+            out[e, :, ch] = np.bincount(omm_ids, weights=flat[:, ch], minlength=retina.num_ommatidia_per_eye + 1)[1:] / omm_px / 255.0
+    return out
 print(f"[map] {len(photo_idx)} photoreceptor neurons mapped onto 2 x {retina.num_ommatidia_per_eye} ommatidia")
 
 # Visual projection neurons that carry known features from the optic lobe into the central brain
@@ -140,7 +150,7 @@ I_HEAD, I_THORAX = segs.index(BodySegment("c_head")), segs.index(BodySegment("c_
 n_ticks = int(args.seconds / (CHUNK * DT))
 rates = {k: np.zeros(2) for k in groups}          # smoothed Hz, [left, right]
 TAU_RATE = 0.08
-lum_adapt = None
+inputs_adapt = None
 odour_adapt = np.zeros(2); touch_adapt = 0.0
 log = {"t": [], "pose": [], "drive": [], "rates": {k: [] for k in groups}, "events": [], "inputs": [], "frames": []}
 spike_frames = []                                 # per video frame: neuron ids that spiked
@@ -159,14 +169,16 @@ for tick in range(n_ticks):
 
     # --- senses -> sensory neurons
     if tick % VISION_EVERY == 0:
-        ro = sim.get_ommatidia_readouts("fly")              # (2, 721, 2)
-        lum = ro.max(axis=2)                                 # (2, 721) in [0, 1]
-        if lum_adapt is None:
-            lum_adapt = lum.copy()
-        change = np.abs(lum - lum_adapt)
-        lum_adapt += (lum - lum_adapt) * (VISION_EVERY * CHUNK * DT / 0.2)
-        rate = np.clip(40.0 * lum + 160.0 * change, 0, 200)  # Hz: sustained + transient
-        b.rates[photo_idx] = rate[photo_eye, photo_omm]
+        rgb = eye_rgb(sim.get_raw_vision("fly"))             # (2, 721, 3)
+        lum = 0.30 * rgb[..., 0] + 0.59 * rgb[..., 1] + 0.11 * rgb[..., 2]   # (2, 721): what R1-6 see
+        colour = np.where(pale[None, :], rgb[..., 2], rgb[..., 1])             # R8: blue in pale ommatidia, green in yellow ones
+        uv = rgb[..., 2]                                                        # R7 is a UV cell; the renderer has no UV, blue stands in
+        inputs = np.stack([lum, uv, colour], 0)                                 # (class, eye, omm)
+        if inputs_adapt is None:
+            inputs_adapt = inputs.copy()
+        inputs_adapt += (inputs - inputs_adapt) * (VISION_EVERY * CHUNK * DT / 0.2)
+        rate = np.clip(40.0 * inputs + 160.0 * np.abs(inputs - inputs_adapt), 0, 200)   # Hz: sustained + transient, per class
+        b.rates[photo_idx] = rate[photo_cls, photo_eye, photo_omm]
         # optic-lobe feature extraction (the spiking model cannot do this part itself)
         darkness = (lum < 0.08).sum(axis=1).astype(float)                          # ommatidia seeing a black object (floor squares ~0.25, legs ~0.3)
         dt_v = VISION_EVERY * CHUNK * DT
@@ -245,7 +257,7 @@ for tick in range(n_ticks):
             log["rates"][k].append(rates[k].tolist())
         log["inputs"].append([float(odour), bool(tasting), bool(touching), float(lum.mean()), float(vis_feat[0]), float(vis_feat[1]), float(vis_feat[2]), float(vis_feat[3])])
         log["events"].append(dict(events)); log["frames"].append(frame_i)
-        np.save(f"{args.out}/frames/eyes_{frame_i:05d}.npy", lum.astype(np.float16))
+        np.save(f"{args.out}/frames/eyes_{frame_i:05d}.npy", rgb.astype(np.float16))
         frame_i += 1
     if tick % 50 == 0:
         print(f"  t={t:5.1f}s  wall={time.time()-t_wall:6.0f}s  pos=({thorax[0]:5.1f},{thorax[1]:5.1f}) yaw={np.degrees(yaw):5.0f}  drive={drive.round(2)}  "

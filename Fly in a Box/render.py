@@ -58,12 +58,12 @@ def paint_spikes(img, ids, decay):
     region = GLOW[BY:BY + BH, BX:BX + BW]
     img[BY:BY + BH, BX:BX + BW] = np.clip(img[BY:BY + BH, BX:BX + BW] + region, 0, 255).astype(np.uint8)
 
-def eye_image(lum, size):
-    # hex readouts -> tiny image: use the ommatidia centroids map
-    cent = np.load("out/omm_centroids.npy")
-    img = np.zeros((size, size), np.float32) + 0.06
-    rr = (cent[:, 0] / 512 * (size - 1)).astype(int); cc = (cent[:, 1] / 450 * (size - 1)).astype(int)
-    for r_, c_, v in zip(rr, cc, lum):
+CENT = np.load("out/omm_centroids.npy")
+def eye_image(px, size):
+    # per-ommatidium colour (or brightness) -> tiny image using the ommatidia centroid map
+    img = np.zeros((size, size, 3), np.float32) + 0.06
+    rr = (CENT[:, 0] / 512 * (size - 1)).astype(int); cc = (CENT[:, 1] / 450 * (size - 1)).astype(int)
+    for r_, c_, v in zip(rr, cc, px):
         img[max(r_ - 3, 0):r_ + 4, max(c_ - 3, 0):c_ + 4] = v
     return (np.clip(img, 0, 1) * 255).astype(np.uint8)
 
@@ -78,10 +78,11 @@ for i in range(n_frames):
     follow, over = last_follow, last_over
     img[60:900, 40:1160] = follow
     img[920:920 + 150, 40:40 + 200] = np.asarray(Image.fromarray(over).resize((200, 150)))
-    lum = np.load(f"{args.run}/frames/eyes_{i:05d}.npy").astype(np.float32)
+    eyes = np.load(f"{args.run}/frames/eyes_{i:05d}.npy").astype(np.float32)
+    if eyes.ndim == 2:
+        eyes = np.repeat(eyes[..., None], 3, axis=-1)
     for e in range(2):
-        ey = eye_image(lum[e], 150)
-        img[920:1070, 270 + e * 165:420 + e * 165] = np.stack([ey] * 3, -1)
+        img[920:1070, 270 + e * 165:420 + e * 165] = eye_image(eyes[e], 150)
     ids = spk[f"f{i}"]
     paint_spikes(img, ids, 0.55)
 
