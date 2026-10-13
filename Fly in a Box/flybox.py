@@ -74,6 +74,11 @@ for eye, sname in enumerate(["left", "right"]):
 photo_idx = np.concatenate(photo_idx); photo_omm = np.concatenate(photo_omm); photo_eye = np.concatenate(photo_eye)
 print(f"[map] {len(photo_idx)} photoreceptor neurons mapped onto 2 x {retina.num_ommatidia_per_eye} ommatidia")
 
+# Visual projection neurons that carry known features from the optic lobe into the central brain
+lc10a = (b.find("LC10a", "left"), b.find("LC10a", "right"))                       # small dark object -> pursuit / turning toward it
+loom = (np.concatenate([b.find("LC4", "left"), b.find("LPLC2", "left")]), np.concatenate([b.find("LC4", "right"), b.find("LPLC2", "right")]))   # looming -> giant fibre escape
+BLACK = 0.08          # luminance below which an ommatidium is seeing a black object (floor squares are ~0.25)
+black_frac = np.zeros(2); black_frac_prev = np.zeros(2); vis_feat = np.zeros(4)
 food_orn = np.flatnonzero(a["type"].isin(["ORN_DM1", "ORN_DM4", "ORN_VA2", "ORN_DM2"]).to_numpy())
 food_orn_L = food_orn[side[food_orn] == "left"]; food_orn_R = food_orn[side[food_orn] == "right"]
 sugar = np.flatnonzero(a["cell_sub_class"].isin(["sugar", "sugar/low_salt"]).to_numpy())
@@ -158,6 +163,17 @@ for tick in range(n_ticks):
         lum_adapt += (lum - lum_adapt) * (VISION_EVERY * CHUNK * DT / 0.2)
         rate = np.clip(40.0 * lum + 160.0 * change, 0, 200)  # Hz: sustained + transient
         b.rates[photo_idx] = rate[photo_eye, photo_omm]
+        # optic-lobe feature extraction (the spiking model cannot do this part itself)
+        black_frac_prev = black_frac.copy()
+        black_frac = (lum < BLACK).mean(axis=1)                                   # per eye
+        growth = (black_frac - black_frac_prev) / (VISION_EVERY * CHUNK * DT)        # per second
+        for e in range(2):
+            obj = float(np.clip(black_frac[e] / 0.01, 0, 1))                         # a fly-sized dark object covers ~1% of the eye
+            expansion = growth[e] / (black_frac[e] + 0.005)                           # relative growth rate, 1/s
+            lm = float(np.clip((expansion - 1.0) / 2.0, 0, 1))                       # looming: apparent size more than doubling per second
+            b.rates[lc10a[e]] = 150.0 * obj
+            b.rates[loom[e]] = 150.0 * lm
+            vis_feat[e] = obj; vis_feat[2 + e] = lm
     d_food = np.linalg.norm(head[:2] - FOOD)
     odour = np.exp(-d_food ** 2 / (2 * 14.0 ** 2))
     leftv = np.array([-heading[1], heading[0]])
@@ -222,13 +238,13 @@ for tick in range(n_ticks):
         log["t"].append(t); log["pose"].append([float(thorax[0]), float(thorax[1]), float(yaw)]); log["drive"].append(drive.tolist())
         for k in groups:
             log["rates"][k].append(rates[k].tolist())
-        log["inputs"].append([float(odour), bool(tasting), bool(touching), float(lum.mean())])
+        log["inputs"].append([float(odour), bool(tasting), bool(touching), float(lum.mean()), float(vis_feat[0]), float(vis_feat[1]), float(vis_feat[2]), float(vis_feat[3])])
         log["events"].append(dict(events)); log["frames"].append(frame_i)
         np.save(f"{args.out}/frames/eyes_{frame_i:05d}.npy", lum.astype(np.float16))
         frame_i += 1
     if tick % 50 == 0:
         print(f"  t={t:5.1f}s  wall={time.time()-t_wall:6.0f}s  pos=({thorax[0]:5.1f},{thorax[1]:5.1f}) yaw={np.degrees(yaw):5.0f}  drive={drive.round(2)}  "
-              f"DNpop {rates['DNpop'].round(1)} DNa02 {rates['DNa02'].round(0)} DNp09 {rates['DNp09'].round(0)} MDN {rates['MDN'].round(0)} MN9 {rates['MN9'].mean():.0f}  odour={odour:.2f} touch={touching} head=({head[0]:.1f},{head[1]:.1f},{head[2]:.1f}) obst={obst_d:.1f}  spikes/10ms={len(si)}", flush=True)
+              f"DNpop {rates['DNpop'].round(1)} DNa02 {rates['DNa02'].round(0)} DNp09 {rates['DNp09'].round(0)} MDN {rates['MDN'].round(0)} MN9 {rates['MN9'].mean():.0f}  odour={odour:.2f} obj={vis_feat[0]:.2f}/{vis_feat[1]:.2f} loom={vis_feat[2]:.2f}/{vis_feat[3]:.2f} touch={touching} head=({head[0]:.1f},{head[1]:.1f},{head[2]:.1f}) obst={obst_d:.1f}  spikes/10ms={len(si)}", flush=True)
 
 np.savez_compressed(f"{args.out}/spikes.npz", **{f"f{i}": s for i, s in enumerate(spike_frames)})
 json.dump(log, open(f"{args.out}/log.json", "w"))

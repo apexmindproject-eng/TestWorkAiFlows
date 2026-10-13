@@ -108,10 +108,12 @@ for i in range(n_frames):
             d.text((x0 + 86, my - 2), f"{v:3.0f}", font=FONT_S, fill=(200, 200, 210))
         my += 30
     # inputs + body
-    odour, tasting, touching, lum_mean = log["inputs"][i]
+    inp = log["inputs"][i]; odour, tasting, touching, lum_mean = inp[:4]
+    objL, objR, loomL, loomR = (inp[4:8] if len(inp) >= 8 else (0, 0, 0, 0))
     dl, dr = log["drive"][i]
     my += 10
-    d.text((BX, my), f"senses in:  odour {odour:4.2f}   taste {'YES' if tasting else 'no '}   head touch {'YES' if touching else 'no '}", font=FONT_S, fill=(140, 210, 140)); my += 28
+    d.text((BX, my), f"senses in:  odour {odour:4.2f}   taste {'YES' if tasting else 'no '}   head touch {'YES' if touching else 'no '}", font=FONT_S, fill=(140, 210, 140)); my += 26
+    d.text((BX, my), f"eyes:  dark object L {objL:4.2f} R {objR:4.2f}   looming L {loomL:4.2f} R {loomR:4.2f}", font=FONT_S, fill=(140, 190, 230)); my += 28
     d.text((BX, my), f"legs out:   left drive {dl:+.2f}   right drive {dr:+.2f}", font=FONT_S, fill=(210, 190, 120)); my += 28
     ev = log["events"][i]
     if ev["feeding"]: d.text((BX, my), "FEEDING", font=FONT_B, fill=(255, 120, 200))

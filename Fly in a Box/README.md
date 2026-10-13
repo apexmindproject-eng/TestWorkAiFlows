@@ -40,6 +40,12 @@ published model, and what is a modelling decision made for this project.
   and its neurotransmitter is not in the sign predictions, so, as the probes showed, light in this
   model stays in the optic lobe and does not reach the central brain. The eyes are on and the
   optic lobe lights up, but vision does not currently steer the fly.
+- *Vision, features.* The spiking model cannot do the optic lobe's graded computations, so two
+  known visual features are computed from the eye images and injected into the visual projection
+  neurons that carry them in the real fly: a small dark object in an eye drives that eye's LC10a
+  neurons (the real pursuit pathway; in the model it shifts the descending population toward that
+  side), and a dark object whose apparent size grows faster than doubling per second drives
+  LC4 and LPLC2 (the real looming pathway; in the model it fires the giant fibre).
 - *Smell.* The food emits a Gaussian odour plume (14 mm wide). The olfactory receptor neurons of
   four glomeruli that respond to food odour in real flies (DM1, DM4, VA2, DM2) fire at up to
   120 Hz x concentration, each antenna sampling the plume where it actually is.
@@ -47,10 +53,14 @@ published model, and what is a modelling decision made for this project.
 - *Touch.* When the head is within 1.2 mm of a wall or the post, head-bristle neurons fire at
   80 Hz.
 - *Nerve cord.* The ventral nerve cord, where walking is generated, is not in the FlyWire dataset.
-  It is replaced by the pattern generator, given a constant baseline drive of 0.5, which the
-  brain's descending neurons modulate: DNp09 speeds walking up, DNa02 and DNa01 steer toward
-  their own side, MDN reverses, the giant fibre DNp01 triggers a backward startle, and the
-  proboscis motor neuron MN9 stops the legs (feeding).
+  It is replaced by the pattern generator, given a constant baseline drive of 0.5. Steering is the
+  left-right imbalance of firing across all ~1,300 descending neurons (reading a single pair such as
+  DNa02 made the fly spin, because that pair is lopsided in this model). DNp09 speeds walking up,
+  MDN reverses, the giant fibre DNp01 triggers a backward startle, and the proboscis motor neuron
+  MN9 stops the legs (feeding).
+- *Walls.* The body model only collides through explicit contact pairs, so the walls and the post
+  are made solid to the body segments but not to the feet (the adhesive feet would climb the wall
+  and tip the fly over).
 - Nothing else. No learning, no neuromodulation, no hunger state, no spontaneous activity: this
   brain is silent until a sense drives it.
 
