@@ -81,6 +81,9 @@ mn9 = np.array([b.id2i[720575940660219265]])   # MN9, proboscis extension motor 
 groups = {k: (b.find(k, "left"), b.find(k, "right")) for k in ["DNa02", "DNa01", "DNp09", "MDN", "DNp01", "DNa03", "DNb01", "aDN1", "aDN2"]}
 groups["MN9"] = (mn9, mn9)
 dn_all = np.flatnonzero(sc == "descending")
+dn_L = dn_all[side[dn_all] == "left"]; dn_R = dn_all[side[dn_all] == "right"]
+groups["DNpop"] = (dn_L, dn_R)
+print(f"[readout] descending population: {len(dn_L)} left, {len(dn_R)} right")
 print("[groups]", {k: (len(v[0]), len(v[1])) for k, v in groups.items()}, "food ORN", len(food_orn), "sugar", len(sugar), "head bristle", len(head_bristle))
 
 # ----------------------------------------------------------------------------- body + box
@@ -118,6 +121,7 @@ n_ticks = int(args.seconds / (CHUNK * DT))
 rates = {k: np.zeros(2) for k in groups}          # smoothed Hz, [left, right]
 TAU_RATE = 0.08
 lum_adapt = None
+odour_adapt = np.zeros(2); touch_adapt = 0.0
 log = {"t": [], "pose": [], "drive": [], "rates": {k: [] for k in groups}, "events": [], "inputs": [], "frames": []}
 spike_frames = []                                 # per video frame: neuron ids that spiked
 spikes_since_frame = []
@@ -145,14 +149,17 @@ for tick in range(n_ticks):
     d_food = np.linalg.norm(head[:2] - FOOD)
     odour = np.exp(-d_food ** 2 / (2 * 14.0 ** 2))
     leftv = np.array([-heading[1], heading[0]])
-    for antenna, idx in ((head[:2] + 0.45 * leftv, food_orn_L), (head[:2] - 0.45 * leftv, food_orn_R)):
-        b.rates[idx] = 120.0 * np.exp(-np.linalg.norm(antenna - FOOD) ** 2 / (2 * 14.0 ** 2))
+    for k, (antenna, idx) in enumerate(((head[:2] + 0.45 * leftv, food_orn_L), (head[:2] - 0.45 * leftv, food_orn_R))):
+        c = np.exp(-np.linalg.norm(antenna - FOOD) ** 2 / (2 * 14.0 ** 2))
+        odour_adapt[k] += (c - odour_adapt[k]) * (CHUNK * DT / 0.8)      # receptor adaptation, ~0.8 s
+        b.rates[idx] = 120.0 * (0.3 * c + 0.7 * max(0.0, c - odour_adapt[k]))
     tasting = d_food < 3.0
     b.rates[sugar] = 100.0 if tasting else 0.0
     wall_d = W - T - np.abs(head[:2]).max()
     post_d = np.linalg.norm(head[:2] - POST) - 0.8
     touching = (wall_d < 1.2) or (post_d < 1.0)
-    b.rates[head_bristle] = 80.0 if touching else 0.0
+    touch_adapt += ((1.0 if touching else 0.0) - touch_adapt) * (CHUNK * DT / 0.5)
+    b.rates[head_bristle] = 80.0 * (0.3 + 0.7 * max(0.0, 1.0 - touch_adapt)) if touching else 0.0
 
     # --- brain: 10 ms of every neuron
     st, si = b.run(CHUNK, seed=args.seed * 100000 + tick, max_spikes=3_000_000)
@@ -165,9 +172,10 @@ for tick in range(n_ticks):
 
     # --- descending neurons -> nerve cord pattern generator -> legs
     fwd = args.base + 0.5 * min(rates["DNp09"].mean() / 50.0, 1.5)
-    turn = (rates["DNa02"][1] - rates["DNa02"][0]) / args.turn_gain + 0.5 * (rates["DNa01"][1] - rates["DNa01"][0]) / args.turn_gain
+    popL, popR = rates["DNpop"]
+    turn = (popR - popL) / (popR + popL + 2.0)        # fraction of left-right imbalance across all descending neurons
     back = min(rates["MDN"].mean() / 40.0, 1.5)
-    left, right = fwd + 0.6 * turn - back, fwd - 0.6 * turn - back
+    left, right = fwd + 1.0 * turn - back, fwd - 1.0 * turn - back
     if rates["MN9"].mean() > 20:           # proboscis motor neurons firing: feeding, stand still
         left = right = 0.0; events["feeding"] += 1
     if rates["DNp01"].mean() > 20:         # giant fibre: startle, back off
@@ -203,7 +211,7 @@ for tick in range(n_ticks):
         frame_i += 1
     if tick % 100 == 0:
         print(f"  t={t:5.1f}s  wall={time.time()-t_wall:6.0f}s  pos=({thorax[0]:5.1f},{thorax[1]:5.1f}) yaw={np.degrees(yaw):5.0f}  drive={drive.round(2)}  "
-              f"DNa02 {rates['DNa02'].round(0)} DNp09 {rates['DNp09'].round(0)} MDN {rates['MDN'].round(0)} MN9 {rates['MN9'].mean():.0f}  odour={odour:.2f} touch={touching}  spikes/10ms={len(si)}", flush=True)
+              f"DNpop {rates['DNpop'].round(1)} DNa02 {rates['DNa02'].round(0)} DNp09 {rates['DNp09'].round(0)} MDN {rates['MDN'].round(0)} MN9 {rates['MN9'].mean():.0f}  odour={odour:.2f} touch={touching}  spikes/10ms={len(si)}", flush=True)
 
 np.savez_compressed(f"{args.out}/spikes.npz", **{f"f{i}": s for i, s in enumerate(spike_frames)})
 json.dump(log, open(f"{args.out}/log.json", "w"))
