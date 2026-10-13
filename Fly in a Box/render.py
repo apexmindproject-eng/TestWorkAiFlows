@@ -67,13 +67,15 @@ def eye_image(px, size):
         img[max(r_ - 3, 0):r_ + 4, max(c_ - 3, 0):c_ + 4] = v
     return (np.clip(img, 0, 1) * 255).astype(np.uint8)
 
-METERS = [("DNa02", "turn (ipsilateral)"), ("DNa01", "turn, slow"), ("DNp09", "walk forward"), ("MDN", "walk backward"), ("DNp01", "giant fibre: escape"), ("MN9", "proboscis: feed")]
+METERS = [("DNa02", "turn (ipsilateral)"), ("DNp09", "walk forward"), ("MDN", "walk backward"), ("DNp01", "giant fibre: escape"), ("DNg12", "grooming command"), ("MN9", "proboscis: feed")]
 
 writer = imageio.get_writer(args.out, fps=args.fps, codec="libx264", quality=8, macro_block_size=1)
 for i in range(n_frames):
     img = bg.copy()
+    mode_now = log["inner"][i][0] if "inner" in log else ""
+    use_close = (mode_now == "feed" or mode_now.startswith("groom")) and os.path.exists(f"{args.run}/frames/close_{i:05d}.png")
     if os.path.exists(f"{args.run}/frames/follow_{i:05d}.png"):
-        last_follow = np.asarray(Image.open(f"{args.run}/frames/follow_{i:05d}.png").resize((1120, 840)))
+        last_follow = np.asarray(Image.open(f"{args.run}/frames/{'close' if use_close else 'follow'}_{i:05d}.png").resize((1120, 840)))
         last_over = np.asarray(Image.open(f"{args.run}/frames/overhead_{i:05d}.png").resize((400, 300)))
     follow, over = last_follow, last_over
     img[60:900, 40:1160] = follow
@@ -101,6 +103,8 @@ for i in range(n_frames):
     my = BY + BH + 70
     d.text((BX, my), "descending / motor neurons  (Hz, left | right)", font=FONT, fill=(220, 220, 230)); my += 36
     for name, desc in METERS:
+        if name not in log["rates"]:
+            continue
         l, r = log["rates"][name][i]
         d.text((BX, my), f"{name:6s}", font=FONT_S, fill=(255, 120, 90)); d.text((BX + 90, my), desc, font=FONT_S, fill=(170, 170, 180))
         for j, v in enumerate((l, r)):
@@ -117,12 +121,12 @@ for i in range(n_frames):
     d.text((BX, my), f"eyes:  dark object L {objL:4.2f} R {objR:4.2f}   looming L {loomL:4.2f} R {loomR:4.2f}", font=FONT_S, fill=(140, 190, 230)); my += 28
     d.text((BX, my), f"legs out:   left drive {dl:+.2f}   right drive {dr:+.2f}", font=FONT_S, fill=(210, 190, 120)); my += 28
     if "inner" in log:
-        mode, hunger, brain_turn, odour_turn, spont = log["inner"][i]
+        mode, hunger, brain_turn, odour_turn, spont = log["inner"][i][:5]
         my += 6
         d.text((BX, my), "inner state (behaviour layer, not the wiring):", font=FONT_S, fill=(200, 170, 120)); my += 26
         d.text((BX, my), f"hunger", font=FONT_S, fill=(200, 200, 210))
         d.rectangle([BX + 80, my + 4, BX + 230, my + 20], outline=(70, 70, 80)); d.rectangle([BX + 80, my + 4, BX + 80 + int(hunger * 150), my + 20], fill=(230, 160, 70))
-        d.text((BX + 240, my), {"walk": "walking", "pause": "pausing", "wall": "following the wall", "feed": "FEEDING", "escape": "ESCAPE"}.get(mode, mode), font=FONT_B if mode in ("feed", "escape") else FONT, fill=(255, 120, 200) if mode == "feed" else (255, 90, 60) if mode == "escape" else (220, 220, 230)); my += 30
+        d.text((BX + 240, my), {"walk": "walking", "pause": "pausing", "wall": "following the wall", "feed": "FEEDING", "escape": "ESCAPE", "groom:front rub": "grooming: front legs", "groom:head groom": "grooming: head", "groom:hind rub": "grooming: hind legs"}.get(mode, mode), font=FONT_B if mode in ("feed", "escape") else FONT, fill=(255, 120, 200) if mode == "feed" else (255, 90, 60) if mode == "escape" else (220, 220, 230)); my += 30
         d.text((BX, my), f"steering:  brain {brain_turn:+.2f}   smell {odour_turn:+.2f}   spontaneous {spont:+.2f}", font=FONT_S, fill=(200, 200, 210))
     else:
         ev = log["events"][i]

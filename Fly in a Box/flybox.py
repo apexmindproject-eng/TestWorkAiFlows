@@ -24,6 +24,8 @@ from flygym.utils.math import Rotation3D
 from flygym.vision.retina import Retina
 from flygym_demo.complex_terrain import (HybridTurningController, HybridControllerObservation, LocomotionAction,
                                          PreprogrammedSteps, apply_locomotion_action, make_locomotion_fly, make_tripod_cpg_network)
+from flygym.compose.fly.base_fly import ActuatorType
+from fullfly import make_full_fly, FullBodyActions
 from brain import Brain
 
 p = argparse.ArgumentParser()
@@ -32,6 +34,7 @@ p.add_argument("--out", default="out/run1")
 p.add_argument("--base", type=float, default=0.5, help="baseline walking drive of the nerve-cord pattern generator")
 p.add_argument("--seed", type=int, default=1)
 p.add_argument("--spawn", type=float, nargs=3, default=None, help="x y yaw_deg")
+p.add_argument("--demo-groom", type=float, default=0.0, help="debug: force a grooming bout for the first N seconds")
 p.add_argument("--turn-gain", type=float, default=100.0, help="Hz of DNa02 left-right difference that gives a full-strength turn")
 args = p.parse_args()
 os.makedirs(args.out + "/frames", exist_ok=True)
@@ -95,7 +98,7 @@ sugar = np.flatnonzero(a["cell_sub_class"].isin(["sugar", "sugar/low_salt"]).to_
 head_bristle = np.flatnonzero((a["cell_sub_class"].isin(["head bristle"]) | a["type"].isin(["BM_Ant"])).to_numpy())
 head_bristle_L = head_bristle[side[head_bristle] == "left"]; head_bristle_R = head_bristle[side[head_bristle] == "right"]
 mn9 = np.array([b.id2i[720575940660219265]])   # MN9, proboscis extension motor neuron (ID from Shiu et al. 2024)
-groups = {k: (b.find(k, "left"), b.find(k, "right")) for k in ["DNa02", "DNa01", "DNp09", "MDN", "DNp01", "DNa03", "DNb01", "aDN1", "aDN2"]}
+groups = {k: (b.find(k, "left"), b.find(k, "right")) for k in ["DNa02", "DNa01", "DNp09", "MDN", "DNp01", "DNa03", "DNb01", "DNg12"]}
 groups["MN9"] = (mn9, mn9)
 dn_all = np.flatnonzero(sc == "descending")
 dn_L = dn_all[side[dn_all] == "left"]; dn_R = dn_all[side[dn_all] == "right"]
@@ -104,9 +107,10 @@ print(f"[readout] descending population: {len(dn_L)} left, {len(dn_R)} right")
 print("[groups]", {k: (len(v[0]), len(v[1])) for k, v in groups.items()}, "food ORN", len(food_orn), "sugar", len(sugar), "head bristle", len(head_bristle))
 
 # ----------------------------------------------------------------------------- body + box
-fly = make_locomotion_fly(name="fly", add_adhesion=True, colorize=True)
+fly = make_full_fly(name="fly")
 fly.add_vision()
 follow = fly.add_tracking_camera(name="follow", pos_offset=(-3, -12, 12), rotation=Rotation3D("xyaxes", (1, 0, 0, 0, 0.72, 0.69)), fovy=42.0)
+close = fly.add_tracking_camera(name="close", pos_offset=(2.4, -4.2, 2.0), rotation=Rotation3D("xyaxes", (0.87, 0.5, 0, -0.2, 0.35, 0.92)), fovy=38.0)   # close-up for feeding and grooming
 world = FlatGroundWorld()
 rng = np.random.default_rng(args.seed)
 start_yaw = rng.uniform(-np.pi, np.pi); start_xy = [0.0, 0.0]
@@ -134,16 +138,45 @@ for obstacle in ["wall_n", "wall_s", "wall_e", "wall_w", "post"]:
         pr.solref = [0.002, 1.0]; pr.solimp = [0.95, 0.99, 0.001, 0.5, 2.0]; pr.margin = 0.2   # stiff wall
 print(f"[box] {len(fly_geoms)} body parts collide with the walls and post:", fly_geoms)
 sim = Simulation(world)
-sim.set_renderer([follow, "overhead"], camera_res=(480, 640), playback_speed=1.0, output_fps=30, buffer_frames=True)
+sim.set_renderer([follow, close, "overhead"], camera_res=(480, 640), playback_speed=1.0, output_fps=30, buffer_frames=True)
 
 steps = PreprogrammedSteps()
-dof_order = fly.get_actuated_jointdofs_order("position")
+BODY = FullBodyActions(fly, steps)
+dof_order = BODY.leg_dofs                      # the walking controller drives the 42 active leg joints
 net = make_tripod_cpg_network(timestep=sim.timestep, intrinsic_amplitude=1.0, coupling_strength=10.0, convergence_coef=20.0, seed=args.seed)
 ctrl = HybridTurningController(timestep=sim.timestep, cpg_network=net, preprogrammed_steps=steps, output_dof_order=dof_order)
 sim.reset(); ctrl.reset(seed=args.seed)
-apply_locomotion_action(sim, "fly", LocomotionAction(joint_angles=steps.default_pose_by_dof_order(dof_order), adhesion_onoff=np.ones(6, dtype=bool)))
+sim.set_actuator_inputs("fly", ActuatorType.POSITION, BODY.stand); sim.set_leg_adhesion_states("fly", np.ones(6, dtype=bool))
 sim.warmup()
 segs = fly.get_bodysegs_order()
+# joints for the proboscis, head, antennae and grooming postures
+J = BODY.i
+ROS, HAU, HEADP = J("c_head", "c_rostrum", "pitch"), J("c_rostrum", "c_haustellum", "pitch"), J("c_thorax", "c_head", "pitch")
+ANT = [J("c_head", "l_pedicel", "pitch"), J("c_head", "r_pedicel", "pitch")]
+def LEG(side, joint, ax):
+    p, c = {"coxa": ("c_thorax", f"{side}_coxa"), "troch": (f"{side}_coxa", f"{side}_trochanterfemur"), "tibia": (f"{side}_trochanterfemur", f"{side}_tibia")}[joint]
+    return J(p, c, ax)
+def groom_pose(kind, phase):
+    """Joint targets (full vector) and adhesion for one grooming action, phase in [0, 1)."""
+    a = BODY.stand.copy(); adh = np.ones(6, dtype=bool); w = np.sin(2 * np.pi * phase)
+    if kind == "front rub":            # front legs together under the head, rubbing
+        for sd in ("lf", "rf"):
+            sg = 1 if sd == "lf" else -1
+            a[LEG(sd, "coxa", "pitch")] -= np.radians(70); a[LEG(sd, "troch", "pitch")] += np.radians(60 + 15 * w * sg); a[LEG(sd, "tibia", "pitch")] -= np.radians(110 + 15 * w * sg)
+        adh[[0, 3]] = False
+    elif kind == "head groom":         # front legs sweep down over the eyes and antennae
+        for sd in ("lf", "rf"):
+            sg = 1 if sd == "lf" else -1
+            a[LEG(sd, "coxa", "pitch")] -= np.radians(90); a[LEG(sd, "coxa", "roll")] += np.radians(20 * sg)
+            a[LEG(sd, "troch", "pitch")] += np.radians(20 + 25 * w); a[LEG(sd, "tibia", "pitch")] -= np.radians(70 + 20 * w)
+        a[HEADP] -= np.radians(20 + 8 * w); a[ANT[0]] -= np.radians(20 * w); a[ANT[1]] -= np.radians(20 * w)
+        adh[[0, 3]] = False
+    elif kind == "hind rub":           # hind legs rub each other under the abdomen
+        for sd in ("lh", "rh"):
+            sg = 1 if sd == "lh" else -1
+            a[LEG(sd, "coxa", "pitch")] += np.radians(130); a[LEG(sd, "troch", "pitch")] -= np.radians(100 + 15 * w * sg); a[LEG(sd, "tibia", "pitch")] += np.radians(130 + 15 * w * sg)
+        adh[[2, 5]] = False
+    return a, adh
 I_HEAD, I_THORAX = segs.index(BodySegment("c_head")), segs.index(BodySegment("c_thorax"))
 
 # ----------------------------------------------------------------------------- behaviour layer
@@ -161,6 +194,7 @@ class Inner:
         self.wall_side = 0.0              # +1 wall on the right, -1 on the left
         self.odour_prev = 0.0
         self.search = 0.0                 # local-search intensity after losing the odour
+        self.groom_kind = "front rub"; self.groom_t = 0.0; self.groom_phase = 0.0; self.dust = 0.0   # bristle contact builds "dust" that makes grooming likelier
 inner = Inner(rng)
 odour_LR = np.zeros(2)
 
@@ -249,11 +283,28 @@ for tick in range(n_ticks):
     # hunger drives everything: a starved fly walks more, faster, and follows smell
     h = inner.hunger
     inner.bout_t -= dt_c
+    inner.dust = min(1.0, inner.dust + (0.25 * dt_c if touching else 0.0)); inner.dust *= (1 - 0.02 * dt_c)
     if inner.mode in ("walk", "pause") and inner.bout_t <= 0:
         if inner.mode == "walk":
-            inner.mode = "pause"; inner.bout_t = rng.uniform(0.4, 1.5) * (1.5 - h)      # hungry flies pause less
+            if rng.random() < 0.35 + 0.5 * inner.dust:                                      # flies groom in many of their pauses
+                inner.mode = "groom"; inner.bout_t = rng.uniform(2.0, 4.0); inner.groom_kind = rng.choice(["front rub", "head groom", "hind rub"]); inner.groom_t = 0.0
+            else:
+                inner.mode = "pause"; inner.bout_t = rng.uniform(0.4, 1.5) * (1.5 - h)      # hungry flies pause less
         else:
             inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 8.0) * (0.5 + h)
+    if args.demo_groom > 0 and t < args.demo_groom and inner.mode != "groom":
+        inner.mode = "groom"; inner.bout_t = args.demo_groom - t; inner.groom_t = 0.0; inner.groom_kind = "front rub"
+    if inner.mode == "groom" and args.demo_groom > 0 and t < args.demo_groom:
+        inner.groom_kind = ["front rub", "head groom", "hind rub"][min(2, int(3 * t / args.demo_groom))]
+    if inner.mode == "groom":
+        if rates["DNg12"].mean() > 10: inner.groom_kind = "head groom"                       # the brain's antennal-grooming command neuron
+        inner.groom_t += dt_c; inner.groom_phase = (inner.groom_phase + dt_c * 6.0) % 1.0   # ~6 Hz leg strokes
+        if inner.groom_t > 1.2 and rng.random() < dt_c / 1.0:                                # switch action within a bout
+            inner.groom_kind = rng.choice(["front rub", "head groom", "hind rub"]); inner.groom_t = 0.0
+        if inner.bout_t <= 0:
+            inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 8.0) * (0.5 + h); inner.dust *= 0.3
+    elif rates["DNg12"].mean() > 10 and inner.mode in ("walk", "pause"):
+        inner.mode = "groom"; inner.bout_t = rng.uniform(2.0, 4.0); inner.groom_kind = "head groom"; inner.groom_t = 0.0
     # spontaneous turns (saccade-like, roughly one every 1-2 s while walking)
     inner.turn_t -= dt_c
     if inner.turn_t <= 0:
@@ -275,11 +326,14 @@ for tick in range(n_ticks):
     elif inner.mode == "wall" and inner.bout_t <= 0:
         inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 8.0)
     # food: the brain's own proboscis motor neuron (sugar -> MN9) says eat; eating fills the fly
-    if tasting and rates["MN9"].mean() > 10 and h > 0.15:
+    # sugar on the tarsi stops a hungry fly (a nerve-cord reflex); the brain's MN9 then extends the proboscis
+    if inner.mode == "feed":
+        if tasting and h > 0.15:
+            feeding_now = True; inner.hunger = max(0.0, inner.hunger - 0.08 * dt_c)
+        else:
+            inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 6.0)
+    elif tasting and h > 0.15 and inner.mode not in ("escape",):
         inner.mode = "feed"; feeding_now = True
-        inner.hunger = max(0.0, inner.hunger - 0.08 * dt_c)
-    elif inner.mode == "feed":
-        inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 6.0)
     # escape: the brain's giant fibre fired on a looming object
     inner.gf_refractory = max(0.0, getattr(inner, "gf_refractory", 0.0) - dt_c)
     if rates["DNp01"].mean() > 40 and inner.gf_refractory <= 0 and inner.mode != "escape":
@@ -289,9 +343,9 @@ for tick in range(n_ticks):
             inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 6.0)
 
     if inner.mode == "walk":
-        fwd = 0.45 + 0.5 * h
+        fwd = (0.45 + 0.5 * h) * (1.0 - 0.6 * h * od)          # a hungry fly slows down in strong food smell (local search)
         turn = brain_turn + inner.turn_bias + odour_turn + inner.search * rng.uniform(-1, 1)
-    elif inner.mode == "pause":
+    elif inner.mode in ("pause", "groom"):
         fwd = 0.0; turn = 0.0
     elif inner.mode == "wall":
         fwd = 0.35 + 0.3 * h
@@ -307,12 +361,18 @@ for tick in range(n_ticks):
     drive = np.clip([left, right], -1.0, 1.2)
     if abs(drive[0]) < 0.08 and abs(drive[1]) < 0.08:
         drive = np.array([0.0, 0.0])
+    probo = float(np.clip(rates["MN9"].mean() / 35.0, 0, 1))          # the brain's proboscis motor neuron extends the proboscis
+    inner.probo = getattr(inner, "probo", 0.0) + (probo - getattr(inner, "probo", 0.0)) * (dt_c / 0.15)
     for _ in range(CHUNK):
-        if (drive != 0).any():
+        if inner.mode == "groom":
+            full, adh = groom_pose(inner.groom_kind, inner.groom_phase)
+        elif (drive != 0).any():
             action = ctrl.step(drive, HybridControllerObservation.from_sim(sim, "fly"))
+            full, adh = BODY.with_legs(action.joint_angles), action.adhesion_onoff
         else:
-            action = LocomotionAction(joint_angles=steps.default_pose_by_dof_order(dof_order), adhesion_onoff=np.ones(6, dtype=bool))
-        apply_locomotion_action(sim, "fly", action)
+            full, adh = BODY.stand.copy(), np.ones(6, dtype=bool)
+        full[ROS] -= np.radians(70) * inner.probo; full[HAU] += np.radians(40) * inner.probo; full[HEADP] += np.radians(10) * inner.probo
+        sim.set_actuator_inputs("fly", ActuatorType.POSITION, full); sim.set_leg_adhesion_states("fly", adh)
         sim.step()
         sim.render_as_needed()
 
@@ -330,7 +390,7 @@ for tick in range(n_ticks):
         for k in groups:
             log["rates"][k].append(rates[k].tolist())
         log["inputs"].append([float(odour), bool(tasting), bool(touching), float(lum.mean()), float(vis_feat[0]), float(vis_feat[1]), float(vis_feat[2]), float(vis_feat[3])])
-        log["events"].append(dict(events)); log["frames"].append(frame_i); log.setdefault("inner", []).append([inner.mode, float(inner.hunger), float(brain_turn), float(odour_turn), float(inner.turn_bias)])
+        log["events"].append(dict(events)); log["frames"].append(frame_i); log.setdefault("inner", []).append([inner.mode if inner.mode != "groom" else "groom:" + inner.groom_kind, float(inner.hunger), float(brain_turn), float(odour_turn), float(inner.turn_bias), float(inner.probo)])
         np.save(f"{args.out}/frames/eyes_{frame_i:05d}.npy", rgb.astype(np.float16))
         frame_i += 1
     if tick % 50 == 0:

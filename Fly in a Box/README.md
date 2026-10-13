@@ -80,7 +80,14 @@ published fly behaviour and clearly separated in the video ("inner state"):
   it now and then (thigmotaxis in open-field arenas).
 - *Odour turning*: turning toward the antenna that smells more food, scaled by hunger, with local
   search when the smell fades (bilateral olfactory comparison in walking flies).
-- *Feeding*: only when the real brain's sugar-to-MN9 circuit fires on contact with the food.
+- *Feeding*: sugar on the feet stops a hungry fly (a nerve-cord reflex); the proboscis is then
+  extended in proportion to the real brain's MN9 proboscis motor neuron firing (the sugar-to-MN9
+  circuit validated by Shiu et al.). The body is the fully jointed NeuroMechFly (`fullfly.py`):
+  legs, head, proboscis, antennae, abdomen and wings are all actuated.
+- *Grooming*: bouts during pauses (likelier after bristle contact with the walls, "dust"), and
+  whenever the brain's antennal-grooming command neuron DNg12 fires. Three real actions, as
+  postures tuned by eye (`pose_sheet.py`): front-leg rubbing, head and eye grooming with the front
+  legs, hind-leg rubbing. Abdomen and wing grooming are not yet posed.
 - *Escape*: only when the real brain's giant fibre fires on a looming object.
 
 The real brain's own steering signal (left-right imbalance of all descending neurons) is added to
