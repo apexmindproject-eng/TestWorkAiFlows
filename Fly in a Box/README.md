@@ -108,7 +108,14 @@ Measured on a 36 s run and in isolated probes (`brain.py`):
   balance. Spike-frequency adaptation (optional in `brain.py`, off by default) lowers the rates
   but not the number of neurons recruited, so it is not a fix.
 - So in the box: feeding, escape, grooming and steering are driven by their real circuits, but
-  "reward" is not something this brain produces on its own.
+  "reward" is not something this brain produces on its own. It is therefore delivered the way
+  reward experiments deliver it in the lab: while a hungry fly eats, the behaviour layer drives
+  the real sweet-reward dopamine neurons (PAM02, PAM07, PAM08, PAM11: the PAM-beta'2, gamma4
+  and alpha1 subtypes of Burke 2012, Liu 2012, Yamagata 2015, Huetteroth 2015) at up to 100 Hz,
+  scaled by hunger so the burst fades as the fly fills up. Everything downstream of those
+  neurons is the real wiring. Because the model cannot rewrite synapses, the memory consequence
+  (a learned attraction to the food smell) is tracked in the behaviour layer as "food memory",
+  built while reward and smell coincide.
 
 ## The male dataset, and why the nerve cord is still a stand-in
 

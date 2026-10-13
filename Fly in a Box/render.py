@@ -67,7 +67,7 @@ def eye_image(px, size):
         img[max(r_ - 3, 0):r_ + 4, max(c_ - 3, 0):c_ + 4] = v
     return (np.clip(img, 0, 1) * 255).astype(np.uint8)
 
-METERS = [("DNa02", "turn (ipsilateral)"), ("DNp09", "walk forward"), ("MDN", "walk backward"), ("DNp01", "giant fibre: escape"), ("DNg12", "grooming command"), ("MN9", "proboscis: feed")]
+METERS = [("DNa02", "turn (ipsilateral)"), ("DNp01", "giant fibre: escape"), ("DNg12", "grooming command"), ("MN9", "proboscis: feed"), ("PAMrw", "reward dopamine (PAM)")]
 
 writer = imageio.get_writer(args.out, fps=args.fps, codec="libx264", quality=8, macro_block_size=1)
 for i in range(n_frames):
@@ -127,7 +127,11 @@ for i in range(n_frames):
         d.text((BX, my), f"hunger", font=FONT_S, fill=(200, 200, 210))
         d.rectangle([BX + 80, my + 4, BX + 230, my + 20], outline=(70, 70, 80)); d.rectangle([BX + 80, my + 4, BX + 80 + int(hunger * 150), my + 20], fill=(230, 160, 70))
         d.text((BX + 240, my), {"walk": "walking", "pause": "pausing", "wall": "following the wall", "feed": "FEEDING", "escape": "ESCAPE", "groom:front rub": "grooming: front legs", "groom:head groom": "grooming: head", "groom:hind rub": "grooming: hind legs"}.get(mode, mode), font=FONT_B if mode in ("feed", "escape") else FONT, fill=(255, 120, 200) if mode == "feed" else (255, 90, 60) if mode == "escape" else (220, 220, 230)); my += 30
-        d.text((BX, my), f"steering:  brain {brain_turn:+.2f}   smell {odour_turn:+.2f}   spontaneous {spont:+.2f}", font=FONT_S, fill=(200, 200, 210))
+        d.text((BX, my), f"steering:  brain {brain_turn:+.2f}   smell {odour_turn:+.2f}   spontaneous {spont:+.2f}", font=FONT_S, fill=(200, 200, 210)); my += 28
+        if len(log["inner"][i]) >= 8:
+            rew, mem = log["inner"][i][6], log["inner"][i][7]
+            d.text((BX, my), "reward", font=FONT_S, fill=(200, 200, 210)); d.rectangle([BX + 80, my + 4, BX + 230, my + 20], outline=(70, 70, 80)); d.rectangle([BX + 80, my + 4, BX + 80 + int(rew * 150), my + 20], fill=(255, 100, 180))
+            d.text((BX + 250, my), "food memory", font=FONT_S, fill=(200, 200, 210)); d.rectangle([BX + 370, my + 4, BX + 520, my + 20], outline=(70, 70, 80)); d.rectangle([BX + 370, my + 4, BX + 370 + int(mem * 150), my + 20], fill=(120, 200, 255))
     else:
         ev = log["events"][i]
         if ev["feeding"]: d.text((BX, my), "FEEDING", font=FONT_B, fill=(255, 120, 200))

@@ -100,6 +100,10 @@ head_bristle_L = head_bristle[side[head_bristle] == "left"]; head_bristle_R = he
 mn9 = np.array([b.id2i[720575940660219265]])   # MN9, proboscis extension motor neuron (ID from Shiu et al. 2024)
 groups = {k: (b.find(k, "left"), b.find(k, "right")) for k in ["DNa02", "DNa01", "DNp09", "MDN", "DNp01", "DNa03", "DNb01", "DNg12"]}
 groups["MN9"] = (mn9, mn9)
+# sweet-reward dopamine neurons (PAM-beta'2, PAM-gamma4, PAM-alpha1 subtypes; Burke 2012, Liu 2012, Yamagata 2015, Huetteroth 2015)
+reward_pam = np.flatnonzero(a["type"].isin(["PAM02", "PAM07", "PAM08", "PAM11"]).to_numpy())
+groups["PAMrw"] = (reward_pam[side[reward_pam] == "left"], reward_pam[side[reward_pam] == "right"])
+print(f"[reward] {len(reward_pam)} sweet-reward dopamine neurons")
 dn_all = np.flatnonzero(sc == "descending")
 dn_L = dn_all[side[dn_all] == "left"]; dn_R = dn_all[side[dn_all] == "right"]
 groups["DNpop"] = (dn_L, dn_R)
@@ -195,6 +199,8 @@ class Inner:
         self.odour_prev = 0.0
         self.search = 0.0                 # local-search intensity after losing the odour
         self.groom_kind = "front rub"; self.groom_t = 0.0; self.groom_phase = 0.0; self.dust = 0.0   # bristle contact builds "dust" that makes grooming likelier
+        self.reward = 0.0                 # sugar reward being delivered right now (hunger x intake)
+        self.memory = 0.0                 # appetitive memory of this food smell, built by reward paired with smell
 inner = Inner(rng)
 odour_LR = np.zeros(2)
 
@@ -318,7 +324,7 @@ for tick in range(n_ticks):
     grad = (odour_LR[1] - odour_LR[0]) / (od + 0.02)          # +: right antenna smells more
     inner.search += (max(0.0, inner.odour_prev - od) * 40.0 - inner.search) * dt_c / 1.0
     inner.odour_prev = od
-    odour_turn = np.clip(grad * 6.0, -1, 1) * h * min(1.0, od * 4)
+    odour_turn = np.clip(grad * 6.0, -1, 1) * min(1.0, h + 0.6 * inner.memory) * min(1.0, od * 4)   # hunger, or a learned food memory, drives smell-following
     # wall: a fly that meets a wall turns to run along it, and leaves it now and then
     if touching:
         if inner.mode != "wall":
@@ -335,6 +341,12 @@ for tick in range(n_ticks):
             inner.mode = "groom"; inner.bout_t = rng.uniform(3.0, 6.0); inner.groom_kind = "front rub"; inner.groom_t = 0.0
     elif tasting and h > 0.15 and inner.mode not in ("escape",):
         inner.mode = "feed"; feeding_now = True
+    # reward: a hungry fly eating sugar gets a dopamine burst in the real sweet-reward PAM neurons,
+    # the way optogenetic reward experiments deliver it; it fades as the fly fills up (hunger gating)
+    target = h if feeding_now else 0.0
+    inner.reward += (target - inner.reward) * (dt_c / 0.3)
+    b.rates[reward_pam] = 100.0 * inner.reward
+    inner.memory = min(1.0, inner.memory + 0.12 * inner.reward * od * dt_c)                   # smell paired with reward -> food memory
     # escape: the brain's giant fibre fired on a looming object
     inner.gf_refractory = max(0.0, getattr(inner, "gf_refractory", 0.0) - dt_c)
     if rates["DNp01"].mean() > 40 and inner.gf_refractory <= 0 and inner.mode != "escape":
@@ -391,11 +403,11 @@ for tick in range(n_ticks):
         for k in groups:
             log["rates"][k].append(rates[k].tolist())
         log["inputs"].append([float(odour), bool(tasting), bool(touching), float(lum.mean()), float(vis_feat[0]), float(vis_feat[1]), float(vis_feat[2]), float(vis_feat[3])])
-        log["events"].append(dict(events)); log["frames"].append(frame_i); log.setdefault("inner", []).append([inner.mode if inner.mode != "groom" else "groom:" + inner.groom_kind, float(inner.hunger), float(brain_turn), float(odour_turn), float(inner.turn_bias), float(inner.probo)])
+        log["events"].append(dict(events)); log["frames"].append(frame_i); log.setdefault("inner", []).append([inner.mode if inner.mode != "groom" else "groom:" + inner.groom_kind, float(inner.hunger), float(brain_turn), float(odour_turn), float(inner.turn_bias), float(inner.probo), float(inner.reward), float(inner.memory)])
         np.save(f"{args.out}/frames/eyes_{frame_i:05d}.npy", rgb.astype(np.float16))
         frame_i += 1
     if tick % 50 == 0:
-        print(f"  t={t:5.1f}s  wall={time.time()-t_wall:6.0f}s  pos=({thorax[0]:5.1f},{thorax[1]:5.1f}) yaw={np.degrees(yaw):5.0f}  drive={drive.round(2)} mode={inner.mode} hunger={inner.hunger:.2f}  "
+        print(f"  t={t:5.1f}s  wall={time.time()-t_wall:6.0f}s  pos=({thorax[0]:5.1f},{thorax[1]:5.1f}) yaw={np.degrees(yaw):5.0f}  drive={drive.round(2)} mode={inner.mode} hunger={inner.hunger:.2f} reward={inner.reward:.2f} memory={inner.memory:.2f}  "
               f"DNpop {rates['DNpop'].round(1)} DNa02 {rates['DNa02'].round(0)} DNp09 {rates['DNp09'].round(0)} MDN {rates['MDN'].round(0)} MN9 {rates['MN9'].mean():.0f}  odour={odour:.2f} obj={vis_feat[0]:.2f}/{vis_feat[1]:.2f} loom={vis_feat[2]:.2f}/{vis_feat[3]:.2f} touch={touching} head=({head[0]:.1f},{head[1]:.1f},{head[2]:.1f}) obst={obst_d:.1f}  spikes/10ms={len(si)}", flush=True)
 
 np.savez_compressed(f"{args.out}/spikes.npz", **{f"f{i}": s for i, s in enumerate(spike_frames)})
