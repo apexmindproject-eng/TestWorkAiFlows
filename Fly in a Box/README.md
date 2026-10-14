@@ -191,7 +191,8 @@ is added in `wings.py`, every number measured on this model:
    up for 60 ms while the feet hold, then the feet let go and the stabiliser flies the fly, steered
    by the brain and away from walls, at a height drawn for each flight between 4 mm and the lid.
    Where it lands is drawn too: the floor (45%), a wall at a height between 8 and 22 mm (30%), the
-   lid (25%). A fly pressed against a wall in flight backs off.
+   lid (25%). A fly that flies into a wall and is pinned there by its own thrust grabs the wall
+   instead, as flies do, and carries on from there.
 
 Not modelled: the jump that starts a real escape take-off (the legs let go instead), the 60 ms
 of wing spin-up is an estimate, and the wingbeat is not visible at 30 frames per second. The

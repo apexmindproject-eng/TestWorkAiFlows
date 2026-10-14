@@ -305,6 +305,9 @@ class Grab:
         return a
     @property
     def settled(self): return self.settle_t is not None and self.t - self.settle_t > 0.4
+def fresh_reflexes():
+    """A landing fly starts its gait with no leftover leg reflexes (a retraction or stumbling correction kept from the floor would yank one leg off the surface)."""
+    ctrl.retraction_correction[:] = 0; ctrl.stumbling_correction[:] = 0; ctrl.retraction_persistence_counter[:] = 0
 def body_frame_obs():
     """Leg reflexes work relative to the body, not to gravity: 'height' is measured along the fly's own up axis."""
     obs = HybridControllerObservation.from_sim(sim, "fly")
@@ -367,7 +370,7 @@ class Inner:
         self.groom_kind = "front rub"; self.groom_t = 0.0; self.groom_phase = 0.0; self.dust = 0.0   # bristle contact builds "dust" that makes grooming likelier
         self.reward = 0.0                 # sugar reward being delivered right now (hunger x intake)
         self.memory = 0.0                 # appetitive memory of this food smell, built by reward paired with smell
-        self.climb_block = 0.0; self.mount_t = 0.0; self.climb_t = 0.0; self.turn_dir = 1.0; self.mount_done = False; self.land_hold = 0.0; self.pin_t = 0.0
+        self.climb_block = 0.0; self.mount_t = 0.0; self.climb_t = 0.0; self.turn_dir = 1.0; self.mount_done = False; self.gait_blend = 0.0; self.pin_t = 0.0
         self.flight_t = 0.0; self.yaw_cmd = 0.0; self.z_t = 5.0; self.v_t = 0.0; self.righting = False; self.down_t = 0.0; self.right_block = 0.0
         self.dest = "floor"; self.dest_wall = 0; self.dest_h = 10.0; self.fly_h = 5.0; self.pitch_t = None; self.leg_mode = "stand"; self.wings_on = True
         self.planted = {"lf": None, "rf": None}; self.sweep = {"lf": 0.0, "rf": 0.0}; self.front_pose = {}; self.last_legs = None
@@ -524,8 +527,8 @@ for tick in range(n_ticks):
             print(f"[climb] mounted at t={t:.1f}: feet planted {inner.planted}, thorax {thorax_wall:.2f} mm from the wall, up={up_z:.2f}")
             inner.mode = "climb"; inner.climb_t = 0.0; inner.bout_t = rng.uniform(2.5, 6.0)
     elif inner.mode in ("climb", "descend"):
-        inner.climb_t += dt_c; inner.land_hold = max(0.0, inner.land_hold - dt_c)
-        if inner.land_hold > 0 or (0 < inner.climb_t - BLEND < 1.0 and tick % 5 == 0 and os.environ.get("FLY_DBG")): print(f"[climb] t={t:.2f} after landing: feet {sorted(legs_on_wall())} wall={thorax_wall:.2f} up={up_z:+.2f} fwd.z={fwd3[2]:+.2f} z={thorax[2]:.1f} hold={inner.land_hold:.2f}", flush=True)
+        inner.climb_t += dt_c
+        if 0 < inner.climb_t - BLEND < 1.0 and tick % 5 == 0 and os.environ.get("FLY_DBG"): print(f"[climb] t={t:.2f} after landing: feet {sorted(legs_on_wall())} wall={thorax_wall:.2f} up={up_z:+.2f} fwd.z={fwd3[2]:+.2f} z={thorax[2]:.1f} blend={inner.gait_blend:.2f}", flush=True)
     if inner.mode == "climb":
         if inner.bout_t <= 0 or thorax[2] > H - 3.0:
             inner.mode = "turnaround"; inner.turn_dir = rng.choice([-1.0, 1.0]); inner.bout_t = 4.0; inner.turn_goal = "down"
@@ -542,14 +545,16 @@ for tick in range(n_ticks):
             else:
                 inner.mode = "turnaround"; inner.turn_dir = rng.choice([-1.0, 1.0]); inner.bout_t = 4.0; inner.turn_goal = "up"   # or turn and climb again
     elif inner.mode == "ceiling":
-        if inner.bout_t <= 0 or len(legs_on_ceiling()) < 2:
+        inner.ceil_t = getattr(inner, "ceil_t", 0.0) + dt_c
+        if inner.ceil_t < 1.2 and os.environ.get("FLY_DBG"): print(f"[ceiling] t={t:.2f} after landing: feet {sorted(legs_on_ceiling())} z={thorax[2]:.2f} up={up_z:+.2f} blend={inner.gait_blend:.2f} gait adhesion {getattr(inner, 'last_adh', None)}", flush=True)
+        if inner.bout_t <= 0 or len(legs_on_ceiling()) < 2 or thorax_wall < 3.0:                     # bout over, lost its grip, or at the edge of the lid: let go
             start_flight(inner, thorax, R_th, surface=True); events["surface_takeoff"] += 1            # drop off the lid and roll upright in the air
     if inner.mode == "turnaround" and getattr(inner, "turn_goal", "down") == "up" and (fwd3[2] > 0.75 or inner.bout_t <= 0):
         inner.mode = "climb"; inner.climb_t = BLEND; inner.bout_t = rng.uniform(2.5, 6.0); inner.turn_goal = "down"
     if inner.mode in CLIMB_MODES and inner.mode != "approach" and (up_z < -0.5 or (thorax_wall > 2.5 and up_z < 0.5)):
         events["fall"] += 1; start_flight(inner, thorax, R_th, righting=True)                        # fell off: catch itself in the air
     # wall: a fly that meets a wall turns to run along it, and leaves it now and then
-    if touching and inner.mode not in CLIMB_MODES + FLIGHT_MODES:
+    if touching and inner.mode not in CLIMB_MODES + FLIGHT_MODES + SURFACE_MODES:
         if inner.mode != "wall":
             inner.mode = "wall"; inner.wall_side = 1.0 if bearing_s < 0 else -1.0; inner.bout_t = rng.uniform(1.0, 4.0)
     elif inner.mode == "wall" and inner.bout_t <= 0:
@@ -565,7 +570,7 @@ for tick in range(n_ticks):
         else:
             # after a meal a fly almost always grooms (post-feeding grooming), then wanders
             inner.mode = "groom"; inner.bout_t = rng.uniform(3.0, 6.0); inner.groom_kind = "front rub"; inner.groom_t = 0.0
-    elif tasting and h > 0.15 and inner.mode not in ("escape",) + CLIMB_MODES + FLIGHT_MODES:
+    elif tasting and h > 0.15 and inner.mode not in ("escape",) + CLIMB_MODES + FLIGHT_MODES + SURFACE_MODES:
         inner.mode = "feed"; feeding_now = True
     # reward: a hungry fly eating sugar gets a dopamine burst in the real sweet-reward PAM neurons,
     # the way optogenetic reward experiments deliver it; it fades as the fly fills up (hunger gating)
@@ -576,9 +581,11 @@ for tick in range(n_ticks):
     # escape: the brain's giant fibre fired on a looming object
     inner.gf_refractory = max(0.0, getattr(inner, "gf_refractory", 0.0) - dt_c)
     gf_now = rates["DNp01"].mean() > 40 and inner.gf_refractory <= 0
-    if (gf_now or (0 <= args.demo_fly <= t < args.demo_fly + 0.02)) and inner.mode not in ("escape",) + CLIMB_MODES + FLIGHT_MODES:
+    if (gf_now or (0 <= args.demo_fly <= t < args.demo_fly + 0.02)) and inner.mode not in ("escape", "approach", "mount") + FLIGHT_MODES:
         inner.gf_refractory = 3.0; events["startle"] += 1                                             # giant fibre habituates for a few seconds
-        if up_z > 0.9:                                                                                # on the floor: the giant fibre's own output, take-off
+        if inner.mode in CLIMB_MODES + SURFACE_MODES:                                                 # on a wall or the lid: let go and fly
+            start_flight(inner, thorax, R_th, surface=True); events["surface_takeoff"] += 1
+        elif up_z > 0.9:                                                                              # on the floor: the giant fibre's own output, take-off
             start_flight(inner, thorax, R_th); events["takeoff"] += 1
         else:
             inner.mode = "escape"; inner.bout_t = 0.4
@@ -600,13 +607,12 @@ for tick in range(n_ticks):
             if inner.bout_t <= 0: inner.mode = "flight"; inner.bout_t = 1.0; inner.dest = "floor"
         elif inner.mode == "grab_wall":
             g_ = inner.grab
-            if abs(up_z) < 0.5 and (len(g_.planted) >= 4 or len(g_.planted) >= 3 and g_.settled) and g_.t > 0.8:      # on the wall, whichever way round
+            if abs(up_z) < 0.5 and thorax_wall < 1.5 and (len(g_.planted) >= 4 or len(g_.planted) >= 3 and g_.settled) and g_.t > 0.8:      # body on the wall, whichever way round
                 inner.mode = "climb"; inner.climb_t = BLEND; inner.bout_t = rng.uniform(2.0, 5.0); inner.turn_goal = "down"; events["wall_landing"] += 1
-                inner.front_pose = {nm: tuple(leg_stand[LEGD[nm][j_]] for j_ in ("Coxa", "Femur", "Tibia")) for nm in ("lf", "rf")}; inner.land_hold = 0.4
+                inner.front_pose = {nm: tuple(leg_stand[LEGD[nm][j_]] for j_ in ("Coxa", "Femur", "Tibia")) for nm in ("lf", "rf")}; inner.gait_blend = 0.3; fresh_reflexes()
                 print(f"[wall] landed at t={t:.2f}: feet {sorted(g_.planted)}, thorax {thorax_wall:.2f} mm from the wall", flush=True)
-            elif inner.bout_t <= 0:
-                if up_z > 0.8 and z_ < 1.5: inner.mode = "walk"; inner.bout_t = 2.0
-                else: inner.mode = "flight"; inner.bout_t = 1.0; inner.dest = "floor"; flight.reset(z_, R_th); print(f"[wall] grab failed at t={t:.2f}", flush=True)
+            elif up_z > 0.8 and z_ < 1.5 and g_.t > 0.3: inner.mode = "walk"; inner.bout_t = 2.0; print(f"[wall] slid down onto the floor at t={t:.2f}", flush=True)   # missed the wall, on its feet on the floor
+            elif inner.bout_t <= 0: inner.mode = "flight"; inner.bout_t = 1.0; inner.dest = "floor"; flight.reset(z_, R_th); print(f"[wall] grab failed at t={t:.2f}", flush=True)
         elif inner.mode == "land_ceiling":                                   # the flip starts in the physics loop (per step)
             if inner.bout_t <= 0: inner.mode = "flight"; inner.bout_t = 1.0; inner.dest = "floor"
         elif inner.mode == "flip_ceiling":
@@ -615,7 +621,7 @@ for tick in range(n_ticks):
         elif inner.mode == "grab_ceiling":
             g_ = inner.grab
             if g_.settled and len(g_.planted) >= 5 and up_z < -0.6:
-                inner.mode = "ceiling"; inner.bout_t = rng.uniform(2.0, 5.0); events["ceiling_landing"] += 1; print(f"[ceiling] landed at t={t:.2f}: feet {sorted(g_.planted)}, z={z_:.2f}", flush=True)
+                inner.mode = "ceiling"; inner.bout_t = rng.uniform(2.0, 5.0); inner.gait_blend = 0.3; inner.ceil_t = 0.0; fresh_reflexes(); events["ceiling_landing"] += 1; print(f"[ceiling] landed at t={t:.2f}: feet {sorted(g_.planted)}, z={z_:.2f}", flush=True)
             elif inner.bout_t <= 0 or (not on_ceil and z_ < H - 4.0):
                 inner.mode = "flight"; inner.bout_t = 1.0; inner.dest = "floor"; flight.reset(z_, R_th); print(f"[ceiling] grab failed at t={t:.2f}", flush=True)
         if inner.mode in ("flight", "landing") and up_z < 0.3 and z_ < 1.5 and inner.flight_t > 0.3:
@@ -656,12 +662,19 @@ for tick in range(n_ticks):
             if tick % 10 == 0: print(f"[grab_ceiling] t={t:.2f} z={thorax[2]:.2f} up={up_z:+.2f} fwd.z={fwd3[2]:+.2f} feet {sorted(on_ceil)} planted {sorted(inner.grab.planted)}", flush=True)
         elif inner.mode == "touchdown":
             inner.z_t, inner.v_t = 1.2, 0.0; inner.wings_on = False
-        if avoid and obst_i < 4 and thorax_wall < 15.0 and approach > -0.2 and inner.mode in ("flight", "landing"): yaw += -0.06 * np.sign(bearing_s) * (1.0 if thorax_wall < 9 else 0.6)
-        # pressed against a wall by its own thrust (it happens leaving a wall near a corner): nose up hard and back away, then fly on
-        inner.pin_t = inner.pin_t + dt_c if (inner.mode in ("flight", "land_wall", "land_ceiling") and thorax_wall < 1.8 and not inner.righting) else (0.0 if thorax_wall > 3.0 else inner.pin_t)
-        if inner.pin_t > 0.15 and inner.mode in ("flight", "land_wall", "land_ceiling"):
-            inner.v_t, inner.pitch_t, inner.lift = 0.0, 0.6, 1.15; inner.leg_mode = "stand"
-            if inner.mode == "land_wall": inner.mode = "flight"; inner.bout_t = 1.0; inner.dest = "floor"
+        if avoid and inner.mode in ("flight", "landing"):                                        # steer away from every wall that is near and ahead (corners push from both sides)
+            for d_w, dir_w in walls[:4]:
+                if d_w < 15.0 and -(heading @ dir_w) > -0.2:
+                    yaw += -0.06 * np.sign(heading[0] * dir_w[1] - heading[1] * dir_w[0]) * float(np.clip((15.0 - d_w) / 6.0, 0, 1))
+            if inner.mode == "flight" and inner.v_t > 0: inner.v_t = float(inner.v_t * np.clip((thorax_wall - 3.0) / 7.0, 0.2, 1.0))   # and slow down near them
+        # pressed against a wall by its own thrust (it happens leaving a wall or the lid near a corner): a fly that hits a wall grabs it
+        speed_ = float(np.linalg.norm(thorax - getattr(inner, "prev_pos", thorax)) / dt_c); inner.prev_pos = thorax.copy()   # over a tick: the wingbeat wobble averages out
+        # pinned = at the wall and not going anywhere (a brush in passing is not)
+        if inner.mode == "flight" and thorax_wall < 2.5 and not inner.righting: inner.v_t = -10.0           # brushing a wall: ease back from it
+        inner.pin_t = inner.pin_t + dt_c if (inner.mode in ("flight", "land_wall", "land_ceiling") and thorax_wall < 1.6 and speed_ < 10.0 and not inner.righting) else (0.0 if thorax_wall > 3.0 else inner.pin_t)
+        if inner.pin_t > 0.25 and inner.mode in ("flight", "land_wall", "land_ceiling"):
+            inner.mode = "grab_wall"; inner.grab = Grab("wall"); inner.bout_t = 1.5; inner.leg_mode = "grab"; inner.wings_on = False; inner.pin_t = 0.0
+            print(f"[grab_wall] start t={t:.2f} (pressed against the wall in flight) up={up_z:+.2f} z={thorax[2]:.1f}", flush=True)
         inner.yaw_cmd = float(np.clip(yaw, -0.06, 0.06))
     elif inner.mode == "escape":
         if inner.bout_t <= 0:
@@ -728,8 +741,8 @@ for tick in range(n_ticks):
                 inner.flip_t += DT
                 q = flight.step(Rb, zb, float(vw[2]), float((Rb.T @ vw)[0]), H + 10.0, 0.0, 0.0, active=not inner.flipped, flip="roll", omega=om, fast_off=True, lift=1.5)
                 if not inner.flipped and (flight.flip_done or upb < -0.6): inner.flipped = True; print(f"[flip] done t={t:.2f} ({1000 * inner.flip_t:.0f} ms) z={zb:.2f} up={upb:+.2f}", flush=True)
-                feet = legs_on_ceiling(); adh = np.full(6, upb < 0.0)                                 # the feet stick only once the body is past 90 degrees
-                if feet and upb < 0.0: inner.mode = "grab_ceiling"; inner.grab = Grab("gear"); inner.bout_t = 3.0; inner.leg_mode = "grab"; inner.wings_on = False; print(f"[grab_ceiling] start t={t:.2f} z={zb:.2f} up={upb:+.2f} feet {sorted(feet)}", flush=True)
+                feet = legs_on_ceiling(); adh = np.full(6, upb < -0.3)                                # the feet stick only once the body is well past 90 degrees (earlier: hangs from one side)
+                if feet and upb < -0.3: inner.mode = "grab_ceiling"; inner.grab = Grab("gear"); inner.bout_t = 3.0; inner.leg_mode = "grab"; inner.wings_on = False; print(f"[grab_ceiling] start t={t:.2f} z={zb:.2f} up={upb:+.2f} feet {sorted(feet)}", flush=True)
                 legs = landing_legs("gear")
             elif inner.mode in ("grab_wall", "grab_ceiling"):
                 q = flight.step(Rb, zb, float(vw[2]), float((Rb.T @ vw)[0]), zb, 0.0, 0.0, active=False, omega=om, fast_off=True)
@@ -740,14 +753,17 @@ for tick in range(n_ticks):
                 adh = np.ones(6, dtype=bool) if (inner.mode in ("takeoff", "surface_takeoff", "touchdown", "land_wall", "land_ceiling") and not inner.righting) else np.zeros(6, dtype=bool)
             full = flight.blend(BODY.with_legs(legs), BODY.stand, WJ, q)
         elif inner.mode == "ceiling":
-            action = ctrl.step(drive, body_frame_obs()); full, adh = BODY.with_legs(action.joint_angles), action.adhesion_onoff
+            action = ctrl.step(drive, body_frame_obs()); full, adh = BODY.with_legs(action.joint_angles), action.adhesion_onoff; inner.last_adh = adh.astype(int)
+            if inner.gait_blend > 0:                                              # just landed: the legs ease from the stance into the gait with every foot glued (a jump rips the feet off)
+                u_ = 1.0 - inner.gait_blend / 0.3; inner.gait_blend -= DT; full = BODY.with_legs(leg_stand * (1 - u_) + action.joint_angles * u_); adh = np.ones(6, dtype=bool)
         elif inner.mode in ("climb", "descend", "turnaround"):
             action = ctrl.step(drive, body_frame_obs())
             legs = action.joint_angles.copy(); adh = action.adhesion_onoff.copy()
             bias, w_ = climb_bias(inner)
             legs += bias
             if w_ > 0.5: adh[[0, 3]] = True                                    # keep the front feet glued until the gait has taken over
-            if inner.land_hold > 0: adh[:] = True                               # just landed from flight: every foot stays glued while the gait starts
+            if inner.gait_blend > 0:                                            # just landed from flight: ease into the gait
+                u_ = 1.0 - inner.gait_blend / 0.3; inner.gait_blend -= DT; legs = leg_stand * (1 - u_) + legs * u_
             full = BODY.with_legs(legs)
         elif (drive != 0).any():
             action = ctrl.step(drive, body_frame_obs())
