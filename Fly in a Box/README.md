@@ -1,8 +1,8 @@
 # A Fly in a Box
 
 A whole fruit-fly brain, every neuron and every synapse from the FlyWire connectome, wired to a
-physical fly body and left alone in a closed arena with a drop of food, a dark post and a stripe
-on one wall. We watch what it does.
+physical fly body and left alone in a closed arena (60 x 60 x 30 mm, with a glass lid) with a drop
+of food, a dark post and a stripe on one wall. We watch what it does.
 
 Nothing here is trained. The brain is the real wiring diagram of one adult female
 *Drosophila melanogaster* (FlyWire v783: 138,639 neurons, 15.1 million connections, with the sign
@@ -60,9 +60,10 @@ published model, and what is a modelling decision made for this project.
   DNa02 made the fly spin, because that pair is lopsided in this model). DNp09 speeds walking up,
   MDN reverses, the giant fibre DNp01 triggers a backward startle, and the proboscis motor neuron
   MN9 stops the legs (feeding).
-- *Walls.* The body model only collides through explicit contact pairs, so the walls and the post
-  are made solid to the body segments but not to the feet (the adhesive feet would climb the wall
-  and tip the fly over).
+- *Walls and lid.* The body model only collides through explicit contact pairs, so the walls, the
+  post and the invisible lid are made solid to the body segments. The feet touch them only while
+  the fly is climbing, flying or landing (on the floor the adhesive feet would catch on the wall
+  during wall following and tip the fly over).
 - Nothing else. No learning, no neuromodulation, no hunger state, no spontaneous activity: this
   brain is silent until a sense drives it.
 
@@ -90,12 +91,15 @@ published fly behaviour and clearly separated in the video ("inner state"):
   legs, hind-leg rubbing. Abdomen and wing grooming are not yet posed.
 - *Escape*: only when the real brain's giant fibre fires on a looming object.
 - *Wall climbing*: a fly that meets a wall head-on usually climbs it (flies spend much of their
-  time on arena walls). See the next section for what it took.
+  time on arena walls), patrols it, and leaves it the way flies do: turns head-down and flies off.
+  See the next section for what it took.
 - *Take-off and flight*: when the real brain's giant fibre fires on a looming object and the fly
-  is on the floor, it takes off, flies for a second or two (held level and at height by a
-  haltere-level stabiliser, steered by the brain's descending imbalance and away from walls),
-  lands on its feet and walks on. A fly left on its side or back buzzes its wings to right itself.
-  See "Flight" below.
+  is on the floor, it takes off, flies for a second or two at a height of its own choosing, anywhere
+  up to the lid (held level and at height by a haltere-level stabiliser, steered by the brain's
+  descending imbalance and away from walls), then lands where it was going: on the floor on its
+  feet, on a wall feet first, or upside down on the lid after the flip real flies do. From a wall or
+  the lid it later takes off again. A fly left on its side or back buzzes its wings to right itself,
+  and one knocked off a wall catches itself in the air. See "Flight" below.
 
 The real brain's own steering signal (left-right imbalance of all descending neurons) is added to
 the turn command throughout. The video shows the three contributions separately.
@@ -124,12 +128,12 @@ Three things, all measured rather than guessed:
    degrees in a quarter of a second, the middle and hind feet find the wall, and the fly climbs
    (about 3 mm/s in the box, with the full body). Near the top it turns round and walks down.
 
-Not solved yet: the step back onto the floor (a fly that comes off the wall usually lands on its
-feet, and one that lands on its back now rights itself with a wing buzz). Walking down head-first ends with the head against
-the floor and the body vertical; every dismount tried so far (let go and tip, plant the front feet
-on the floor first, turn sideways at the base) ends with the fly on its back. For now a fly that
-has climbed patrols the wall: up, turn, down, turn. Also not modelled: climbing the post, and a
-righting reflex for a fly that does fall on its back.
+Not solved: the walking step back onto the floor. Walking down head-first ends with the head
+against the floor and the body vertical; every dismount tried (let go and tip, plant the front feet
+on the floor first, turn sideways at the base) ends with the fly on its back. So a fly that has
+climbed patrols the wall (up, turn, down, turn) and leaves it as real flies mostly do: it turns
+head-down and flies off (a fly that does fall lands on its feet, or rights itself with a wing buzz;
+see "Flight"). Also not modelled: climbing the post.
 
 ## Flight: what it took
 
@@ -156,13 +160,43 @@ is added in `wings.py`, every number measured on this model:
    signals carry the 200 Hz body wobble and the damping term then pumps the instability. Forward
    speed is set by the pitch target. Measured: altitude held within 0.2 mm, pitch within a few
    degrees, for the full test flights.
-4. **In the box.** The giant fibre's output on the floor is now the real one, a take-off: wings spin
-   up for 60 ms while the feet hold, then the feet let go and the stabiliser flies the fly at 5 mm
-   and 25 mm/s, turning away from walls it approaches, steered by the brain. After the bout it
-   descends, touches down on its legs and walks on.
+4. **Any attitude.** The stabiliser recovers from any orientation, which is what makes everything
+   below possible: the attitude angles are unwrapped so an inverted fly reads 180 degrees rather
+   than dithering at the wrap, far from level the wings give full torque, and roll is corrected
+   before pitch. Measured, released with no speed: upside down at 26 mm it is upright in 10 ms and
+   loses 13 mm; on its side or nose-down at 14 mm it loses about 1 mm; nose-up (as when a fly lets
+   go of a wall facing up) is the worst case and needs 18 mm, which is why a fly leaves a wall
+   facing down. On the floor, on its back, it rights itself in 25 ms with a wing buzz and all legs
+   stretched out (the wings alone cannot do it).
+5. **Landing on a wall.** The fly flies level at the wall with its front legs out. Whichever foot
+   touches first is glued, and a glued leg then moves from its reaching pose to its standing pose,
+   which pulls the body round onto the wall; the free legs find the wall as the body arrives, and
+   the climbing gait takes over. Measured: contact to six feet on the wall in 0.4 s, climbing at
+   4 mm/s within a second. An earlier version that pitched up before the wall, as real flies do,
+   bounced off: the tilted stroke brakes at 8 m/s^2 and the fly backs away before any foot touches.
+6. **Landing on the lid.** Flies land on ceilings with a rapid body flip just below the surface,
+   legs out, and catch it with their feet (Liu, Chen and Chang 2019). The same works here, and the
+   numbers set it: the feet reach 1.4 mm beyond the thorax with the legs down and out, 2.2 mm with
+   the legs straight down, and a flip takes 16 ms, during which gravity takes 160 mm/s off the
+   climb. So the fly climbs hard at the lid (0.4 g), starts a roll at 2.8 mm below it with the
+   straight-down landing gear, brakes the roll in its second half, stops the wings, and arrives
+   inverted 1.5 mm under the glass with the feet touching. The feet stick only once the body is
+   past 90 degrees (gluing earlier pins the fly half way), then the same chin-up as on the wall
+   settles it: six feet in 0.5 s, walking upside down at 4.5 mm/s a second after that. A pitch
+   flip (nose-up, the other manoeuvre real flies use) is three times slower on this model and is
+   not used.
+7. **Leaving a surface.** From a wall the fly turns head-down, lets go and flies off; from the lid
+   it lets go, falls upside down and rolls upright (13 mm of the 28 mm available).
+8. **In the box.** The giant fibre's output on the floor is now the real one, a take-off: wings spin
+   up for 60 ms while the feet hold, then the feet let go and the stabiliser flies the fly, steered
+   by the brain and away from walls, at a height drawn for each flight between 4 mm and the lid.
+   Where it lands is drawn too: the floor (45%), a wall at a height between 8 and 22 mm (30%), the
+   lid (25%). A fly pressed against a wall in flight backs off.
 
 Not modelled: the jump that starts a real escape take-off (the legs let go instead), the 60 ms
-of wing spin-up is an estimate, and the wingbeat is not visible at 30 frames per second.
+of wing spin-up is an estimate, and the wingbeat is not visible at 30 frames per second. The
+landings and the flip are scripted at the level of a nerve-cord motor programme, like the wall
+mount: the real brain decides when to fly and where to steer, not how to land.
 
 ## What fires when: reward, smell and the saturation problem (solved)
 
@@ -227,7 +261,9 @@ things come out of it:
 
 ```
 brain.py     whole-brain LIF simulator (numba), loads FlyWire v783 connectivity + annotations
-flybox.py    the closed loop: senses -> brain -> descending neurons -> legs, in the arena
+flybox.py    the closed loop: senses -> brain -> descending neurons -> legs and wings, in the arena
+fullfly.py   the fully jointed NeuroMechFly body (legs, head, proboscis, antennae, abdomen, wings)
+wings.py     flight: air on the wings, the wingbeat (solved once, cached in wing_stroke.npz), the stabiliser and the landing flip
 cns.py       whole-CNS simulator for the male dataset (brain + nerve cord), used for the tests above
 render.py    composes the video: body cameras, both eyes, brain activity, descending-neuron meters
 ```
