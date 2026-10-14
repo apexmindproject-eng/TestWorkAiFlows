@@ -89,9 +89,41 @@ published fly behaviour and clearly separated in the video ("inner state"):
   postures tuned by eye (`pose_sheet.py`): front-leg rubbing, head and eye grooming with the front
   legs, hind-leg rubbing. Abdomen and wing grooming are not yet posed.
 - *Escape*: only when the real brain's giant fibre fires on a looming object.
+- *Wall climbing*: a fly that meets a wall head-on usually climbs it (flies spend much of their
+  time on arena walls). See the next section for what it took.
 
 The real brain's own steering signal (left-right imbalance of all descending neurons) is added to
 the turn command throughout. The video shows the three contributions separately.
+
+## Wall climbing: what it took
+
+Three things, all measured rather than guessed:
+
+1. **The gait had to be born in step.** The leg oscillators (the CPG that stands in for the nerve
+   cord) start from random phases and take about a second to lock into the tripod pattern. On the
+   floor nobody notices; on a wall the first unlocked step releases five feet at once and the fly
+   drops. Every run now warms the oscillators up before the first step. With that one change a fly
+   placed on a vertical wall walks straight up it at about 8 mm/s.
+2. **Adhesion in proportion.** The pulvilli are MuJoCo adhesion actuators on the last tarsal
+   segment, as in NeuroMechFly. 40 (the walking default) and 120 let go on a wall; 400 holds and
+   climbs, and is used on the floor as well. The leg reflexes (height correction, stumbling) are
+   computed in the fly's own frame, not against gravity, so the same walking controller works on
+   any surface.
+3. **Getting from the floor onto the wall.** The stepping gait alone never climbs: it holds a fixed
+   body height and just stops against anything in front, even a 45-degree fillet. What works is the
+   sequence flies actually use, written as a nerve-cord posture programme on top of the gait:
+   square up to the wall and walk into it until the head touches; rear up (a posture servo holds
+   the nose 25 degrees up, so the programme adapts to the body); lift one front leg, sweep it
+   forward until the foot touches the wall, glue it; the same with the other; then let the gait
+   take over while the mounting posture fades out over 1.5 s. The body pitches from 25 to 85
+   degrees in a quarter of a second, the middle and hind feet find the wall, and the fly climbs
+   (about 3 mm/s in the box, with the full body). Near the top it turns round and walks down.
+
+Not solved yet: the step back onto the floor. Walking down head-first ends with the head against
+the floor and the body vertical; every dismount tried so far (let go and tip, plant the front feet
+on the floor first, turn sideways at the base) ends with the fly on its back. For now a fly that
+has climbed patrols the wall: up, turn, down, turn. Also not modelled: climbing the post, and a
+righting reflex for a fly that does fall on its back.
 
 ## What fires when: reward, smell and the saturation problem (solved)
 

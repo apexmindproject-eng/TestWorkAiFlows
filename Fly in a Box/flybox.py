@@ -18,7 +18,7 @@ import mujoco as mj
 import imageio
 
 from flygym import Simulation
-from flygym.anatomy import BodySegment
+from flygym.anatomy import BodySegment, LEGS
 from flygym.compose import FlatGroundWorld
 from flygym.utils.math import Rotation3D
 from flygym.vision.retina import Retina
@@ -35,6 +35,7 @@ p.add_argument("--base", type=float, default=0.5, help="baseline walking drive o
 p.add_argument("--seed", type=int, default=1)
 p.add_argument("--spawn", type=float, nargs=3, default=None, help="x y yaw_deg")
 p.add_argument("--demo-groom", type=float, default=0.0, help="debug: force a grooming bout for the first N seconds")
+p.add_argument("--climb-p", type=float, default=0.6, help="probability that a fly meeting a wall head-on climbs it")
 p.add_argument("--published-brain", action="store_true", help="use the published model without the antennal-lobe and sensory corrections")
 p.add_argument("--turn-gain", type=float, default=100.0, help="Hz of DNa02 left-right difference that gives a full-strength turn")
 args = p.parse_args()
@@ -114,10 +115,13 @@ print(f"[readout] descending population: {len(dn_L)} left, {len(dn_R)} right")
 print("[groups]", {k: (len(v[0]), len(v[1])) for k, v in groups.items()}, "food ORN", len(food_orn), "sugar", len(sugar), "head bristle", len(head_bristle))
 
 # ----------------------------------------------------------------------------- body + box
-fly = make_full_fly(name="fly")
+fly = make_full_fly(adhesion_gain=400.0, name="fly")
 fly.add_vision()
 follow = fly.add_tracking_camera(name="follow", pos_offset=(-3, -12, 12), rotation=Rotation3D("xyaxes", (1, 0, 0, 0, 0.72, 0.69)), fovy=42.0)
 close = fly.add_tracking_camera(name="close", pos_offset=(2.4, -4.2, 2.0), rotation=Rotation3D("xyaxes", (0.87, 0.5, 0, -0.2, 0.35, 0.92)), fovy=38.0)   # close-up for feeding and grooming
+# mirrored twins, used by the renderer when the primary camera would sit inside a wall
+follow_b = fly.add_tracking_camera(name="follow_b", pos_offset=(3, 12, 12), rotation=Rotation3D("xyaxes", (-1, 0, 0, 0, -0.72, 0.69)), fovy=42.0)
+close_b = fly.add_tracking_camera(name="close_b", pos_offset=(-2.4, 4.2, 2.0), rotation=Rotation3D("xyaxes", (-0.87, -0.5, 0, 0.2, -0.35, 0.92)), fovy=38.0)
 world = FlatGroundWorld()
 rng = np.random.default_rng(args.seed)
 start_yaw = rng.uniform(-np.pi, np.pi); start_xy = [0.0, 0.0]
@@ -138,18 +142,20 @@ wb.add_geom(name="post", type=mj.mjtGeom.mjGEOM_CYLINDER, size=[0.8, 4, 0], pos=
 wb.add_geom(name="food", type=mj.mjtGeom.mjGEOM_CYLINDER, size=[2.5, 0.05, 0], pos=[FOOD[0], FOOD[1], 0.05], rgba=[0.75, 0.35, 0.15, 1], contype=0, conaffinity=0)
 wb.add_camera(name="overhead", pos=[0, 0, 95], quat=[1, 0, 0, 0], fovy=42)
 spec = world.mjcf_root
-fly_geoms = [pr.geomname1 for pr in spec.pairs if pr.geomname2 == "ground_plane" and not any(leg in pr.geomname1 for leg in ("lf_", "lm_", "lh_", "rf_", "rm_", "rh_"))]
+all_ground = [pr.geomname1 for pr in spec.pairs if pr.geomname2 == "ground_plane"]
+fly_geoms = [g for g in all_ground if not any(leg in g for leg in ("lf_", "lm_", "lh_", "rf_", "rm_", "rh_"))]
 for obstacle in ["wall_n", "wall_s", "wall_e", "wall_w", "post"]:
-    for g in fly_geoms:
+    for g in all_ground:
         pr = spec.add_pair(); pr.geomname1 = g; pr.geomname2 = obstacle
         pr.solref = [0.002, 1.0]; pr.solimp = [0.95, 0.99, 0.001, 0.5, 2.0]; pr.margin = 0.2   # stiff wall
+        pr.friction = [1.0, 1.0, 0.005, 0.0001, 0.0001]
 all_geoms = {g.name for g in spec.geoms}
 for g in ("fly/c_haustellum", "fly/c_rostrum", "fly/c_head"):
     if g in all_geoms:
         pr = spec.add_pair(); pr.geomname1 = g; pr.geomname2 = "food"; pr.solref = [0.002, 1.0]; pr.solimp = [0.95, 0.99, 0.001, 0.5, 2.0]   # the proboscis rests on the food surface
 print(f"[box] {len(fly_geoms)} body parts collide with the walls and post:", fly_geoms)
 sim = Simulation(world)
-sim.set_renderer([follow, close, "overhead"], camera_res=(480, 640), playback_speed=1.0, output_fps=30, buffer_frames=True)
+sim.set_renderer([follow, close, "overhead", follow_b, close_b], camera_res=(480, 640), playback_speed=1.0, output_fps=30, buffer_frames=True)
 
 steps = PreprogrammedSteps()
 BODY = FullBodyActions(fly, steps)
@@ -157,6 +163,7 @@ dof_order = BODY.leg_dofs                      # the walking controller drives t
 net = make_tripod_cpg_network(timestep=sim.timestep, intrinsic_amplitude=1.0, coupling_strength=10.0, convergence_coef=20.0, seed=args.seed)
 ctrl = HybridTurningController(timestep=sim.timestep, cpg_network=net, preprogrammed_steps=steps, output_dof_order=dof_order)
 sim.reset(); ctrl.reset(seed=args.seed)
+for _ in range(20000): net.step()                 # let the leg oscillators lock into the tripod pattern before the first step
 sim.set_actuator_inputs("fly", ActuatorType.POSITION, BODY.stand); sim.set_leg_adhesion_states("fly", np.ones(6, dtype=bool))
 sim.warmup()
 segs = fly.get_bodysegs_order()
@@ -189,6 +196,79 @@ def groom_pose(kind, phase):
         adh[[2, 5]] = False
     return a, adh
 I_HEAD, I_THORAX = segs.index(BodySegment("c_head")), segs.index(BodySegment("c_thorax"))
+
+# ----------------------------------------------------------------------------- wall climbing (nerve-cord level posture programme, see README)
+leg_stand = steps.default_pose_by_dof_order(dof_order)
+def LI(parent, child, axis):
+    hits = [i for i, d_ in enumerate(dof_order) if d_.parent.name == parent and d_.child.name == child and d_.axis.value == axis]; assert len(hits) == 1, (parent, child, axis); return hits[0]
+LEGD = {s_: {"Coxa": LI("c_thorax", f"{s_}_coxa", "pitch"), "Femur": LI(f"{s_}_coxa", f"{s_}_trochanterfemur", "pitch"), "Tibia": LI(f"{s_}_trochanterfemur", f"{s_}_tibia", "pitch")} for s_ in LEGS}
+REAR = dict(fF=60, hF=-50, hC=40, mC=40, mF=20, mT=-20)      # rearing (deg): front legs extend, hind legs flex and swing forward, middle legs push
+REACH = dict(Coxa=-40, Femur=-20, Tibia=30)                   # front-leg lift toward the wall; the tibia then sweeps forward until the foot meets the wall
+HEXT, BLEND, CLIMB_DRIVE, SWEEP = -30.0, 1.5, 0.5, 120.0
+NOSE_UP = float(os.environ.get("FLY_NOSE", 25.0))              # rearing target (deg); the posture is servoed to it, so it adapts to the body
+if os.environ.get("FLY_REAR"): REAR.update(json.loads(os.environ["FLY_REAR"]))
+if os.environ.get("FLY_REACH"): REACH.update(json.loads(os.environ["FLY_REACH"]))
+SWEEP = float(os.environ.get("FLY_SWEEP", SWEEP))
+print("[climb] REAR", REAR, "REACH", REACH, "SWEEP", SWEEP)
+CLIMB_MODES = ("approach", "mount", "climb", "turnaround", "descend", "dismount")
+def rear_pose(a, u):
+    for s_ in ("lf", "rf"): a[LEGD[s_]["Femur"]] += np.radians(REAR["fF"]) * u
+    for s_ in ("lh", "rh"): a[LEGD[s_]["Femur"]] += np.radians(REAR["hF"]) * u; a[LEGD[s_]["Coxa"]] += np.radians(REAR["hC"]) * u
+    for s_ in ("lm", "rm"): a[LEGD[s_]["Coxa"]] += np.radians(REAR["mC"]) * u; a[LEGD[s_]["Femur"]] += np.radians(REAR["mF"]) * u; a[LEGD[s_]["Tibia"]] += np.radians(REAR["mT"]) * u
+    return a
+I_T5 = [segs.index(BodySegment(f"{l}_tarsus5")) for l in LEGS]
+th_body = sim._internal_bodyids_by_fly["fly"][I_THORAX]
+GNAME = [mj.mj_id2name(sim.mj_model, mj.mjtObj.mjOBJ_GEOM, i) or "" for i in range(sim.mj_model.ngeom)]
+WALL_GIDS = {i for i, n in enumerate(GNAME) if n.split("/")[-1] in ("wall_n", "wall_s", "wall_e", "wall_w")}
+print("[climb] wall geoms:", {GNAME[i]: i for i in WALL_GIDS})
+def legs_on_wall():
+    out = set(); dd = sim.mj_data
+    for c in range(dd.ncon):
+        con = dd.contact[c]
+        if con.geom1 in WALL_GIDS or con.geom2 in WALL_GIDS:
+            other = GNAME[con.geom2 if con.geom1 in WALL_GIDS else con.geom1].split("/")[-1][:2]
+            if other in LEGS: out.add(other)
+    return out
+def body_frame_obs():
+    """Leg reflexes work relative to the body, not to gravity: 'height' is measured along the fly's own up axis."""
+    obs = HybridControllerObservation.from_sim(sim, "fly")
+    R = sim.mj_data.xmat[th_body].reshape(3, 3); up = R[:, 2]; pos_ = sim.get_body_positions("fly")
+    obs.thorax_z = float(pos_[I_THORAX] @ up); obs.tarsus5_z = np.array([pos_[i] @ up for i in I_T5]); return obs
+def mount_pose(inner, dt):
+    """One physics step of the mounting programme: rear up, then plant each front foot on the wall (lift, sweep until touch, glue)."""
+    inner.mount_t += dt; tt = inner.mount_t
+    R_ = sim.mj_data.xmat[th_body].reshape(3, 3); nose = np.degrees(np.arcsin(np.clip(R_[2, 0], -1, 1)))
+    inner.u0 = float(np.clip(inner.u0 + 2.5 * (NOSE_UP - nose) / NOSE_UP * dt, 0.0, 1.3))     # rear until the nose is up by NOSE_UP degrees, hold it there
+    u0 = inner.u0
+    a = rear_pose(leg_stand.copy(), u0); adh6 = np.ones(6, dtype=bool)
+    on_wall = legs_on_wall() if tt > 0.4 else set()
+    for n_, (nm, ia) in enumerate((("lf", 0), ("rf", 3))):
+        t0 = 0.45 + 0.7 * n_
+        u1 = float(np.clip((tt - t0) / 0.15, 0, 1))
+        if tt >= t0 and inner.planted[nm] is None:
+            inner.sweep[nm] = min(inner.sweep[nm] + dt / 0.5, 1.0) if tt > t0 + 0.17 else 0.0
+            if nm in on_wall and tt > t0 + 0.2: inner.planted[nm] = inner.sweep[nm]
+            elif tt > t0 + 0.65: inner.planted[nm] = -1.0                      # found no wall
+            if inner.planted[nm] is not None:
+                pp = sim.get_body_positions("fly"); R_ = sim.mj_data.xmat[th_body].reshape(3, 3)
+                print(f"[climb]   {nm} {'planted' if inner.planted[nm] >= 0 else 'missed'} at sweep {inner.sweep[nm]:.2f}: tarsus {np.round(pp[I_T5[ia]], 2)} thorax {np.round(pp[I_THORAX], 2)} nose-up {np.degrees(np.arcsin(np.clip(R_[2, 0], -1, 1))):.0f} deg")
+        sw = inner.sweep[nm] if inner.planted[nm] is None else max(0.0, inner.planted[nm])
+        L = LEGD[nm]
+        a[L["Coxa"]] += np.radians(REACH["Coxa"]) * u1; a[L["Femur"]] += np.radians(REACH["Femur"] - REAR["fF"] * u0) * u1
+        a[L["Tibia"]] += np.radians(REACH["Tibia"]) * u1 - np.radians(SWEEP) * sw
+        adh6[ia] = not (tt > t0 and inner.planted[nm] is None)
+        inner.front_pose[nm] = (a[L["Coxa"]], a[L["Femur"]], a[L["Tibia"]])
+    a = (1 - min(1.0, tt / 0.15)) * inner.last_legs + min(1.0, tt / 0.15) * a
+    done = tt > 0.45 + 0.7 * 2 + 0.1
+    return a, adh6, done
+def climb_bias(inner):
+    """Fade the mounting posture out while the gait takes over on the wall."""
+    w = max(0.0, 1.0 - inner.climb_t / BLEND)
+    bias = rear_pose(np.zeros_like(leg_stand), 1.0)
+    for nm in ("lf", "rf"):
+        for j_, v in zip(("Coxa", "Femur", "Tibia"), inner.front_pose[nm]): bias[LEGD[nm][j_]] = v - leg_stand[LEGD[nm][j_]]
+    for s_ in ("lh", "rh"): bias[LEGD[s_]["Tibia"]] += np.radians(HEXT) * min(1.0, inner.climb_t / 0.5)
+    return bias * w, w
 I_TARSI = [segs.index(BodySegment(n)) for n in ("lf_tarsus5", "rf_tarsus5")]                 # front feet (tarsal sugar receptors)
 G_HAU = mj.mj_name2id(sim.mj_model, mj.mjtObj.mjOBJ_GEOM, "fly/c_haustellum")                  # the proboscis tip (labellum)
 FOOD_R, FOOD_TOP = 2.5, 0.1
@@ -211,8 +291,10 @@ class Inner:
         self.groom_kind = "front rub"; self.groom_t = 0.0; self.groom_phase = 0.0; self.dust = 0.0   # bristle contact builds "dust" that makes grooming likelier
         self.reward = 0.0                 # sugar reward being delivered right now (hunger x intake)
         self.memory = 0.0                 # appetitive memory of this food smell, built by reward paired with smell
+        self.climb_block = 0.0; self.mount_t = 0.0; self.climb_t = 0.0; self.turn_dir = 1.0; self.mount_done = False
+        self.planted = {"lf": None, "rf": None}; self.sweep = {"lf": 0.0, "rf": 0.0}; self.front_pose = {}; self.last_legs = None
 inner = Inner(rng)
-odour_LR = np.zeros(2)
+odour_LR = np.zeros(2); heading = np.array([np.cos(np.radians(args.spawn[2] if args.spawn else 0.0)), np.sin(np.radians(args.spawn[2] if args.spawn else 0.0))])
 
 # ----------------------------------------------------------------------------- loop
 n_ticks = int(args.seconds / (CHUNK * DT))
@@ -223,7 +305,7 @@ odour_adapt = np.zeros(2); touch_adapt = 0.0
 log = {"t": [], "pose": [], "drive": [], "rates": {k: [] for k in groups}, "events": [], "inputs": [], "frames": []}
 spike_frames = []                                 # per video frame: neuron ids that spiked
 spikes_since_frame = []
-events = {"feeding": 0, "startle": 0}
+events = {"feeding": 0, "startle": 0, "climb": 0, "fall": 0}
 next_frame = 0.0; frame_i = 0
 t_wall = time.time()
 print(f"[run] {args.seconds} s = {n_ticks} ticks")
@@ -231,7 +313,9 @@ for tick in range(n_ticks):
     t = tick * CHUNK * DT
     bp = sim.get_body_positions("fly")
     head, thorax = bp[I_HEAD], bp[I_THORAX]
-    heading = HybridControllerObservation.from_sim(sim, "fly").fly_heading
+    R_th = sim.mj_data.xmat[th_body].reshape(3, 3); up_z = float(R_th[2, 2]); fwd3 = R_th[:, 0]
+    if up_z > 0.6:
+        heading = HybridControllerObservation.from_sim(sim, "fly").fly_heading
     yaw = np.arctan2(heading[1], heading[0])
     head = thorax + 1.4 * np.array([heading[0], heading[1], 0.0])      # the face, in front of the thorax
 
@@ -275,7 +359,7 @@ for tick in range(n_ticks):
     # nearest obstacle and which side of the head it is on
     walls = [(W - T - head[0], np.array([-1.0, 0.0])), (W - T + head[0], np.array([1.0, 0.0])), (W - T - head[1], np.array([0.0, -1.0])), (W - T + head[1], np.array([0.0, 1.0]))]
     to_post = POST - head[:2]; walls.append((np.linalg.norm(to_post) - 0.8, to_post / (np.linalg.norm(to_post) + 1e-9)))
-    obst_d, obst_dir = min(walls, key=lambda w: w[0])
+    obst_i = int(np.argmin([w_[0] for w_ in walls])); obst_d, obst_dir = walls[obst_i]
     touching = obst_d < 1.4
     bearing_s = float(heading[0] * obst_dir[1] - heading[1] * obst_dir[0])        # +1 obstacle on the left, -1 on the right
     touch_adapt += ((1.0 if touching else 0.0) - touch_adapt) * (CHUNK * DT / 0.5)
@@ -338,8 +422,45 @@ for tick in range(n_ticks):
     inner.search += (max(0.0, inner.odour_prev - od) * 40.0 - inner.search) * dt_c / 1.0
     inner.odour_prev = od
     odour_turn = np.clip(grad * 6.0, -1, 1) * min(1.0, h + 0.6 * inner.memory) * min(1.0, od * 4)   # hunger, or a learned food memory, drives smell-following
+    # wall climbing: a fly that meets a wall head-on usually climbs it (flies spend much of their time on arena walls)
+    inner.climb_block -= dt_c
+    approach = -(heading[0] * obst_dir[0] + heading[1] * obst_dir[1]) if obst_i < 4 else 0.0
+    if inner.mode in ("walk", "wall") and touching and approach > 0.6 and inner.climb_block <= 0 and up_z > 0.9:
+        if rng.random() < args.climb_p:
+            inner.mode = "approach"; inner.bout_t = 2.5; inner.climb_block = 8.0
+        else:
+            inner.climb_block = 3.0
+    thorax_wall = W - T - max(abs(thorax[0]), abs(thorax[1]))                # thorax distance to the nearest wall face
+    if inner.mode == "approach":
+        if (thorax_wall < 1.0 and approach > 0.85) or inner.bout_t <= 0:
+            if thorax_wall < 1.0:
+                inner.mode = "mount"; inner.mount_t = 0.0; inner.u0 = 0.0; inner.planted = {"lf": None, "rf": None}; inner.sweep = {"lf": 0.0, "rf": 0.0}; events["climb"] += 1
+                if inner.last_legs is None: inner.last_legs = leg_stand.copy()
+            else:
+                inner.mode = "wall"; inner.wall_side = 1.0 if bearing_s < 0 else -1.0; inner.bout_t = rng.uniform(1.0, 4.0)
+    elif inner.mode == "mount":
+        if inner.planted["lf"] == -1.0 and inner.planted["rf"] == -1.0:
+            print(f"[climb] mount failed at t={t:.1f}: thorax {thorax_wall:.2f} mm from the wall, up={up_z:.2f}")
+            inner.mode = "wall"; inner.wall_side = 1.0 if bearing_s < 0 else -1.0; inner.bout_t = rng.uniform(1.0, 4.0)   # no wall under the feet: give up
+        elif inner.mount_done:
+            print(f"[climb] mounted at t={t:.1f}: feet planted {inner.planted}, thorax {thorax_wall:.2f} mm from the wall, up={up_z:.2f}")
+            inner.mode = "climb"; inner.climb_t = 0.0; inner.bout_t = rng.uniform(2.5, 6.0)
+    elif inner.mode == "climb":
+        inner.climb_t += dt_c
+        if inner.bout_t <= 0 or thorax[2] > H - 3.0:
+            inner.mode = "turnaround"; inner.turn_dir = rng.choice([-1.0, 1.0]); inner.bout_t = 4.0
+    elif inner.mode == "turnaround" and getattr(inner, "turn_goal", "down") == "down":
+        if fwd3[2] < -0.75 or inner.bout_t <= 0:
+            inner.mode = "descend"; inner.bout_t = 20.0
+    elif inner.mode == "descend":
+        if thorax[2] < 2.0 or inner.bout_t <= 0:
+            inner.mode = "turnaround"; inner.turn_dir = rng.choice([-1.0, 1.0]); inner.bout_t = 4.0; inner.turn_goal = "up"   # near the floor: turn and climb again (wall patrol)
+    if inner.mode == "turnaround" and getattr(inner, "turn_goal", "down") == "up" and (fwd3[2] > 0.75 or inner.bout_t <= 0):
+        inner.mode = "climb"; inner.climb_t = BLEND; inner.bout_t = rng.uniform(2.5, 6.0); inner.turn_goal = "down"
+    if inner.mode in CLIMB_MODES and up_z < -0.2:
+        inner.mode = "walk"; inner.bout_t = 2.0; inner.climb_block = 10.0; events["fall"] += 1      # fell off
     # wall: a fly that meets a wall turns to run along it, and leaves it now and then
-    if touching:
+    if touching and inner.mode not in CLIMB_MODES:
         if inner.mode != "wall":
             inner.mode = "wall"; inner.wall_side = 1.0 if bearing_s < 0 else -1.0; inner.bout_t = rng.uniform(1.0, 4.0)
     elif inner.mode == "wall" and inner.bout_t <= 0:
@@ -353,7 +474,7 @@ for tick in range(n_ticks):
         else:
             # after a meal a fly almost always grooms (post-feeding grooming), then wanders
             inner.mode = "groom"; inner.bout_t = rng.uniform(3.0, 6.0); inner.groom_kind = "front rub"; inner.groom_t = 0.0
-    elif tasting and h > 0.15 and inner.mode not in ("escape",):
+    elif tasting and h > 0.15 and inner.mode not in ("escape",) + CLIMB_MODES:
         inner.mode = "feed"; feeding_now = True
     # reward: a hungry fly eating sugar gets a dopamine burst in the real sweet-reward PAM neurons,
     # the way optogenetic reward experiments deliver it; it fades as the fly fills up (hunger gating)
@@ -363,7 +484,7 @@ for tick in range(n_ticks):
     inner.memory = min(1.0, inner.memory + 0.12 * inner.reward * od * dt_c)                   # smell paired with reward -> food memory
     # escape: the brain's giant fibre fired on a looming object
     inner.gf_refractory = max(0.0, getattr(inner, "gf_refractory", 0.0) - dt_c)
-    if rates["DNp01"].mean() > 40 and inner.gf_refractory <= 0 and inner.mode != "escape":
+    if rates["DNp01"].mean() > 40 and inner.gf_refractory <= 0 and inner.mode != "escape" and inner.mode not in CLIMB_MODES:
         inner.mode = "escape"; inner.bout_t = 0.4; inner.gf_refractory = 3.0; events["startle"] += 1   # giant fibre habituates for a few seconds
     elif inner.mode == "escape":
         if inner.bout_t <= 0:
@@ -384,6 +505,14 @@ for tick in range(n_ticks):
         if feeding_now: events["feeding"] += 1
     elif inner.mode == "escape":
         fwd = -1.0; turn = 0.0
+    elif inner.mode == "approach":
+        fwd = 0.35; turn = 0.7 * bearing_s                                      # square up to the wall and walk into it (bearing_s > 0: wall on the right)
+    elif inner.mode in ("mount", "dismount"):
+        fwd = 0.0; turn = 0.0
+    elif inner.mode in ("climb", "descend"):
+        fwd = CLIMB_DRIVE; turn = 0.3 * brain_turn
+    elif inner.mode == "turnaround":
+        fwd = 0.5; turn = 0.8 * inner.turn_dir
     turn = float(np.clip(turn, -1.0, 1.0))
     left, right = fwd + 1.0 * turn - back, fwd - 1.0 * turn - back
     drive = np.clip([left, right], -1.0, 1.2)
@@ -391,12 +520,26 @@ for tick in range(n_ticks):
         drive = np.array([0.0, 0.0])
     probo = float(np.clip(rates["MN9"].mean() / 35.0, 0, 1))          # the brain's proboscis motor neuron extends the proboscis
     inner.probo = getattr(inner, "probo", 0.0) + (probo - getattr(inner, "probo", 0.0)) * (dt_c / 0.15)
+    inner.mount_done = False
     for _ in range(CHUNK):
         if inner.mode == "groom":
             full, adh = groom_pose(inner.groom_kind, inner.groom_phase)
+        elif inner.mode == "mount":
+            legs, adh, inner.mount_done = mount_pose(inner, DT)
+            full = BODY.with_legs(legs)
+        elif inner.mode == "dismount":
+            full = BODY.stand.copy(); adh = np.array([1, 0, 0, 1, 0, 0], dtype=bool)
+        elif inner.mode in ("climb", "descend", "turnaround"):
+            action = ctrl.step(drive, body_frame_obs())
+            legs = action.joint_angles.copy(); adh = action.adhesion_onoff.copy()
+            bias, w_ = climb_bias(inner)
+            legs += bias
+            if w_ > 0.5: adh[[0, 3]] = True                                    # keep the front feet glued until the gait has taken over
+            full = BODY.with_legs(legs)
         elif (drive != 0).any():
-            action = ctrl.step(drive, HybridControllerObservation.from_sim(sim, "fly"))
+            action = ctrl.step(drive, body_frame_obs())
             full, adh = BODY.with_legs(action.joint_angles), action.adhesion_onoff
+            inner.last_legs = action.joint_angles.copy()
         else:
             full, adh = BODY.stand.copy(), np.ones(6, dtype=bool)
         full[ROS] -= np.radians(75) * inner.probo; full[HAU] += np.radians(60) * inner.probo; full[HEADP] += np.radians(12) * inner.probo
@@ -414,7 +557,7 @@ for tick in range(n_ticks):
                 v.clear()
         spk = np.concatenate(spikes_since_frame) if spikes_since_frame else np.zeros(0, np.int32)
         spike_frames.append(np.unique(spk).astype(np.int32)); spikes_since_frame = []
-        log["t"].append(t); log["pose"].append([float(thorax[0]), float(thorax[1]), float(yaw)]); log["drive"].append(drive.tolist())
+        log["t"].append(t); log["pose"].append([float(thorax[0]), float(thorax[1]), float(yaw), float(thorax[2])]); log["drive"].append(drive.tolist())
         for k in groups:
             log["rates"][k].append(rates[k].tolist())
         log["inputs"].append([float(odour), bool(mouth_on_food), bool(touching), float(lum.mean()), float(vis_feat[0]), float(vis_feat[1]), float(vis_feat[2]), float(vis_feat[3])])
@@ -422,7 +565,7 @@ for tick in range(n_ticks):
         np.save(f"{args.out}/frames/eyes_{frame_i:05d}.npy", rgb.astype(np.float16))
         frame_i += 1
     if tick % 50 == 0:
-        print(f"  t={t:5.1f}s  wall={time.time()-t_wall:6.0f}s  pos=({thorax[0]:5.1f},{thorax[1]:5.1f}) yaw={np.degrees(yaw):5.0f}  drive={drive.round(2)} mode={inner.mode} hunger={inner.hunger:.2f} reward={inner.reward:.2f} memory={inner.memory:.2f}  "
+        print(f"  t={t:5.1f}s  wall={time.time()-t_wall:6.0f}s  pos=({thorax[0]:5.1f},{thorax[1]:5.1f},{thorax[2]:4.1f}) up={up_z:.2f} yaw={np.degrees(yaw):5.0f}  drive={drive.round(2)} mode={inner.mode} hunger={inner.hunger:.2f} reward={inner.reward:.2f} memory={inner.memory:.2f}  "
               f"DNpop {rates['DNpop'].round(1)} DNa02 {rates['DNa02'].round(0)} DNp09 {rates['DNp09'].round(0)} MDN {rates['MDN'].round(0)} MN9 {rates['MN9'].mean():.0f}  odour={odour:.2f} obj={vis_feat[0]:.2f}/{vis_feat[1]:.2f} loom={vis_feat[2]:.2f}/{vis_feat[3]:.2f} touch={touching} head=({head[0]:.1f},{head[1]:.1f},{head[2]:.1f}) obst={obst_d:.1f}  spikes/10ms={len(si)}", flush=True)
 
 np.savez_compressed(f"{args.out}/spikes.npz", **{f"f{i}": s for i, s in enumerate(spike_frames)})
