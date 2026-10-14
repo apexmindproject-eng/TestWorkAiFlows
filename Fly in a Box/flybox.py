@@ -538,14 +538,14 @@ for tick in range(n_ticks):
         yaw = 0.02 * brain_turn
         if obst_i < 4 and thorax_wall < 12.0 and approach > 0.0: yaw += -0.05 * np.sign(bearing_s) * (1.0 if thorax_wall < 8 else 0.6)   # wall ahead: turn away from it
         inner.yaw_cmd = float(np.clip(yaw, -0.06, 0.06))
+    elif inner.mode == "escape":
+        if inner.bout_t <= 0:
+            inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 6.0)
     # righting: a fly on its side or back buzzes its wings; the flight stabiliser rolls it back onto its feet
     inner.down_t = inner.down_t + dt_c if (up_z < 0.5 and inner.mode not in FLIGHT_MODES + CLIMB_MODES) else 0.0
     if inner.down_t > 0.6 and inner.right_block <= 0:
         inner.mode = "takeoff"; inner.flight_t = 0.0; flight.reset(float(thorax[2])); inner.righting = True; inner.right_block = 3.0; events["righting"] += 1
     inner.right_block -= dt_c
-    elif inner.mode == "escape":
-        if inner.bout_t <= 0:
-            inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 6.0)
 
     if inner.mode == "walk":
         fwd = (0.45 + 0.5 * h) * (1.0 - 0.6 * h * od)          # a hungry fly slows down in strong food smell (local search)

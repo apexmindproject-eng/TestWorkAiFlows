@@ -91,6 +91,11 @@ published fly behaviour and clearly separated in the video ("inner state"):
 - *Escape*: only when the real brain's giant fibre fires on a looming object.
 - *Wall climbing*: a fly that meets a wall head-on usually climbs it (flies spend much of their
   time on arena walls). See the next section for what it took.
+- *Take-off and flight*: when the real brain's giant fibre fires on a looming object and the fly
+  is on the floor, it takes off, flies for a second or two (held level and at height by a
+  haltere-level stabiliser, steered by the brain's descending imbalance and away from walls),
+  lands on its feet and walks on. A fly left on its side or back buzzes its wings to right itself.
+  See "Flight" below.
 
 The real brain's own steering signal (left-right imbalance of all descending neurons) is added to
 the turn command throughout. The video shows the three contributions separately.
@@ -119,11 +124,45 @@ Three things, all measured rather than guessed:
    degrees in a quarter of a second, the middle and hind feet find the wall, and the fly climbs
    (about 3 mm/s in the box, with the full body). Near the top it turns round and walks down.
 
-Not solved yet: the step back onto the floor. Walking down head-first ends with the head against
+Not solved yet: the step back onto the floor (a fly that comes off the wall usually lands on its
+feet, and one that lands on its back now rights itself with a wing buzz). Walking down head-first ends with the head against
 the floor and the body vertical; every dismount tried so far (let go and tip, plant the front feet
 on the floor first, turn sideways at the base) ends with the fly on its back. For now a fly that
 has climbed patrols the wall: up, turn, down, turn. Also not modelled: climbing the post, and a
 righting reflex for a fly that does fall on its back.
+
+## Flight: what it took
+
+The wings are real bodies with real hinges in NeuroMechFly, but they have no air to push on. Flight
+is added in `wings.py`, every number measured on this model:
+
+1. **Air.** MuJoCo's ellipsoid fluid model, as in the flybody flight model: a thin ellipsoid on
+   each wing (0.55 x 1.2 mm, placed at 0.6 of the wing length where flapping lift centres), air
+   density 1.28e-6 g/mm^3, viscosity 1.85e-5. The quasi-steady lift coefficient is doubled
+   (leading-edge-vortex regime, Dickinson 1999); without that the wings make about a fifth of the
+   fly's weight.
+2. **The stroke.** Solved by inverse kinematics on the model's own three-axis wing hinges: a
+   horizontal stroke of +-70 degrees at 200 Hz with a 55-degree angle of attack that flips at each
+   reversal, continuous in joint space. Measured with the body held: 11.7 uN of lift against a
+   weight of 10.05 uN, mirror-symmetric to within 0.1 uN. Two model details mattered: the walking
+   model's wing hinge damping (0.06) would need 120 times the motor force at 200 Hz, so the flight
+   muscles are stiffer (kp 350) only while flying; and the lift must be read against the true centre
+   of mass, 0.8 mm behind the thorax origin, otherwise the trim is wrong.
+3. **Staying up.** Flapping flight is unstable in pitch within tens of milliseconds, as in the real
+   insect. The stabiliser (the job of the halteres and the wing steering muscles) uses: stroke
+   amplitude for lift and height; a wing-pitch offset for body pitch (measured 32,000 rad/s^2 per
+   radian of offset); left/right amplitude asymmetry for roll; opposite wing-yaw offsets for yaw.
+   Attitude signals are averaged over about a wingbeat, which turned out to be essential: the raw
+   signals carry the 200 Hz body wobble and the damping term then pumps the instability. Forward
+   speed is set by the pitch target. Measured: altitude held within 0.2 mm, pitch within a few
+   degrees, for the full test flights.
+4. **In the box.** The giant fibre's output on the floor is now the real one, a take-off: wings spin
+   up for 60 ms while the feet hold, then the feet let go and the stabiliser flies the fly at 5 mm
+   and 25 mm/s, turning away from walls it approaches, steered by the brain. After the bout it
+   descends, touches down on its legs and walks on.
+
+Not modelled: the jump that starts a real escape take-off (the legs let go instead), the 60 ms
+of wing spin-up is an estimate, and the wingbeat is not visible at 30 frames per second.
 
 ## What fires when: reward, smell and the saturation problem (solved)
 
