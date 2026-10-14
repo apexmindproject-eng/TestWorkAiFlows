@@ -453,11 +453,11 @@ for tick in range(n_ticks):
         if fwd3[2] < -0.75 or inner.bout_t <= 0:
             inner.mode = "descend"; inner.bout_t = 20.0
     elif inner.mode == "descend":
-        if thorax[2] < 2.0 or inner.bout_t <= 0:
+        if thorax[2] < 3.0 or inner.bout_t <= 0:
             inner.mode = "turnaround"; inner.turn_dir = rng.choice([-1.0, 1.0]); inner.bout_t = 4.0; inner.turn_goal = "up"   # near the floor: turn and climb again (wall patrol)
     if inner.mode == "turnaround" and getattr(inner, "turn_goal", "down") == "up" and (fwd3[2] > 0.75 or inner.bout_t <= 0):
         inner.mode = "climb"; inner.climb_t = BLEND; inner.bout_t = rng.uniform(2.5, 6.0); inner.turn_goal = "down"
-    if inner.mode in CLIMB_MODES and up_z < -0.2:
+    if inner.mode in CLIMB_MODES and inner.mode != "approach" and (up_z < -0.5 or (thorax_wall > 2.5 and up_z < 0.5)):
         inner.mode = "walk"; inner.bout_t = 2.0; inner.climb_block = 10.0; events["fall"] += 1      # fell off
     # wall: a fly that meets a wall turns to run along it, and leaves it now and then
     if touching and inner.mode not in CLIMB_MODES:

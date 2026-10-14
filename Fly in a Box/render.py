@@ -6,6 +6,7 @@ import imageio
 from PIL import Image, ImageDraw, ImageFont
 
 p = argparse.ArgumentParser()
+p.add_argument("--until", type=float, default=1e9, help="render only the first N seconds")
 p.add_argument("--run", default="out/run1")
 p.add_argument("--out", default="out/fly_in_a_box.mp4")
 p.add_argument("--fps", type=int, default=30)
@@ -15,7 +16,7 @@ log = json.load(open(f"{args.run}/log.json"))
 spk = np.load(f"{args.run}/spikes.npz")
 soma = np.load(f"{args.run}/soma_xy.npy")
 sclass = np.load(f"{args.run}/super_class.npy", allow_pickle=True)
-n_frames = len(log["t"])
+n_frames = min(len(log["t"]), int(args.until * args.fps))
 
 W, H = 1920, 1080
 try:
@@ -83,8 +84,8 @@ writer = imageio.get_writer(args.out, fps=args.fps, codec="libx264", quality=8, 
 for i in range(n_frames):
     img = bg.copy()
     mode_now = log["inner"][i][0] if "inner" in log else ""
-    px, py = log["pose"][i][0], log["pose"][i][1]
-    inside = lambda off: abs(px + off[0]) < 28.5 and abs(py + off[1]) < 28.5          # is a camera at this offset inside the box?
+    fx_, fy_ = log["pose"][i][0], log["pose"][i][1]
+    inside = lambda off: abs(fx_ + off[0]) < 28.5 and abs(fy_ + off[1]) < 28.5          # is a camera at this offset inside the box?
     fol = "follow" if (inside((-3, -12)) or not inside((3, 12))) else "follow_b"
     clo = "close" if (inside((2.4, -4.2)) or not inside((-2.4, 4.2))) else "close_b"
     use_close = (mode_now == "feed" or mode_now.startswith("groom") or mode_now in ("mount", "climb", "turnaround", "descend")) and os.path.exists(f"{args.run}/frames/{clo}_{i:05d}.png")
