@@ -534,9 +534,10 @@ for tick in range(n_ticks):
             inner.mode = "walk"; inner.bout_t = 2.0; events["crash"] += 1; inner.righting = False
         # flight commands: height, forward speed, yaw from the brain's steering and from the walls ahead
         inner.z_t = (3.0 if inner.righting else 5.0) if inner.mode in ("takeoff", "flight") else 1.2
-        inner.v_t = (0.0 if inner.righting else 25.0) if inner.mode == "flight" else 0.0
+        cruise = inner.mode == "flight" and not inner.righting and inner.flight_t > 0.35 and thorax_wall > 6.0   # hover first, cruise in the open
+        inner.v_t = 25.0 if cruise else 0.0
         yaw = 0.02 * brain_turn
-        if obst_i < 4 and thorax_wall < 12.0 and approach > 0.0: yaw += -0.05 * np.sign(bearing_s) * (1.0 if thorax_wall < 8 else 0.6)   # wall ahead: turn away from it
+        if obst_i < 4 and thorax_wall < 15.0 and approach > -0.2: yaw += -0.06 * np.sign(bearing_s) * (1.0 if thorax_wall < 9 else 0.6)   # wall ahead: turn away from it
         inner.yaw_cmd = float(np.clip(yaw, -0.06, 0.06))
     elif inner.mode == "escape":
         if inner.bout_t <= 0:
