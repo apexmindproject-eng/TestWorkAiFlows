@@ -367,7 +367,7 @@ class Inner:
         self.groom_kind = "front rub"; self.groom_t = 0.0; self.groom_phase = 0.0; self.dust = 0.0   # bristle contact builds "dust" that makes grooming likelier
         self.reward = 0.0                 # sugar reward being delivered right now (hunger x intake)
         self.memory = 0.0                 # appetitive memory of this food smell, built by reward paired with smell
-        self.climb_block = 0.0; self.mount_t = 0.0; self.climb_t = 0.0; self.turn_dir = 1.0; self.mount_done = False
+        self.climb_block = 0.0; self.mount_t = 0.0; self.climb_t = 0.0; self.turn_dir = 1.0; self.mount_done = False; self.land_hold = 0.0; self.pin_t = 0.0
         self.flight_t = 0.0; self.yaw_cmd = 0.0; self.z_t = 5.0; self.v_t = 0.0; self.righting = False; self.down_t = 0.0; self.right_block = 0.0
         self.dest = "floor"; self.dest_wall = 0; self.dest_h = 10.0; self.fly_h = 5.0; self.pitch_t = None; self.leg_mode = "stand"; self.wings_on = True
         self.planted = {"lf": None, "rf": None}; self.sweep = {"lf": 0.0, "rf": 0.0}; self.front_pose = {}; self.last_legs = None
@@ -524,7 +524,8 @@ for tick in range(n_ticks):
             print(f"[climb] mounted at t={t:.1f}: feet planted {inner.planted}, thorax {thorax_wall:.2f} mm from the wall, up={up_z:.2f}")
             inner.mode = "climb"; inner.climb_t = 0.0; inner.bout_t = rng.uniform(2.5, 6.0)
     elif inner.mode in ("climb", "descend"):
-        inner.climb_t += dt_c
+        inner.climb_t += dt_c; inner.land_hold = max(0.0, inner.land_hold - dt_c)
+        if inner.land_hold > 0 or (0 < inner.climb_t - BLEND < 1.0 and tick % 5 == 0 and os.environ.get("FLY_DBG")): print(f"[climb] t={t:.2f} after landing: feet {sorted(legs_on_wall())} wall={thorax_wall:.2f} up={up_z:+.2f} fwd.z={fwd3[2]:+.2f} z={thorax[2]:.1f} hold={inner.land_hold:.2f}", flush=True)
     if inner.mode == "climb":
         if inner.bout_t <= 0 or thorax[2] > H - 3.0:
             inner.mode = "turnaround"; inner.turn_dir = rng.choice([-1.0, 1.0]); inner.bout_t = 4.0; inner.turn_goal = "down"
@@ -601,7 +602,7 @@ for tick in range(n_ticks):
             g_ = inner.grab
             if abs(up_z) < 0.5 and (len(g_.planted) >= 4 or len(g_.planted) >= 3 and g_.settled) and g_.t > 0.8:      # on the wall, whichever way round
                 inner.mode = "climb"; inner.climb_t = BLEND; inner.bout_t = rng.uniform(2.0, 5.0); inner.turn_goal = "down"; events["wall_landing"] += 1
-                inner.front_pose = {nm: tuple(leg_stand[LEGD[nm][j_]] for j_ in ("Coxa", "Femur", "Tibia")) for nm in ("lf", "rf")}
+                inner.front_pose = {nm: tuple(leg_stand[LEGD[nm][j_]] for j_ in ("Coxa", "Femur", "Tibia")) for nm in ("lf", "rf")}; inner.land_hold = 0.4
                 print(f"[wall] landed at t={t:.2f}: feet {sorted(g_.planted)}, thorax {thorax_wall:.2f} mm from the wall", flush=True)
             elif inner.bout_t <= 0:
                 if up_z > 0.8 and z_ < 1.5: inner.mode = "walk"; inner.bout_t = 2.0
@@ -656,7 +657,11 @@ for tick in range(n_ticks):
         elif inner.mode == "touchdown":
             inner.z_t, inner.v_t = 1.2, 0.0; inner.wings_on = False
         if avoid and obst_i < 4 and thorax_wall < 15.0 and approach > -0.2 and inner.mode in ("flight", "landing"): yaw += -0.06 * np.sign(bearing_s) * (1.0 if thorax_wall < 9 else 0.6)
-        if inner.mode == "flight" and thorax_wall < 2.0 and not inner.righting: inner.v_t = -15.0; inner.pitch_t = None   # pressed against a wall: back off
+        # pressed against a wall by its own thrust (it happens leaving a wall near a corner): nose up hard and back away, then fly on
+        inner.pin_t = inner.pin_t + dt_c if (inner.mode in ("flight", "land_wall", "land_ceiling") and thorax_wall < 1.8 and not inner.righting) else (0.0 if thorax_wall > 3.0 else inner.pin_t)
+        if inner.pin_t > 0.15 and inner.mode in ("flight", "land_wall", "land_ceiling"):
+            inner.v_t, inner.pitch_t, inner.lift = 0.0, 0.6, 1.15; inner.leg_mode = "stand"
+            if inner.mode == "land_wall": inner.mode = "flight"; inner.bout_t = 1.0; inner.dest = "floor"
         inner.yaw_cmd = float(np.clip(yaw, -0.06, 0.06))
     elif inner.mode == "escape":
         if inner.bout_t <= 0:
@@ -742,6 +747,7 @@ for tick in range(n_ticks):
             bias, w_ = climb_bias(inner)
             legs += bias
             if w_ > 0.5: adh[[0, 3]] = True                                    # keep the front feet glued until the gait has taken over
+            if inner.land_hold > 0: adh[:] = True                               # just landed from flight: every foot stays glued while the gait starts
             full = BODY.with_legs(legs)
         elif (drive != 0).any():
             action = ctrl.step(drive, body_frame_obs())
