@@ -98,7 +98,11 @@ the turn command throughout. The video shows the three contributions separately.
 Measured in isolated probes (`brain.py`) and on the box runs:
 
 - Taste is specific: the sugar neurons fire only while feeding, and the proboscis motor neuron
-  MN9 goes to about 80 Hz for sugar alone.
+  MN9 goes to about 80 Hz for sugar alone. Taste is sensed where a fly senses it: the sugar
+  receptor neurons fire when a front foot stands on the food (tarsal receptors) or the labellum
+  touches it. A foot on the sugar stops the fly and it creeps forward until its mouth is over the
+  food; intake and reward happen only while the proboscis tip is actually on the surface, and the
+  proboscis is a physical body that rests on the food disc rather than passing through it.
 - Sugar alone does not reach the PAM reward dopamine neurons (0 Hz). In the living fly that link
   depends on hunger-state neuromodulation, which a wiring-only model cannot express.
 - **The saturation problem, as first found.** With the brain exactly as published, any food smell,

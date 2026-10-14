@@ -143,6 +143,10 @@ for obstacle in ["wall_n", "wall_s", "wall_e", "wall_w", "post"]:
     for g in fly_geoms:
         pr = spec.add_pair(); pr.geomname1 = g; pr.geomname2 = obstacle
         pr.solref = [0.002, 1.0]; pr.solimp = [0.95, 0.99, 0.001, 0.5, 2.0]; pr.margin = 0.2   # stiff wall
+all_geoms = {g.name for g in spec.geoms}
+for g in ("fly/c_haustellum", "fly/c_rostrum", "fly/c_head"):
+    if g in all_geoms:
+        pr = spec.add_pair(); pr.geomname1 = g; pr.geomname2 = "food"; pr.solref = [0.002, 1.0]; pr.solimp = [0.95, 0.99, 0.001, 0.5, 2.0]   # the proboscis rests on the food surface
 print(f"[box] {len(fly_geoms)} body parts collide with the walls and post:", fly_geoms)
 sim = Simulation(world)
 sim.set_renderer([follow, close, "overhead"], camera_res=(480, 640), playback_speed=1.0, output_fps=30, buffer_frames=True)
@@ -185,6 +189,9 @@ def groom_pose(kind, phase):
         adh[[2, 5]] = False
     return a, adh
 I_HEAD, I_THORAX = segs.index(BodySegment("c_head")), segs.index(BodySegment("c_thorax"))
+I_TARSI = [segs.index(BodySegment(n)) for n in ("lf_tarsus5", "rf_tarsus5")]                 # front feet (tarsal sugar receptors)
+G_HAU = mj.mj_name2id(sim.mj_model, mj.mjtObj.mjOBJ_GEOM, "fly/c_haustellum")                  # the proboscis tip (labellum)
+FOOD_R, FOOD_TOP = 2.5, 0.1
 
 # ----------------------------------------------------------------------------- behaviour layer
 # Internal state and nerve-cord-level behaviour that the wiring-only model cannot produce, built from
@@ -260,7 +267,10 @@ for tick in range(n_ticks):
         odour_adapt[k] += (c - odour_adapt[k]) * (CHUNK * DT / 0.8)      # receptor adaptation, ~0.8 s
         b.rates[idx] = 60.0 * (0.3 * c + 0.7 * max(0.0, c - odour_adapt[k]))
         odour_LR[k] = c
-    tasting = d_food < 3.0
+    mouth = sim.mj_data.geom_xpos[G_HAU].copy(); mouth[2] -= sim.mj_model.geom_rbound[G_HAU]   # lowest point of the labellum
+    mouth_on_food = np.linalg.norm(mouth[:2] - FOOD) < FOOD_R - 0.2 and mouth[2] < FOOD_TOP + 0.25     # labellum touching the sugar
+    feet_on_food = any(np.linalg.norm(bp[i][:2] - FOOD) < FOOD_R for i in I_TARSI)                     # a front foot standing on the sugar
+    tasting = mouth_on_food or feet_on_food                                                             # tarsal + labellar sugar receptors
     b.rates[sugar] = 100.0 if tasting else 0.0
     # nearest obstacle and which side of the head it is on
     walls = [(W - T - head[0], np.array([-1.0, 0.0])), (W - T + head[0], np.array([1.0, 0.0])), (W - T - head[1], np.array([0.0, -1.0])), (W - T + head[1], np.array([0.0, 1.0]))]
@@ -338,7 +348,8 @@ for tick in range(n_ticks):
     # sugar on the tarsi stops a hungry fly (a nerve-cord reflex); the brain's MN9 then extends the proboscis
     if inner.mode == "feed":
         if tasting and h > 0.15:
-            feeding_now = True; inner.hunger = max(0.0, inner.hunger - 0.08 * dt_c)
+            if mouth_on_food:
+                feeding_now = True; inner.hunger = max(0.0, inner.hunger - 0.08 * dt_c)   # intake only while the labellum is on the sugar
         else:
             # after a meal a fly almost always grooms (post-feeding grooming), then wanders
             inner.mode = "groom"; inner.bout_t = rng.uniform(3.0, 6.0); inner.groom_kind = "front rub"; inner.groom_t = 0.0
@@ -369,7 +380,8 @@ for tick in range(n_ticks):
         if touching and obst_d < -0.3:
             back = 0.6                                                                          # blocked: back off first
     elif inner.mode == "feed":
-        fwd = 0.0; turn = 0.0; events["feeding"] += 1
+        fwd = 0.0 if mouth_on_food else 0.3; turn = 0.0                       # feet found sugar: creep forward until the mouth reaches it, then stop
+        if feeding_now: events["feeding"] += 1
     elif inner.mode == "escape":
         fwd = -1.0; turn = 0.0
     turn = float(np.clip(turn, -1.0, 1.0))
@@ -387,7 +399,7 @@ for tick in range(n_ticks):
             full, adh = BODY.with_legs(action.joint_angles), action.adhesion_onoff
         else:
             full, adh = BODY.stand.copy(), np.ones(6, dtype=bool)
-        full[ROS] -= np.radians(70) * inner.probo; full[HAU] += np.radians(40) * inner.probo; full[HEADP] += np.radians(10) * inner.probo
+        full[ROS] -= np.radians(75) * inner.probo; full[HAU] += np.radians(60) * inner.probo; full[HEADP] += np.radians(12) * inner.probo
         sim.set_actuator_inputs("fly", ActuatorType.POSITION, full); sim.set_leg_adhesion_states("fly", adh)
         sim.step()
         sim.render_as_needed()
@@ -405,7 +417,7 @@ for tick in range(n_ticks):
         log["t"].append(t); log["pose"].append([float(thorax[0]), float(thorax[1]), float(yaw)]); log["drive"].append(drive.tolist())
         for k in groups:
             log["rates"][k].append(rates[k].tolist())
-        log["inputs"].append([float(odour), bool(tasting), bool(touching), float(lum.mean()), float(vis_feat[0]), float(vis_feat[1]), float(vis_feat[2]), float(vis_feat[3])])
+        log["inputs"].append([float(odour), bool(mouth_on_food), bool(touching), float(lum.mean()), float(vis_feat[0]), float(vis_feat[1]), float(vis_feat[2]), float(vis_feat[3])])
         log["events"].append(dict(events)); log["frames"].append(frame_i); log.setdefault("inner", []).append([inner.mode if inner.mode != "groom" else "groom:" + inner.groom_kind, float(inner.hunger), float(brain_turn), float(odour_turn), float(inner.turn_bias), float(inner.probo), float(inner.reward), float(inner.memory)])
         np.save(f"{args.out}/frames/eyes_{frame_i:05d}.npy", rgb.astype(np.float16))
         frame_i += 1
