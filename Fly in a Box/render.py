@@ -88,7 +88,7 @@ for i in range(n_frames):
     inside = lambda off: abs(fx_ + off[0]) < 28.5 and abs(fy_ + off[1]) < 28.5          # is a camera at this offset inside the box?
     fol = "follow" if (inside((-3, -12)) or not inside((3, 12))) else "follow_b"
     clo = "close" if (inside((2.4, -4.2)) or not inside((-2.4, 4.2))) else "close_b"
-    use_close = (mode_now == "feed" or mode_now.startswith("groom") or mode_now in ("mount", "climb", "turnaround", "descend", "takeoff")) and os.path.exists(f"{args.run}/frames/{clo}_{i:05d}.png")
+    use_close = (mode_now == "feed" or mode_now.startswith("groom") or mode_now in ("mount", "climb", "turnaround", "descend", "takeoff", "flight", "landing", "touchdown")) and os.path.exists(f"{args.run}/frames/{clo}_{i:05d}.png")
     if os.path.exists(f"{args.run}/frames/{fol}_{i:05d}.png"):
         last_follow = np.asarray(Image.open(f"{args.run}/frames/{clo if use_close else fol}_{i:05d}.png").resize((1120, 840)))
         last_over = np.asarray(Image.open(f"{args.run}/frames/overhead_{i:05d}.png").resize((400, 300)))
