@@ -523,8 +523,9 @@ for tick in range(n_ticks):
         elif inner.mount_done:
             print(f"[climb] mounted at t={t:.1f}: feet planted {inner.planted}, thorax {thorax_wall:.2f} mm from the wall, up={up_z:.2f}")
             inner.mode = "climb"; inner.climb_t = 0.0; inner.bout_t = rng.uniform(2.5, 6.0)
-    elif inner.mode == "climb":
+    elif inner.mode in ("climb", "descend"):
         inner.climb_t += dt_c
+    if inner.mode == "climb":
         if inner.bout_t <= 0 or thorax[2] > H - 3.0:
             inner.mode = "turnaround"; inner.turn_dir = rng.choice([-1.0, 1.0]); inner.bout_t = 4.0; inner.turn_goal = "down"
     elif inner.mode == "turnaround" and getattr(inner, "turn_goal", "down") == "down":
@@ -655,7 +656,7 @@ for tick in range(n_ticks):
         elif inner.mode == "touchdown":
             inner.z_t, inner.v_t = 1.2, 0.0; inner.wings_on = False
         if avoid and obst_i < 4 and thorax_wall < 15.0 and approach > -0.2 and inner.mode in ("flight", "landing"): yaw += -0.06 * np.sign(bearing_s) * (1.0 if thorax_wall < 9 else 0.6)
-        if inner.mode in ("flight", "landing") and thorax_wall < 2.0 and not inner.righting: inner.v_t = -15.0; inner.pitch_t = None   # pressed against a wall: back off
+        if inner.mode == "flight" and thorax_wall < 2.0 and not inner.righting: inner.v_t = -15.0; inner.pitch_t = None   # pressed against a wall: back off
         inner.yaw_cmd = float(np.clip(yaw, -0.06, 0.06))
     elif inner.mode == "escape":
         if inner.bout_t <= 0:
@@ -689,7 +690,8 @@ for tick in range(n_ticks):
         fwd = CLIMB_DRIVE; turn = 0.3 * brain_turn
         if inner.mode != "ceiling":                                              # on a wall: steer head-up (climb) or head-down (descend), by gravity's side in the body frame
             goal_up = 1.0 if inner.mode == "climb" else -1.0
-            turn -= goal_up * 0.8 * float(np.clip(2.0 * R_th[2, 1], -1, 1))
+            ramp_ = float(np.clip((inner.climb_t - BLEND) / 1.0, 0.0, 1.0))                   # gently: a fly that has just landed sideways first needs all its feet
+            turn -= goal_up * 0.5 * ramp_ * float(np.clip(2.0 * R_th[2, 1], -1, 1))
     elif inner.mode == "turnaround":
         fwd = 0.5; turn = 0.8 * inner.turn_dir
     turn = float(np.clip(turn, -1.0, 1.0))
