@@ -547,7 +547,7 @@ for tick in range(n_ticks):
     elif inner.mode == "ceiling":
         inner.ceil_t = getattr(inner, "ceil_t", 0.0) + dt_c
         if inner.ceil_t < 1.2 and os.environ.get("FLY_DBG"): print(f"[ceiling] t={t:.2f} after landing: feet {sorted(legs_on_ceiling())} z={thorax[2]:.2f} up={up_z:+.2f} blend={inner.gait_blend:.2f} gait adhesion {getattr(inner, 'last_adh', None)}", flush=True)
-        if inner.bout_t <= 0 or len(legs_on_ceiling()) < 2 or thorax_wall < 3.0:                     # bout over, lost its grip, or at the edge of the lid: let go
+        if inner.bout_t <= 0 or thorax[2] < H - 2.5 or thorax_wall < 3.0:                            # bout over, lost its grip (fallen more than a leg's length), or at the edge: let go
             start_flight(inner, thorax, R_th, surface=True); events["surface_takeoff"] += 1            # drop off the lid and roll upright in the air
     if inner.mode == "turnaround" and getattr(inner, "turn_goal", "down") == "up" and (fwd3[2] > 0.75 or inner.bout_t <= 0):
         inner.mode = "climb"; inner.climb_t = BLEND; inner.bout_t = rng.uniform(2.5, 6.0); inner.turn_goal = "down"
@@ -741,8 +741,8 @@ for tick in range(n_ticks):
                 inner.flip_t += DT
                 q = flight.step(Rb, zb, float(vw[2]), float((Rb.T @ vw)[0]), H + 10.0, 0.0, 0.0, active=not inner.flipped, flip="roll", omega=om, fast_off=True, lift=1.5)
                 if not inner.flipped and (flight.flip_done or upb < -0.6): inner.flipped = True; print(f"[flip] done t={t:.2f} ({1000 * inner.flip_t:.0f} ms) z={zb:.2f} up={upb:+.2f}", flush=True)
-                feet = legs_on_ceiling(); adh = np.full(6, upb < -0.3)                                # the feet stick only once the body is well past 90 degrees (earlier: hangs from one side)
-                if feet and upb < -0.3: inner.mode = "grab_ceiling"; inner.grab = Grab("gear"); inner.bout_t = 3.0; inner.leg_mode = "grab"; inner.wings_on = False; print(f"[grab_ceiling] start t={t:.2f} z={zb:.2f} up={upb:+.2f} feet {sorted(feet)}", flush=True)
+                feet = legs_on_ceiling(); adh = np.full(6, upb < -0.5)                                # the feet stick only once the body is well past 90 degrees (earlier: hangs from one side)
+                if feet and upb < -0.5: inner.mode = "grab_ceiling"; inner.grab = Grab("gear"); inner.bout_t = 3.0; inner.leg_mode = "grab"; inner.wings_on = False; print(f"[grab_ceiling] start t={t:.2f} z={zb:.2f} up={upb:+.2f} feet {sorted(feet)}", flush=True)
                 legs = landing_legs("gear")
             elif inner.mode in ("grab_wall", "grab_ceiling"):
                 q = flight.step(Rb, zb, float(vw[2]), float((Rb.T @ vw)[0]), zb, 0.0, 0.0, active=False, omega=om, fast_off=True)
@@ -755,7 +755,7 @@ for tick in range(n_ticks):
         elif inner.mode == "ceiling":
             action = ctrl.step(drive, body_frame_obs()); full, adh = BODY.with_legs(action.joint_angles), action.adhesion_onoff; inner.last_adh = adh.astype(int)
             if inner.gait_blend > 0:                                              # just landed: the legs ease from the stance into the gait with every foot glued (a jump rips the feet off)
-                u_ = 1.0 - inner.gait_blend / 0.3; inner.gait_blend -= DT; full = BODY.with_legs(leg_stand * (1 - u_) + action.joint_angles * u_); adh = np.ones(6, dtype=bool)
+                u_ = 1.0 - inner.gait_blend / 0.3; inner.gait_blend -= DT; full = BODY.with_legs(leg_stand * (1 - u_) + action.joint_angles * u_)   # (no forced glue: a glued swing leg stretches and jolts the body when released)
         elif inner.mode in ("climb", "descend", "turnaround"):
             action = ctrl.step(drive, body_frame_obs())
             legs = action.joint_angles.copy(); adh = action.adhesion_onoff.copy()

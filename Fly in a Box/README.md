@@ -184,15 +184,21 @@ is added in `wings.py`, every number measured on this model:
    past 90 degrees (gluing earlier pins the fly half way), then the same chin-up as on the wall
    settles it: six feet in 0.5 s, walking upside down at 4.5 mm/s a second after that. A pitch
    flip (nose-up, the other manoeuvre real flies use) is three times slower on this model and is
-   not used.
+   not used. Not every attempt succeeds: in about one landing in three the feet of one side catch
+   first and the fly hangs from them without getting the others up, or the first steps of the
+   upside-down gait let go; it then drops, rolls upright in the air and lands on the floor. The
+   same happens to real flies. In the box the leg reflexes are reset at each landing and the
+   gait is eased in over 0.3 s; gluing all feet during that time made it worse (a glued leg that
+   the gait is lifting stretches, and jolts the body when released).
 7. **Leaving a surface.** From a wall the fly turns head-down, lets go and flies off; from the lid
    it lets go, falls upside down and rolls upright (13 mm of the 28 mm available).
 8. **In the box.** The giant fibre's output on the floor is now the real one, a take-off: wings spin
    up for 60 ms while the feet hold, then the feet let go and the stabiliser flies the fly, steered
    by the brain and away from walls, at a height drawn for each flight between 4 mm and the lid.
    Where it lands is drawn too: the floor (45%), a wall at a height between 8 and 22 mm (30%), the
-   lid (25%). A fly that flies into a wall and is pinned there by its own thrust grabs the wall
-   instead, as flies do, and carries on from there.
+   lid (25%). In flight the fly steers away from every wall that is near and ahead and slows down
+   near them; one that is still pressed against a wall by its own thrust (it happens leaving a
+   wall or the lid next to a corner) tries to grab it, and usually slides down onto its feet.
 
 Not modelled: the jump that starts a real escape take-off (the legs let go instead), the 60 ms
 of wing spin-up is an estimate, and the wingbeat is not visible at 30 frames per second. The
