@@ -26,6 +26,7 @@ from flygym_demo.complex_terrain import (HybridTurningController, HybridControll
                                          PreprogrammedSteps, apply_locomotion_action, make_locomotion_fly, make_tripod_cpg_network)
 from flygym.compose.fly.base_fly import ActuatorType
 from fullfly import make_full_fly, FullBodyActions
+from wings import add_flight, solve_base_stroke, Flight, AIR
 from brain import Brain
 
 p = argparse.ArgumentParser()
@@ -35,6 +36,7 @@ p.add_argument("--base", type=float, default=0.5, help="baseline walking drive o
 p.add_argument("--seed", type=int, default=1)
 p.add_argument("--spawn", type=float, nargs=3, default=None, help="x y yaw_deg")
 p.add_argument("--demo-groom", type=float, default=0.0, help="debug: force a grooming bout for the first N seconds")
+p.add_argument("--demo-fly", type=float, default=-1.0, help="force a take-off at this time (s)")
 p.add_argument("--climb-p", type=float, default=0.6, help="probability that a fly meeting a wall head-on climbs it")
 p.add_argument("--published-brain", action="store_true", help="use the published model without the antennal-lobe and sensory corrections")
 p.add_argument("--turn-gain", type=float, default=100.0, help="Hz of DNa02 left-right difference that gives a full-strength turn")
@@ -116,6 +118,7 @@ print("[groups]", {k: (len(v[0]), len(v[1])) for k, v in groups.items()}, "food 
 
 # ----------------------------------------------------------------------------- body + box
 fly = make_full_fly(adhesion_gain=400.0, name="fly")
+add_flight(fly)                                   # wings get air to push on and 200 Hz motors (wings.py)
 fly.add_vision()
 follow = fly.add_tracking_camera(name="follow", pos_offset=(-3, -12, 12), rotation=Rotation3D("xyaxes", (1, 0, 0, 0, 0.72, 0.69)), fovy=42.0)
 close = fly.add_tracking_camera(name="close", pos_offset=(2.4, -4.2, 2.0), rotation=Rotation3D("xyaxes", (0.87, 0.5, 0, -0.2, 0.35, 0.92)), fovy=38.0)   # close-up for feeding and grooming
@@ -123,6 +126,7 @@ close = fly.add_tracking_camera(name="close", pos_offset=(2.4, -4.2, 2.0), rotat
 follow_b = fly.add_tracking_camera(name="follow_b", pos_offset=(3, 12, 12), rotation=Rotation3D("xyaxes", (-1, 0, 0, 0, -0.72, 0.69)), fovy=42.0)
 close_b = fly.add_tracking_camera(name="close_b", pos_offset=(-2.4, 4.2, 2.0), rotation=Rotation3D("xyaxes", (-0.87, -0.5, 0, 0.2, -0.35, 0.92)), fovy=38.0)
 world = FlatGroundWorld()
+if not os.environ.get("FLY_NOAIR"): world.mjcf_root.option.density = AIR["density"]; world.mjcf_root.option.viscosity = AIR["viscosity"]   # air
 rng = np.random.default_rng(args.seed)
 start_yaw = rng.uniform(-np.pi, np.pi); start_xy = [0.0, 0.0]
 if args.spawn:
@@ -144,17 +148,20 @@ wb.add_camera(name="overhead", pos=[0, 0, 95], quat=[1, 0, 0, 0], fovy=42)
 spec = world.mjcf_root
 all_ground = [pr.geomname1 for pr in spec.pairs if pr.geomname2 == "ground_plane"]
 fly_geoms = [g for g in all_ground if not any(leg in g for leg in ("lf_", "lm_", "lh_", "rf_", "rm_", "rh_"))]
+leg_wall_pairs = []
 for obstacle in ["wall_n", "wall_s", "wall_e", "wall_w", "post"]:
     for g in all_ground:
         pr = spec.add_pair(); pr.geomname1 = g; pr.geomname2 = obstacle
         pr.solref = [0.002, 1.0]; pr.solimp = [0.95, 0.99, 0.001, 0.5, 2.0]; pr.margin = 0.2   # stiff wall
         pr.friction = [1.0, 1.0, 0.005, 0.0001, 0.0001]
+        if g not in fly_geoms: leg_wall_pairs.append((g, obstacle))
 all_geoms = {g.name for g in spec.geoms}
 for g in ("fly/c_haustellum", "fly/c_rostrum", "fly/c_head"):
     if g in all_geoms:
         pr = spec.add_pair(); pr.geomname1 = g; pr.geomname2 = "food"; pr.solref = [0.002, 1.0]; pr.solimp = [0.95, 0.99, 0.001, 0.5, 2.0]   # the proboscis rests on the food surface
 print(f"[box] {len(fly_geoms)} body parts collide with the walls and post:", fly_geoms)
 sim = Simulation(world)
+WBASE = solve_base_stroke(sim, fly, cache="wing_stroke.npz")     # the wing stroke, solved on this model's hinges (cached)
 sim.set_renderer([follow, close, "overhead", follow_b, close_b], camera_res=(480, 640), playback_speed=1.0, output_fps=30, buffer_frames=True)
 
 steps = PreprogrammedSteps()
@@ -171,6 +178,16 @@ segs = fly.get_bodysegs_order()
 J = BODY.i
 ROS, HAU, HEADP = J("c_head", "c_rostrum", "pitch"), J("c_rostrum", "c_haustellum", "pitch"), J("c_thorax", "c_head", "pitch")
 ANT = [J("c_head", "l_pedicel", "pitch"), J("c_head", "r_pedicel", "pitch")]
+WJ = {s_: {ax: J("c_thorax", f"{s_}_wing", ax) for ax in ("yaw", "pitch", "roll")} for s_ in "lr"}
+flight = Flight(WBASE, DT)
+ROOTJ = [j for j in range(sim.mj_model.njnt) if sim.mj_model.jnt_type[j] == mj.mjtJoint.mjJNT_FREE][0]; RQ = sim.mj_model.jnt_qposadr[ROOTJ]; RD = sim.mj_model.jnt_dofadr[ROOTJ]
+FLIGHT_MODES = ("takeoff", "flight", "landing", "touchdown")
+WING_ACT = np.array([i for i in range(sim.mj_model.nu) if "wing" in (mj.mj_id2name(sim.mj_model, mj.mjtObj.mjOBJ_ACTUATOR, i) or "")])
+def wing_motors(flying):
+    """Flight muscles are stiff (kp 350) only while flying; at rest the folded wings are held softly (kp 45), which keeps walking stable."""
+    kp = 350.0 if flying else 45.0
+    sim.mj_model.actuator_gainprm[WING_ACT, 0] = kp; sim.mj_model.actuator_biasprm[WING_ACT, 1] = -kp
+wing_motors(False)
 def LEG(side, joint, ax):
     p, c = {"coxa": ("c_thorax", f"{side}_coxa"), "troch": (f"{side}_coxa", f"{side}_trochanterfemur"), "tibia": (f"{side}_trochanterfemur", f"{side}_tibia")}[joint]
     return J(p, c, ax)
@@ -221,6 +238,15 @@ th_body = sim._internal_bodyids_by_fly["fly"][I_THORAX]
 GNAME = [mj.mj_id2name(sim.mj_model, mj.mjtObj.mjOBJ_GEOM, i) or "" for i in range(sim.mj_model.ngeom)]
 WALL_GIDS = {i for i, n in enumerate(GNAME) if n.split("/")[-1] in ("wall_n", "wall_s", "wall_e", "wall_w")}
 print("[climb] wall geoms:", {GNAME[i]: i for i in WALL_GIDS})
+_LEGS = ("lf_", "lm_", "lh_", "rf_", "rm_", "rh_"); _WALLS = ("wall_n", "wall_s", "wall_e", "wall_w", "post")
+PAIR_LEGWALL = np.array([i for i in range(sim.mj_model.npair) if any(l in GNAME[sim.mj_model.pair_geom1[i]] + GNAME[sim.mj_model.pair_geom2[i]] for l in _LEGS) and any(w in GNAME[sim.mj_model.pair_geom1[i]] + GNAME[sim.mj_model.pair_geom2[i]] for w in _WALLS)], dtype=int)
+print(f"[climb] {len(PAIR_LEGWALL)} leg-wall contact pairs, active only while climbing")
+def leg_wall_contacts(on):
+    """Legs touch the walls only while climbing. On the floor the walls are followed by the body and the head
+    bristles, as before; leg-wall contacts there tip the fly over during wall following."""
+    if os.environ.get("FLY_NOGATE"): on = True
+    sim.mj_model.pair_margin[PAIR_LEGWALL] = 0.2 if on else -1.0          # a negative margin: the pair is never detected
+leg_wall_contacts(False)
 def legs_on_wall():
     out = set(); dd = sim.mj_data
     for c in range(dd.ncon):
@@ -292,6 +318,7 @@ class Inner:
         self.reward = 0.0                 # sugar reward being delivered right now (hunger x intake)
         self.memory = 0.0                 # appetitive memory of this food smell, built by reward paired with smell
         self.climb_block = 0.0; self.mount_t = 0.0; self.climb_t = 0.0; self.turn_dir = 1.0; self.mount_done = False
+        self.flight_t = 0.0; self.yaw_cmd = 0.0; self.z_t = 5.0; self.v_t = 0.0; self.righting = False; self.down_t = 0.0; self.right_block = 0.0
         self.planted = {"lf": None, "rf": None}; self.sweep = {"lf": 0.0, "rf": 0.0}; self.front_pose = {}; self.last_legs = None
 inner = Inner(rng)
 odour_LR = np.zeros(2); heading = np.array([np.cos(np.radians(args.spawn[2] if args.spawn else 0.0)), np.sin(np.radians(args.spawn[2] if args.spawn else 0.0))])
@@ -305,7 +332,7 @@ odour_adapt = np.zeros(2); touch_adapt = 0.0
 log = {"t": [], "pose": [], "drive": [], "rates": {k: [] for k in groups}, "events": [], "inputs": [], "frames": []}
 spike_frames = []                                 # per video frame: neuron ids that spiked
 spikes_since_frame = []
-events = {"feeding": 0, "startle": 0, "climb": 0, "fall": 0}
+events = {"feeding": 0, "startle": 0, "climb": 0, "fall": 0, "takeoff": 0, "crash": 0, "righting": 0}
 next_frame = 0.0; frame_i = 0
 t_wall = time.time()
 print(f"[run] {args.seconds} s = {n_ticks} ticks")
@@ -460,21 +487,23 @@ for tick in range(n_ticks):
     if inner.mode in CLIMB_MODES and inner.mode != "approach" and (up_z < -0.5 or (thorax_wall > 2.5 and up_z < 0.5)):
         inner.mode = "walk"; inner.bout_t = 2.0; inner.climb_block = 10.0; events["fall"] += 1      # fell off
     # wall: a fly that meets a wall turns to run along it, and leaves it now and then
-    if touching and inner.mode not in CLIMB_MODES:
+    if touching and inner.mode not in CLIMB_MODES + FLIGHT_MODES:
         if inner.mode != "wall":
             inner.mode = "wall"; inner.wall_side = 1.0 if bearing_s < 0 else -1.0; inner.bout_t = rng.uniform(1.0, 4.0)
     elif inner.mode == "wall" and inner.bout_t <= 0:
         inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 8.0)
     # food: the brain's own proboscis motor neuron (sugar -> MN9) says eat; eating fills the fly
     # sugar on the tarsi stops a hungry fly (a nerve-cord reflex); the brain's MN9 then extends the proboscis
-    if inner.mode == "feed":
+    if inner.mode == "feed" and False:
+        pass
+    elif inner.mode == "feed":
         if tasting and h > 0.15:
             if mouth_on_food:
                 feeding_now = True; inner.hunger = max(0.0, inner.hunger - 0.08 * dt_c)   # intake only while the labellum is on the sugar
         else:
             # after a meal a fly almost always grooms (post-feeding grooming), then wanders
             inner.mode = "groom"; inner.bout_t = rng.uniform(3.0, 6.0); inner.groom_kind = "front rub"; inner.groom_t = 0.0
-    elif tasting and h > 0.15 and inner.mode not in ("escape",) + CLIMB_MODES:
+    elif tasting and h > 0.15 and inner.mode not in ("escape",) + CLIMB_MODES + FLIGHT_MODES:
         inner.mode = "feed"; feeding_now = True
     # reward: a hungry fly eating sugar gets a dopamine burst in the real sweet-reward PAM neurons,
     # the way optogenetic reward experiments deliver it; it fades as the fly fills up (hunger gating)
@@ -484,8 +513,36 @@ for tick in range(n_ticks):
     inner.memory = min(1.0, inner.memory + 0.12 * inner.reward * od * dt_c)                   # smell paired with reward -> food memory
     # escape: the brain's giant fibre fired on a looming object
     inner.gf_refractory = max(0.0, getattr(inner, "gf_refractory", 0.0) - dt_c)
-    if rates["DNp01"].mean() > 40 and inner.gf_refractory <= 0 and inner.mode != "escape" and inner.mode not in CLIMB_MODES:
-        inner.mode = "escape"; inner.bout_t = 0.4; inner.gf_refractory = 3.0; events["startle"] += 1   # giant fibre habituates for a few seconds
+    gf_now = rates["DNp01"].mean() > 40 and inner.gf_refractory <= 0
+    if (gf_now or (0 <= args.demo_fly <= t < args.demo_fly + 0.02)) and inner.mode not in ("escape",) + CLIMB_MODES + FLIGHT_MODES:
+        inner.gf_refractory = 3.0; events["startle"] += 1                                             # giant fibre habituates for a few seconds
+        if up_z > 0.9:                                                                                # on the floor: the giant fibre's own output, take-off
+            inner.mode = "takeoff"; inner.flight_t = 0.0; flight.reset(float(thorax[2])); inner.righting = False; events["takeoff"] += 1
+        else:
+            inner.mode = "escape"; inner.bout_t = 0.4
+    if inner.mode in FLIGHT_MODES:
+        inner.flight_t += dt_c
+        if inner.mode == "takeoff" and inner.flight_t > 0.06:
+            inner.mode = "flight"; inner.bout_t = 0.4 if inner.righting else rng.uniform(0.8, 1.6)
+        elif inner.mode == "flight" and inner.bout_t <= 0:
+            inner.mode = "landing"; inner.bout_t = 3.0
+        elif inner.mode == "landing" and ((thorax[2] < 1.5 and up_z > 0.8) or inner.bout_t <= 0):
+            inner.mode = "touchdown"; inner.bout_t = 0.1
+        elif inner.mode == "touchdown" and inner.bout_t <= 0:
+            inner.mode = "walk"; inner.bout_t = rng.uniform(1.0, 3.0); inner.righting = False
+        if up_z < 0.3 and inner.mode != "takeoff" and not inner.righting:
+            inner.mode = "walk"; inner.bout_t = 2.0; events["crash"] += 1; inner.righting = False
+        # flight commands: height, forward speed, yaw from the brain's steering and from the walls ahead
+        inner.z_t = (3.0 if inner.righting else 5.0) if inner.mode in ("takeoff", "flight") else 1.2
+        inner.v_t = (0.0 if inner.righting else 25.0) if inner.mode == "flight" else 0.0
+        yaw = 0.02 * brain_turn
+        if obst_i < 4 and thorax_wall < 12.0 and approach > 0.0: yaw += -0.05 * np.sign(bearing_s) * (1.0 if thorax_wall < 8 else 0.6)   # wall ahead: turn away from it
+        inner.yaw_cmd = float(np.clip(yaw, -0.06, 0.06))
+    # righting: a fly on its side or back buzzes its wings; the flight stabiliser rolls it back onto its feet
+    inner.down_t = inner.down_t + dt_c if (up_z < 0.5 and inner.mode not in FLIGHT_MODES + CLIMB_MODES) else 0.0
+    if inner.down_t > 0.6 and inner.right_block <= 0:
+        inner.mode = "takeoff"; inner.flight_t = 0.0; flight.reset(float(thorax[2])); inner.righting = True; inner.right_block = 3.0; events["righting"] += 1
+    inner.right_block -= dt_c
     elif inner.mode == "escape":
         if inner.bout_t <= 0:
             inner.mode = "walk"; inner.bout_t = rng.uniform(2.0, 6.0)
@@ -507,7 +564,7 @@ for tick in range(n_ticks):
         fwd = -1.0; turn = 0.0
     elif inner.mode == "approach":
         fwd = 0.35; turn = 0.7 * bearing_s                                      # square up to the wall and walk into it (bearing_s > 0: wall on the right)
-    elif inner.mode in ("mount", "dismount"):
+    elif inner.mode in ("mount", "dismount") or inner.mode in FLIGHT_MODES:
         fwd = 0.0; turn = 0.0
     elif inner.mode in ("climb", "descend"):
         fwd = CLIMB_DRIVE; turn = 0.3 * brain_turn
@@ -521,6 +578,8 @@ for tick in range(n_ticks):
     probo = float(np.clip(rates["MN9"].mean() / 35.0, 0, 1))          # the brain's proboscis motor neuron extends the proboscis
     inner.probo = getattr(inner, "probo", 0.0) + (probo - getattr(inner, "probo", 0.0)) * (dt_c / 0.15)
     inner.mount_done = False
+    leg_wall_contacts(inner.mode in CLIMB_MODES)
+    wing_motors(inner.mode in FLIGHT_MODES)
     for _ in range(CHUNK):
         if inner.mode == "groom":
             full, adh = groom_pose(inner.groom_kind, inner.groom_phase)
@@ -529,6 +588,11 @@ for tick in range(n_ticks):
             full = BODY.with_legs(legs)
         elif inner.mode == "dismount":
             full = BODY.stand.copy(); adh = np.array([1, 0, 0, 1, 0, 0], dtype=bool)
+        elif inner.mode in FLIGHT_MODES:
+            dd = sim.mj_data; Rb = dd.xmat[th_body].reshape(3, 3); vw = dd.qvel[RD:RD + 3]
+            q = flight.step(Rb, float(dd.xpos[th_body][2]), float(vw[2]), float((Rb.T @ vw)[0]), inner.z_t, inner.v_t, inner.yaw_cmd, active=inner.mode != "touchdown", held=inner.mode == "takeoff")
+            full = flight.blend(BODY.stand.copy(), BODY.stand, WJ, q)
+            adh = np.ones(6, dtype=bool) if inner.mode in ("takeoff", "touchdown") else np.zeros(6, dtype=bool)
         elif inner.mode in ("climb", "descend", "turnaround"):
             action = ctrl.step(drive, body_frame_obs())
             legs = action.joint_angles.copy(); adh = action.adhesion_onoff.copy()

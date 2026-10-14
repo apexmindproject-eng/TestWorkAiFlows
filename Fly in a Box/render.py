@@ -88,7 +88,7 @@ for i in range(n_frames):
     inside = lambda off: abs(fx_ + off[0]) < 28.5 and abs(fy_ + off[1]) < 28.5          # is a camera at this offset inside the box?
     fol = "follow" if (inside((-3, -12)) or not inside((3, 12))) else "follow_b"
     clo = "close" if (inside((2.4, -4.2)) or not inside((-2.4, 4.2))) else "close_b"
-    use_close = (mode_now == "feed" or mode_now.startswith("groom") or mode_now in ("mount", "climb", "turnaround", "descend")) and os.path.exists(f"{args.run}/frames/{clo}_{i:05d}.png")
+    use_close = (mode_now == "feed" or mode_now.startswith("groom") or mode_now in ("mount", "climb", "turnaround", "descend", "takeoff")) and os.path.exists(f"{args.run}/frames/{clo}_{i:05d}.png")
     if os.path.exists(f"{args.run}/frames/{fol}_{i:05d}.png"):
         last_follow = np.asarray(Image.open(f"{args.run}/frames/{clo if use_close else fol}_{i:05d}.png").resize((1120, 840)))
         last_over = np.asarray(Image.open(f"{args.run}/frames/overhead_{i:05d}.png").resize((400, 300)))
@@ -141,7 +141,7 @@ for i in range(n_frames):
         d.text((BX, my), "inner state (behaviour layer, not the wiring):", font=FONT_S, fill=(200, 170, 120)); my += 26
         d.text((BX, my), f"hunger", font=FONT_S, fill=(200, 200, 210))
         d.rectangle([BX + 80, my + 4, BX + 230, my + 20], outline=(70, 70, 80)); d.rectangle([BX + 80, my + 4, BX + 80 + int(hunger * 150), my + 20], fill=(230, 160, 70))
-        d.text((BX + 240, my), {"walk": "walking", "pause": "pausing", "wall": "following the wall", "feed": "FEEDING", "escape": "ESCAPE", "groom:front rub": "grooming: front legs", "groom:head groom": "grooming: head", "groom:hind rub": "grooming: hind legs", "approach": "walking up to the wall", "mount": "CLIMBING: rearing up onto the wall", "climb": "CLIMBING the wall", "turnaround": "turning round on the wall", "descend": "walking down the wall"}.get(mode, mode), font=FONT_B if mode in ("feed", "escape", "mount", "climb") else FONT, fill=(255, 120, 200) if mode == "feed" else (255, 90, 60) if mode == "escape" else (120, 220, 160) if mode in ("mount", "climb") else (220, 220, 230)); my += 30
+        d.text((BX + 240, my), {"walk": "walking", "pause": "pausing", "wall": "following the wall", "feed": "FEEDING", "escape": "ESCAPE", "groom:front rub": "grooming: front legs", "groom:head groom": "grooming: head", "groom:hind rub": "grooming: hind legs", "approach": "walking up to the wall", "mount": "CLIMBING: rearing up onto the wall", "climb": "CLIMBING the wall", "turnaround": "turning round on the wall", "descend": "walking down the wall", "takeoff": "TAKE-OFF (giant fibre)", "flight": "FLYING", "landing": "landing", "touchdown": "landing"}.get(mode, mode), font=FONT_B if mode in ("feed", "escape", "mount", "climb", "takeoff", "flight") else FONT, fill=(255, 120, 200) if mode == "feed" else (255, 90, 60) if mode in ("escape", "takeoff") else (120, 220, 160) if mode in ("mount", "climb") else (120, 200, 255) if mode in ("flight", "landing", "touchdown") else (220, 220, 230)); my += 30
         d.text((BX, my), f"steering:  brain {brain_turn:+.2f}   smell {odour_turn:+.2f}   spontaneous {spont:+.2f}", font=FONT_S, fill=(200, 200, 210)); my += 28
         if len(log["inner"][i]) >= 8:
             rew, mem = log["inner"][i][6], log["inner"][i][7]
