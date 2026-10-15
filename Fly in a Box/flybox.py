@@ -40,7 +40,9 @@ p.add_argument("--demo-fly", type=float, default=-1.0, help="force a take-off at
 p.add_argument("--climb-p", type=float, default=0.6, help="probability that a fly meeting a wall head-on climbs it")
 p.add_argument("--published-brain", action="store_true", help="use the published model without the antennal-lobe and sensory corrections")
 p.add_argument("--turn-gain", type=float, default=100.0, help="Hz of DNa02 left-right difference that gives a full-strength turn")
+p.add_argument("--live", type=int, default=0, help="sandbox mode: serve the fly live on this port (phone app / browser), run until stopped")
 args = p.parse_args()
+if args.live: args.seconds = 1e7
 os.makedirs(args.out + "/frames", exist_ok=True)
 
 DT = 1e-4
@@ -181,6 +183,7 @@ ROS, HAU, HEADP = J("c_head", "c_rostrum", "pitch"), J("c_rostrum", "c_haustellu
 ANT = [J("c_head", "l_pedicel", "pitch"), J("c_head", "r_pedicel", "pitch")]
 WJ = {s_: {ax: J("c_thorax", f"{s_}_wing", ax) for ax in ("yaw", "pitch", "roll")} for s_ in "lr"}
 flight = Flight(WBASE, DT)
+G_FOOD = mj.mj_name2id(sim.mj_model, mj.mjtObj.mjOBJ_GEOM, "food")
 ROOTJ = [j for j in range(sim.mj_model.njnt) if sim.mj_model.jnt_type[j] == mj.mjtJoint.mjJNT_FREE][0]; RQ = sim.mj_model.jnt_qposadr[ROOTJ]; RD = sim.mj_model.jnt_dofadr[ROOTJ]
 FLIGHT_MODES = ("takeoff", "surface_takeoff", "flight", "landing", "touchdown", "land_wall", "grab_wall", "land_ceiling", "flip_ceiling", "grab_ceiling")
 FLIP_Z = 2.8                                      # start the landing flip this far below the lid (measured window 2.4-3.2 mm)
@@ -389,9 +392,45 @@ spikes_since_frame = []
 events = {"feeding": 0, "startle": 0, "climb": 0, "fall": 0, "takeoff": 0, "crash": 0, "righting": 0, "wall_landing": 0, "ceiling_landing": 0, "surface_takeoff": 0}
 next_frame = 0.0; frame_i = 0
 t_wall = time.time()
+live = None; shadow_until = -1.0; poke_steps = 0; poke_force = np.zeros(3); sim_speed = 0.0
+if args.live:
+    from live import Live, LABELS
+    live = Live(args.live)
+def teleport(xyz, R_new, mode):
+    """Sandbox: pick the fly up and put it somewhere (the experimenter's hand)."""
+    from scipy.spatial.transform import Rotation as _Rot
+    qn = _Rot.from_matrix(R_new).as_quat(); dd = sim.mj_data
+    dd.qpos[RQ:RQ + 3] = xyz; dd.qpos[RQ + 3:RQ + 7] = [qn[3], qn[0], qn[1], qn[2]]; dd.qvel[RD:RD + 6] = 0
+    dd.xfrc_applied[th_body] = 0; mj.mj_forward(sim.mj_model, dd)
+    inner.mode = mode; inner.bout_t = rng.uniform(2.0, 5.0); inner.down_t = 0.0; inner.right_block = 0.0; inner.pin_t = 0.0
+def sandbox(c):
+    """Apply one command from the phone. Everything here is an experimenter's intervention, not fly behaviour."""
+    global shadow_until, poke_steps, poke_force
+    name = c.get("cmd"); R_now = sim.mj_data.xmat[th_body].reshape(3, 3); p_now = sim.mj_data.xpos[th_body].copy()
+    if name == "shadow": shadow_until = t + 0.15                                         # a shadow sweeps over: the looming neurons fire, the brain decides
+    elif name == "poke":                                                                   # a flick of the finger: 15 uN sideways and up for 10 ms
+        ang = rng.uniform(0, 2 * np.pi); poke_force = np.array([15 * np.cos(ang), 15 * np.sin(ang), 10.0]) * float(c.get("strength", 1.0)); poke_steps = 100
+    elif name == "toss": teleport([p_now[0], p_now[1], 12.0], R_now, "walk"); start_flight(inner, sim.mj_data.xpos[th_body].copy(), R_now); events["takeoff"] += 1
+    elif name == "drop": teleport([p_now[0], p_now[1], 10.0], np.diag([1.0, -1.0, -1.0]) @ R_now, "walk")          # upside down, 10 mm up: it lands on its back and rights itself
+    elif name == "place" and c.get("where") == "lid":
+        teleport([float(np.clip(p_now[0], -20, 20)), float(np.clip(p_now[1], -20, 20)), H - 1.3], np.diag([1.0, -1.0, -1.0]) @ R_now, "ceiling"); inner.gait_blend = 0.3; fresh_reflexes()
+    elif name == "place" and c.get("where") == "wall":
+        wall_i = int(rng.integers(0, 4)); n = WALL_IN[wall_i]; R_w = np.array([[0.0, -n[1], -n[0]], [0.0, n[0], -n[1]], [1.0, 0.0, 0.0]])   # columns: forward = up, left, back = away from the wall
+        xy = n * (W - T - 1.2); pos_ = [float(xy[0] if abs(n[0]) > 0 else np.clip(p_now[0], -20, 20)), float(xy[1] if abs(n[1]) > 0 else np.clip(p_now[1], -20, 20)), 12.0]
+        teleport(pos_, R_w, "climb"); inner.climb_t = BLEND; inner.gait_blend = 0.3; inner.turn_goal = "down"; fresh_reflexes()
+        inner.front_pose = {nm: tuple(leg_stand[LEGD[nm][j_]] for j_ in ("Coxa", "Femur", "Tibia")) for nm in ("lf", "rf")}
+    elif name == "food":                                                                  # tap on the overhead view: u, v in [0, 1]; the camera at z = 95 with fovy 42 sees +-36.5 mm vertically
+        u, v = float(c.get("u", 0.5)), float(c.get("v", 0.5)); mm = 2 * 95.0 * np.tan(np.radians(21.0))
+        FOOD[:] = np.clip([(u - 0.5) * mm * 640 / 480, (0.5 - v) * mm], -W + 4, W - 4); sim.mj_model.geom_pos[G_FOOD, :2] = FOOD
+    elif name == "hunger": inner.hunger = float(np.clip(float(c.get("value", 0.9)), 0, 1))
 print(f"[run] {args.seconds} s = {n_ticks} ticks")
 for tick in range(n_ticks):
     t = tick * CHUNK * DT
+    if live:
+        while live.paused and live.cmds.empty(): time.sleep(0.05)
+        for c in live.pop_all():
+            try: sandbox(c)
+            except Exception as e_: print(f"[live] command {c} failed: {e_!r}", flush=True)
     bp = sim.get_body_positions("fly")
     head, thorax = bp[I_HEAD], bp[I_THORAX]
     R_th = sim.mj_data.xmat[th_body].reshape(3, 3); up_z = float(R_th[2, 2]); fwd3 = R_th[:, 0]
@@ -403,6 +442,7 @@ for tick in range(n_ticks):
     # --- senses -> sensory neurons
     if tick % VISION_EVERY == 0:
         rgb = eye_rgb(sim.get_raw_vision("fly"))             # (2, 721, 3)
+        if live and live.blindfold: rgb = np.full_like(rgb, 0.5)                   # sandbox: eyes covered (uniform grey, nothing to see)
         lum = 0.30 * rgb[..., 0] + 0.59 * rgb[..., 1] + 0.11 * rgb[..., 2]   # (2, 721): what R1-6 see
         colour = np.where(pale[None, :], rgb[..., 2], rgb[..., 1])             # R8: blue in pale ommatidia, green in yellow ones
         uv = rgb[..., 2]                                                        # R7 is a UV cell; the renderer has no UV, blue stands in
@@ -421,6 +461,7 @@ for tick in range(n_ticks):
             obj = float(np.clip(dark_mass[e] / 6.0, 0, 1))                            # a fly-sized dark object covers ~6 ommatidia
             expansion = (dark_mass[e] - dark_slow[e]) / (0.4 * (dark_slow[e] + 1.0))  # relative growth rate, 1/s
             lm = float(np.clip((expansion - 2.0) / 3.0, 0, 1)) if dark_slow[e] > 2.0 else 0.0   # looming: a seen object growing more than threefold per second
+            if t < shadow_until: lm = 1.0                                                   # sandbox: a shadow sweeping over the box
             b.rates[lc10a[e]] = 150.0 * obj
             b.rates[loom[e]] = 150.0 * lm
             vis_feat[e] = obj; vis_feat[2 + e] = lm
@@ -773,6 +814,8 @@ for tick in range(n_ticks):
             full, adh = BODY.stand.copy(), np.ones(6, dtype=bool)
         full[ROS] -= np.radians(75) * inner.probo; full[HAU] += np.radians(60) * inner.probo; full[HEADP] += np.radians(12) * inner.probo
         sim.set_actuator_inputs("fly", ActuatorType.POSITION, full); sim.set_leg_adhesion_states("fly", adh)
+        if poke_steps > 0: sim.mj_data.xfrc_applied[th_body, :3] = poke_force; poke_steps -= 1
+        elif poke_steps == 0: sim.mj_data.xfrc_applied[th_body, :3] = 0; poke_steps = -1
         sim.step()
         sim.render_as_needed()
 
@@ -780,18 +823,28 @@ for tick in range(n_ticks):
     if tick >= next_frame:
         next_frame += FRAME_EVERY
         fr = sim.renderer.frames
-        for key, v in fr.items():
-            if len(v):
-                imageio.imwrite(f"{args.out}/frames/{key.split('/')[-1]}_{frame_i:05d}.png", np.asarray(v[-1]))
-                v.clear()
-        spk = np.concatenate(spikes_since_frame) if spikes_since_frame else np.zeros(0, np.int32)
-        spike_frames.append(np.unique(spk).astype(np.int32)); spikes_since_frame = []
+        if live:
+            frames_now = {key.split("/")[-1]: np.asarray(v[-1]) for key, v in fr.items() if len(v)}
+            for v in fr.values(): v.clear()
+            sim_speed = 0.9 * sim_speed + 0.1 * (FRAME_EVERY * CHUNK * DT / max(1e-3, time.time() - getattr(live, "t_last", time.time()))); live.t_last = time.time()
+            mode_key = inner.mode if inner.mode != "groom" else "groom:" + inner.groom_kind
+            live.publish(frames_now, {"t": float(t), "mode": inner.mode, "label": LABELS.get(mode_key, inner.mode), "hunger": float(inner.hunger), "paused": live.paused, "blindfold": live.blindfold,
+                                      "speed": float(sim_speed), "events": dict(events), "spikes": int(sum(len(x) for x in spikes_since_frame)),
+                                      "rates": {k: [int(rates[k][0]), int(rates[k][1])] for k in ("DNa02", "DNp01", "MN9", "PAMrw")}, "pos": [float(thorax[0]), float(thorax[1]), float(thorax[2])]})
+            spikes_since_frame = []
+        else:
+            for key, v in fr.items():
+                if len(v):
+                    imageio.imwrite(f"{args.out}/frames/{key.split('/')[-1]}_{frame_i:05d}.png", np.asarray(v[-1]))
+                    v.clear()
+            spk = np.concatenate(spikes_since_frame) if spikes_since_frame else np.zeros(0, np.int32)
+            spike_frames.append(np.unique(spk).astype(np.int32)); spikes_since_frame = []
         log["t"].append(t); log["pose"].append([float(thorax[0]), float(thorax[1]), float(yaw), float(thorax[2])]); log["drive"].append(drive.tolist())
         for k in groups:
             log["rates"][k].append(rates[k].tolist())
         log["inputs"].append([float(odour), bool(mouth_on_food), bool(touching), float(lum.mean()), float(vis_feat[0]), float(vis_feat[1]), float(vis_feat[2]), float(vis_feat[3])])
         log["events"].append(dict(events)); log["frames"].append(frame_i); log.setdefault("inner", []).append([inner.mode if inner.mode != "groom" else "groom:" + inner.groom_kind, float(inner.hunger), float(brain_turn), float(odour_turn), float(inner.turn_bias), float(inner.probo), float(inner.reward), float(inner.memory)])
-        np.save(f"{args.out}/frames/eyes_{frame_i:05d}.npy", rgb.astype(np.float16))
+        if not live: np.save(f"{args.out}/frames/eyes_{frame_i:05d}.npy", rgb.astype(np.float16))
         frame_i += 1
     if tick % 50 == 0:
         print(f"  t={t:5.1f}s  wall={time.time()-t_wall:6.0f}s  pos=({thorax[0]:5.1f},{thorax[1]:5.1f},{thorax[2]:4.1f}) up={up_z:.2f} yaw={np.degrees(yaw):5.0f}  drive={drive.round(2)} mode={inner.mode} hunger={inner.hunger:.2f} reward={inner.reward:.2f} memory={inner.memory:.2f}  "

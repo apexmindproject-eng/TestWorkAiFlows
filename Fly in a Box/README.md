@@ -273,7 +273,40 @@ fullfly.py   the fully jointed NeuroMechFly body (legs, head, proboscis, antenna
 wings.py     flight: air on the wings, the wingbeat (solved once, cached in wing_stroke.npz), the stabiliser and the landing flip
 cns.py       whole-CNS simulator for the male dataset (brain + nerve cord), used for the tests above
 render.py    composes the video: body cameras, both eyes, brain activity, descending-neuron meters
+live.py      sandbox mode: the web server that streams the fly to a browser or the Android app and takes its commands
+android/     the Android app (a full-screen window onto the live page)
 ```
+
+## Sandbox mode and the phone app
+
+The simulation cannot run on a phone (it needs the 15-million-synapse brain and MuJoCo), but it
+can be watched and poked from one. Start it on a computer in sandbox mode:
+
+```sh
+MUJOCO_GL=osmesa python flybox.py --live 8765
+```
+
+It runs until stopped and serves a page at `http://<that computer>:8765/` for any browser on the
+same network, with the chosen camera streamed as it is rendered (about 50 times slower than the
+clock: a second of watching is 20 ms of fly time). The Android app in `android/` is that page in a
+full-screen window; it asks for the computer's address once (long-press Back to change it). The
+`Android APK` workflow in `.github/workflows/apk.yml` builds it on every push and attaches
+`FlyInABox.apk` to the `apk` release of the repository.
+
+What the page lets you do (all of it is the experimenter's hand, not the fly's brain; what the fly
+does about it is the brain's):
+
+- *shadow*: a shadow sweeps over the box: the looming neurons fire and the giant fibre decides.
+- *poke*: a flick of a finger (15 uN sideways for 10 ms).
+- *toss into the air* and *drop on its back*: the fly is lifted 10 mm and released, upright with a
+  take-off, or upside down so it lands on its back and rights itself.
+- *put on the lid* / *put on a wall*: placed there by hand, it walks on, and leaves when it chooses.
+- *blindfold*: the eyes see uniform grey (no looming, no dark objects).
+- *hunger* slider and *tap the overhead view to move the food*.
+- *pause*, and a choice of cameras.
+
+`live.py` is the whole server (motion JPEG stream, a JSON state line, a command queue applied by
+the simulation at its next 10 ms tick).
 
 ## Running it
 
