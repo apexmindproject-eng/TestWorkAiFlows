@@ -66,7 +66,9 @@ class FlyService : Service() {
                     }
                 }
                 val code = p.waitFor()
-                phase = if (code == 0) "stopped" else "failed"; detail = "the simulation ended (exit $code)"
+                val why = if (code > 128) " (killed by signal ${code - 128}" + (if (code == 159) ", SIGSYS: a system call the Android sandbox forbids)" else ")") else ""
+                phase = if (code == 0) "stopped" else "failed"; detail = "the simulation ended (exit $code)$why"
+                try { rt.logFile.appendText("\n[app] exit $code$why\n[app] sandbox report:\n" + rt.sandboxReport(pidOf(p)) + "\n") } catch (_: Exception) {}
             } catch (e: Throwable) {
                 phase = "failed"; detail = e.toString()
                 try { rt.logFile.appendText("\n[app] $e\n") } catch (_: Exception) {}
@@ -76,6 +78,9 @@ class FlyService : Service() {
             }
         }
     }
+
+    private fun pidOf(p: Process): Long = try { if (android.os.Build.VERSION.SDK_INT >= 26) p.pid().toLong() else -1 } catch (_: Throwable) {
+        try { val f = p.javaClass.getDeclaredField("pid"); f.isAccessible = true; (f.get(p) as Int).toLong() } catch (_: Throwable) { -1 } }
 
     private fun stopFly() {
         running = false

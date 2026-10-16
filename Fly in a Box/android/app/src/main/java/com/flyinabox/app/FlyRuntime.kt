@@ -93,10 +93,19 @@ class FlyRuntime(private val ctx: Context) {
         env["PYTHONNOUSERSITE"] = "1"; env["PYTHONUNBUFFERED"] = "1"
         env["HOME"] = File(root, "root").path; env["TMPDIR"] = File(root, "tmp").path
         env["MUJOCO_GL"] = "osmesa"; env["PYOPENGL_PLATFORM"] = "osmesa"; env["LC_ALL"] = "C.UTF-8"
+        env["GLIBC_TUNABLES"] = "glibc.pthread.rseq=0"      // Android's app sandbox forbids the rseq system call that glibc registers at start-up (SIGSYS, exit 159)
         env["NUMBA_CACHE_DIR"] = File(root, "tmp/numba").path
         env["OMP_NUM_THREADS"] = threads.toString(); env["NUMBA_NUM_THREADS"] = threads.toString(); env["OPENBLAS_NUM_THREADS"] = "1"
         return pb.start()
     }
+
+    /** After the child died: the sandbox's own account of it (an app can read log lines of its own uid). */
+    fun sandboxReport(pid: Long): String = try {
+        val p = ProcessBuilder("logcat", "-d", "-b", "main,system,crash", "*:W").redirectErrorStream(true).start()
+        val lines = p.inputStream.bufferedReader().readLines()
+        p.waitFor()
+        lines.filter { it.contains("seccomp") || it.contains("pid $pid") || it.contains("pid=$pid") || it.contains("SIGSYS") || it.contains("signal 31") }.takeLast(12).joinToString("\n")
+    } catch (e: Exception) { "no logcat access: $e" }
 
     /** A stream that counts what passes through it (for the unpack progress). */
     private class CountingInputStream(private val inner: java.io.InputStream) : java.io.InputStream() {
