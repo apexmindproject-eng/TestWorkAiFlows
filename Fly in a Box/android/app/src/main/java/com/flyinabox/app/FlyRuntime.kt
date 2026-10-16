@@ -82,14 +82,15 @@ class FlyRuntime(private val ctx: Context) {
         val libPath = listOf("opt/fly/python/lib", "lib/$triple", "usr/lib/$triple", "lib", "usr/lib").joinToString(":") { File(root, it).path }
         val app = File(root, "opt/fly/app")
         File(root, "tmp/numba").mkdirs(); File(app, "out").mkdirs()
-        val cmd = listOf(loader.path, "--library-path", libPath, File(pyHome, "bin/$pyver").path,
+        // flyboot (phone/flyboot.c) installs a handler for SIGSYS, the way Android refuses system calls, and then runs
+        // glibc's loader in the same process; the loader runs python, python runs the fly.
+        val cmd = listOf(File(root, "opt/fly/flyboot").path, loader.path, "--library-path", libPath, File(pyHome, "bin/$pyver").path,
             "flybox.py", "--live", "8765", "--phone", "--out", "out/phone")
         val pb = ProcessBuilder(cmd).directory(app).redirectErrorStream(true)
         val env = pb.environment()
         env.clear()
         env["PATH"] = File(root, "usr/bin").path + ":" + File(root, "bin").path
         env["LD_LIBRARY_PATH"] = libPath
-        env["LD_PRELOAD"] = File(root, "opt/fly/libsigsys.so").path     // a refused system call (SIGSYS) becomes ENOSYS and is logged, instead of killing the process
         env["PYTHONHOME"] = pyHome.path
         env["PYTHONPATH"] = File(root, "opt/fly/venv/lib/$pyver/site-packages").path
         env["PYTHONNOUSERSITE"] = "1"; env["PYTHONUNBUFFERED"] = "1"
