@@ -79,8 +79,7 @@ class FlyService : Service() {
         }
     }
 
-    private fun pidOf(p: Process): Long = try { if (android.os.Build.VERSION.SDK_INT >= 26) p.pid().toLong() else -1 } catch (_: Throwable) {
-        try { val f = p.javaClass.getDeclaredField("pid"); f.isAccessible = true; (f.get(p) as Int).toLong() } catch (_: Throwable) { -1 } }
+    private fun pidOf(p: Process): Long = try { val f = p.javaClass.getDeclaredField("pid"); f.isAccessible = true; (f.get(p) as Int).toLong() } catch (_: Throwable) { -1 }
 
     private fun stopFly() {
         running = false
