@@ -49,12 +49,15 @@ jobs:
           echo "== what the loader sees (auxv) and the page size, through flyboot"
           LD_SHOW_AUXV=1 bash "Fly in a Box/phone/run_relocated.sh" "$HOME/rt" --python -c "import os; print('os.sysconf page size', os.sysconf('SC_PAGE_SIZE'))" 2>&1 | grep -E "AT_(PAGESZ|PHDR|PHNUM|ENTRY|BASE|RANDOM|SYSINFO_EHDR|EXECFN|HWCAP)|page size|rror" || true
           bash "Fly in a Box/phone/run_relocated.sh" "$HOME/rt" --python -c "import ctypes; l = ctypes.CDLL(None); print('getpagesize', l.getpagesize(), 'sysconf(30)', l.sysconf(30)); import llvmlite.binding; print('llvmlite imports')" 2>&1 | tail -3 || true
+          echo "== two LLVMs in one process (numba's and the software renderer's): both import orders, with a compile"
+          bash "Fly in a Box/phone/run_relocated.sh" "$HOME/rt" --python -c "import numba, mujoco; from numba import njit; print('numba first:', njit(lambda x: x + 1)(1))" 2>&1 | tail -2 || true
+          bash "Fly in a Box/phone/run_relocated.sh" "$HOME/rt" --python -c "import mujoco, numba; from numba import njit; print('mujoco first:', njit(lambda x: x + 1)(1))" 2>&1 | tail -2 || true
           echo "== the simulation, a third of a second"
           bash "Fly in a Box/phone/run_relocated.sh" "$HOME/rt" --seconds 0.3 --phone --out out/reloc 2>&1 | tail -8
       - name: Test it under a seccomp filter like Android's (the old system calls answered with SIGSYS)
         run: |
           set -o pipefail
-          gcc -O2 -o "$HOME/seccomp_jail" "Fly in a Box/phone/seccomp_jail.c"
+          gcc -O2 -static -o "$HOME/seccomp_jail" "Fly in a Box/phone/seccomp_jail.c"
           FLY_WRAP="$HOME/seccomp_jail" bash "Fly in a Box/phone/run_relocated.sh" "$HOME/rt" --seconds 0.3 --phone --out out/jail 2>&1 | tail -12
       - name: Manifest
         run: |

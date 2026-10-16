@@ -14,6 +14,8 @@ Glue (things that are modelled, not measured), all documented in README:
 """
 import argparse, json, os, time
 import numpy as np
+import numba  # noqa: F401  -- before mujoco: its software renderer brings a second LLVM into the process, and on
+#                              arm64 the two mix up unless numba's own is loaded first (page-size assertion)
 import mujoco as mj
 import imageio
 
