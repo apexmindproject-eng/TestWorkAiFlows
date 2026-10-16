@@ -10,10 +10,10 @@ ok=0
 for i in $(seq 1 150); do
   sleep 20
   if curl -s --max-time 5 http://127.0.0.1:8765/state | grep -q '"t"'; then ok=1; break; fi
-  echo "--- $((i*20)) s"; adb shell run-as com.flyinabox.app sh -c 'tail -n 3 files/fly.log' 2>/dev/null || true
-  adb logcat -d -s AndroidRuntime:E 2>/dev/null | tail -n 5 || true
+  echo "--- $((i*20)) s"; timeout 30 adb exec-out run-as com.flyinabox.app tail -n 3 files/fly.log < /dev/null 2>/dev/null || true
+  timeout 30 adb exec-out logcat -d -s AndroidRuntime:E < /dev/null 2>/dev/null | tail -n 5 || true
 done
-echo "=== fly.log"; adb shell run-as com.flyinabox.app sh -c 'tail -n 60 files/fly.log' 2>/dev/null || true
-echo "=== logcat (app)"; adb logcat -d 2>/dev/null | grep -iE "flyinabox|AndroidRuntime" | tail -n 40 || true
+echo "=== fly.log"; timeout 30 adb exec-out run-as com.flyinabox.app tail -n 60 files/fly.log < /dev/null 2>/dev/null || true
+echo "=== logcat (app)"; timeout 60 adb exec-out logcat -d < /dev/null 2>/dev/null | grep -iE "flyinabox|AndroidRuntime|seccomp" | tail -n 40 || true
 echo "=== state"; curl -s --max-time 5 http://127.0.0.1:8765/state; echo
 [ "$ok" = 1 ]
