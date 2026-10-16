@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity() {
         status.addView(ScrollView(this).apply { addView(log) }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
         frame.addView(status)
         setContentView(frame)
-        if (FlyService.running || Runtime(this).isUnpacked) FlyService.start(this)
+        if (FlyService.running || FlyRuntime(this).isUnpacked) FlyService.start(this)
         ui.post(tick)
     }
 
@@ -82,7 +82,7 @@ class MainActivity : AppCompatActivity() {
             bar.visibility = if (phase == "unpacking") View.VISIBLE else View.GONE
             bar.progress = (1000 * FlyService.progress).toInt()
             if (!showingFly) {
-                try { val f = Runtime(this@MainActivity).logFile; if (f.exists()) { val lines = f.readLines(); log.text = lines.takeLast(25).joinToString("\n") } } catch (_: Exception) {}
+                try { val f = FlyRuntime(this@MainActivity).logFile; if (f.exists()) { val lines = f.readLines(); log.text = lines.takeLast(25).joinToString("\n") } } catch (_: Exception) {}
                 val now = System.currentTimeMillis()
                 if (FlyService.running && now - lastProbe > 3000) { lastProbe = now; probe() }
             } else if (!FlyService.running) showStatus()

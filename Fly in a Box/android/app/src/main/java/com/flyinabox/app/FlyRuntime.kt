@@ -16,7 +16,7 @@ import java.util.zip.GZIPInputStream
  * It is executed through the runtime's own glibc loader, so nothing is installed on the phone and no root is used.
  * Mirrors phone/run_relocated.sh, which tests the same tree on a Linux machine.
  */
-class Runtime(private val ctx: Context) {
+class FlyRuntime(private val ctx: Context) {
     val root: File = File(ctx.filesDir, "rt")
     val logFile: File = File(ctx.filesDir, "fly.log")
     private val marker = File(root, ".unpacked")

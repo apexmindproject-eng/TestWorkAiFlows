@@ -45,7 +45,7 @@ class FlyService : Service() {
         running = true
         wake = (getSystemService(POWER_SERVICE) as PowerManager).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "fly:sim").also { it.acquire() }
         worker = thread(name = "fly") {
-            val rt = Runtime(this)
+            val rt = FlyRuntime(this)
             try {
                 if (!rt.isUnpacked) {
                     phase = "unpacking"; detail = "Unpacking the fly's runtime (once; about 1.5 GB)"
@@ -54,7 +54,7 @@ class FlyService : Service() {
                 }
                 phase = "starting"; detail = "Loading the brain (138,639 neurons)…"; update("Fly in a Box", "loading the brain")
                 rt.logFile.writeText("")
-                val threads = Runtime.getRuntime().availableProcessors().coerceIn(2, 4)
+                val threads = java.lang.Runtime.getRuntime().availableProcessors().coerceIn(2, 4)
                 val p = rt.launch(threads); process = p
                 p.inputStream.bufferedReader().useLines { lines ->
                     rt.logFile.bufferedWriter().use { w ->
