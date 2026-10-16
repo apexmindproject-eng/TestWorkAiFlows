@@ -14,8 +14,17 @@ Glue (things that are modelled, not measured), all documented in README:
 """
 import argparse, json, os, time
 import numpy as np
-import numba  # noqa: F401  -- before mujoco: its software renderer brings a second LLVM into the process, and on
-#                              arm64 the two mix up unless numba's own is loaded first (page-size assertion)
+# Two LLVMs live in this process: numba's (llvmlite) and the one inside Mesa's software renderer (OSMesa, loaded
+# into the global symbol scope by PyOpenGL). On arm64 the llvmlite build exports its LLVM symbols, so its own calls
+# would bind to Mesa's LLVM and misfire (a page-size assertion at the first compile). Loading llvmlite's library
+# with RTLD_DEEPBIND first makes it keep to its own symbols; llvmlite's later load reuses this handle.
+import ctypes, importlib.util as _ilu
+_spec = _ilu.find_spec("llvmlite")
+if _spec and _spec.submodule_search_locations and hasattr(os, "RTLD_DEEPBIND"):
+    import glob as _glob
+    for _lib in _glob.glob(os.path.join(list(_spec.submodule_search_locations)[0], "binding", "libllvmlite*.so")):
+        try: ctypes.CDLL(_lib, mode=os.RTLD_NOW | os.RTLD_LOCAL | os.RTLD_DEEPBIND)
+        except OSError as e: print(f"[llvm] could not pre-load {_lib}: {e}")
 import mujoco as mj
 import imageio
 
