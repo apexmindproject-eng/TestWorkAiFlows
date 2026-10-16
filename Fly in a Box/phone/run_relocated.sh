@@ -6,11 +6,11 @@ set -euo pipefail
 RT=$(cd "$1" && pwd); shift
 ARCH=$(uname -m)                      # aarch64 or x86_64
 case "$ARCH" in aarch64) LD="$RT/lib/ld-linux-aarch64.so.1"; TRIPLE=aarch64-linux-gnu;; x86_64) LD="$RT/lib64/ld-linux-x86-64.so.2"; TRIPLE=x86_64-linux-gnu;; *) echo "unsupported $ARCH"; exit 1;; esac
-PY=$(ls -d "$RT"/usr/lib/python3.* | head -1); PYVER=$(basename "$PY")
-export LD_LIBRARY_PATH="$RT/lib/$TRIPLE:$RT/usr/lib/$TRIPLE:$RT/lib:$RT/usr/lib"
-export PYTHONHOME="$RT/usr" PYTHONPATH="$RT/opt/fly/venv/lib/$PYVER/site-packages" PYTHONNOUSERSITE=1
+PYHOME="$RT/opt/fly/python"; PYVER=$(basename "$(ls -d "$PYHOME"/lib/python3.* | head -1)")
+export LD_LIBRARY_PATH="$PYHOME/lib:$RT/lib/$TRIPLE:$RT/usr/lib/$TRIPLE:$RT/lib:$RT/usr/lib"
+export PYTHONHOME="$PYHOME" PYTHONPATH="$RT/opt/fly/venv/lib/$PYVER/site-packages" PYTHONNOUSERSITE=1
 export HOME="$RT/root" TMPDIR="$RT/tmp" MUJOCO_GL=osmesa PYOPENGL_PLATFORM=osmesa LC_ALL=C.UTF-8
 export NUMBA_CACHE_DIR="$RT/tmp/numba" OMP_NUM_THREADS=${OMP_NUM_THREADS:-4} NUMBA_NUM_THREADS=${NUMBA_NUM_THREADS:-4}
 mkdir -p "$TMPDIR" "$NUMBA_CACHE_DIR"
 cd "$RT/opt/fly/app"
-exec "$LD" --library-path "$LD_LIBRARY_PATH" "$RT/usr/bin/$PYVER" flybox.py "$@"
+exec "$LD" --library-path "$LD_LIBRARY_PATH" "$PYHOME/bin/$PYVER" flybox.py "$@"

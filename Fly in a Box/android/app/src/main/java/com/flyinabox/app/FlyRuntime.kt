@@ -76,19 +76,20 @@ class FlyRuntime(private val ctx: Context) {
 
     /** Start the simulation: python flybox.py --live 8765 --phone, through the loader, output to fly.log. */
     fun launch(threads: Int): Process {
-        val pyDir = File(root, "usr/lib").listFiles { d -> d.name.startsWith("python3.") }?.firstOrNull() ?: error("no python in the runtime")
+        val pyHome = File(root, "opt/fly/python")
+        val pyDir = File(pyHome, "lib").listFiles { d -> d.name.startsWith("python3.") }?.firstOrNull() ?: error("no python in the runtime")
         val pyver = pyDir.name
-        val libPath = listOf("lib/$triple", "usr/lib/$triple", "lib", "usr/lib").joinToString(":") { File(root, it).path }
+        val libPath = listOf("opt/fly/python/lib", "lib/$triple", "usr/lib/$triple", "lib", "usr/lib").joinToString(":") { File(root, it).path }
         val app = File(root, "opt/fly/app")
         File(root, "tmp/numba").mkdirs(); File(app, "out").mkdirs()
-        val cmd = listOf(loader.path, "--library-path", libPath, File(root, "usr/bin/$pyver").path,
+        val cmd = listOf(loader.path, "--library-path", libPath, File(pyHome, "bin/$pyver").path,
             "flybox.py", "--live", "8765", "--phone", "--out", "out/phone")
         val pb = ProcessBuilder(cmd).directory(app).redirectErrorStream(true)
         val env = pb.environment()
         env.clear()
         env["PATH"] = File(root, "usr/bin").path + ":" + File(root, "bin").path
         env["LD_LIBRARY_PATH"] = libPath
-        env["PYTHONHOME"] = File(root, "usr").path
+        env["PYTHONHOME"] = pyHome.path
         env["PYTHONPATH"] = File(root, "opt/fly/venv/lib/$pyver/site-packages").path
         env["PYTHONNOUSERSITE"] = "1"; env["PYTHONUNBUFFERED"] = "1"
         env["HOME"] = File(root, "root").path; env["TMPDIR"] = File(root, "tmp").path
