@@ -17,5 +17,5 @@ export PYGLFW_LIBRARY="$RT/opt/fly/libglfw.so"                 # see build_runti
 export NUMBA_CACHE_DIR="$RT/tmp/numba" OMP_NUM_THREADS=${OMP_NUM_THREADS:-4} NUMBA_NUM_THREADS=${NUMBA_NUM_THREADS:-4}
 # flyboot starts the loader with a SIGSYS handler already in place (Android refuses some system calls that way).
 # FLY_WRAP (optional) is a command put in front, e.g. the seccomp jail; "--python ARGS" runs python itself instead of flybox.py.
-if [ "${1:-}" = "--python" ]; then shift; exec ${FLY_WRAP:-} "$RT/opt/fly/flyboot" "$LD" --library-path "$LD_LIBRARY_PATH" "$PYHOME/bin/$PYVER" "$@"; fi
-exec ${FLY_WRAP:-} "$RT/opt/fly/flyboot" "$LD" --library-path "$LD_LIBRARY_PATH" "$PYHOME/bin/$PYVER" flybox.py "$@"
+if [ "${1:-}" = "--python" ]; then shift; exec ${FLY_WRAP:-} "$RT/opt/fly/flyboot" "$LD" "$PYHOME/bin/$PYVER" "$@"; fi
+exec ${FLY_WRAP:-} "$RT/opt/fly/flyboot" "$LD" "$PYHOME/bin/$PYVER" flybox.py "$@"

@@ -1,11 +1,16 @@
-// flyboot: starts glibc's dynamic loader (and through it the program) inside a process that already has a
-// SIGSYS handler. Android's app sandbox answers some system calls with SIGSYS, which kills a process; a
-// preloaded library would be too late, because the loader itself makes such calls before it loads anything.
-// So this program, which needs no libc at all, installs the handler, maps the loader into its own address
-// space the way the kernel would, and jumps to it. The handler then answers the refused calls: on x86_64
-// the old forms that this glibc still uses (open, stat, access, readlink, poll, select, ...) are replaced by
-// their modern "...at" forms, which the sandbox allows; anything else is logged and answered with ENOSYS.
-//   usage: flyboot <ld.so> [ld.so arguments...]        e.g. flyboot ld.so --library-path ... python3 prog.py
+// flyboot: starts a dynamically linked program the way the kernel does (the program mapped, glibc's loader mapped
+// as its interpreter, a fresh initial stack) inside a process that already has a SIGSYS handler. Android's app
+// sandbox answers some system calls with SIGSYS, which kills a process; a preloaded library would be too late,
+// because the loader itself makes such calls before it loads anything. So this program, which needs no libc at
+// all, installs the handler, maps both files into its own address space and jumps to the loader. The handler then
+// answers the refused calls: on x86_64 the old forms that this glibc still uses (open, stat, access, readlink,
+// poll, select, ...) are replaced by their modern "...at" forms, which the sandbox allows; anything else is logged
+// and answered with ENOSYS.
+//   usage: flyboot <ld.so> <program> [arguments...]      e.g. flyboot ld-2.31.so python3.12 prog.py
+// The program's PT_INTERP is ignored: the loader named here is used. Libraries come from LD_LIBRARY_PATH.
+// (The loader is not run "as a program" with --library-path on purpose: glibc 2.31 on aarch64 then shifts its own
+// arguments off the stack and leaves the recorded auxiliary vector behind, so getauxval(AT_PAGESZ) answers 0 in
+// that process and LLVM aborts on it. Started as an interpreter, the loader skips nothing.)
 #define _GNU_SOURCE
 #include <stddef.h>
 #include <stdint.h>
@@ -159,7 +164,7 @@ static void install(void) {
 #define PAGE 4096UL
 #define DOWN(x) ((x) & ~(PAGE - 1))
 #define UP(x) (((x) + PAGE - 1) & ~(PAGE - 1))
-static unsigned long load(const char *path, unsigned long *phdr, unsigned long *phnum) {
+static unsigned long load(const char *path, unsigned long *phdr, unsigned long *phnum, unsigned long *base_out) {
     long fd = sys3(SYS_openat, AT_FDCWD, path, O_RDONLY | O_CLOEXEC);
     if (fd < 0) die("cannot open the loader", fd);
     Elf64_Ehdr eh; long r = sys4(SYS_pread64, fd, &eh, sizeof eh, 0);
@@ -195,25 +200,30 @@ static unsigned long load(const char *path, unsigned long *phdr, unsigned long *
         }
     }
     sys1(SYS_close, fd);
-    *phdr = base + eh.e_phoff; *phnum = eh.e_phnum;
+    unsigned long hdr_vaddr = 0;                             /* where the file's start (and so the program headers) landed */
+    for (int i = 0; i < eh.e_phnum; i++) if (ph[i].p_type == PT_LOAD) { hdr_vaddr = base + ph[i].p_vaddr - ph[i].p_offset; break; }
+    *phdr = hdr_vaddr + eh.e_phoff; *phnum = eh.e_phnum; *base_out = base;
     return base + eh.e_entry;
 }
 
 __attribute__((noreturn, used)) static void boot(long *sp) {
     long argc = sp[0]; char **argv = (char **)(sp + 1);
-    if (argc < 2) { out("usage: flyboot <ld.so> [arguments...]\n"); sys1(SYS_exit_group, 2); }
+    if (argc < 3) { out("usage: flyboot <ld.so> <program> [arguments...]\n"); sys1(SYS_exit_group, 2); }
     install();
-    unsigned long phdr, phnum; unsigned long entry = load(argv[1], &phdr, &phnum);
-    /* the new initial stack: the kernel's one without argv[0], auxv describing the loader; strings stay where they are */
+    unsigned long ld_phdr, ld_phnum, ld_base, phdr, phnum, base;
+    unsigned long ld_entry = load(argv[1], &ld_phdr, &ld_phnum, &ld_base);   /* the loader, like the kernel maps PT_INTERP */
+    unsigned long prog_entry = load(argv[2], &phdr, &phnum, &base);        /* the program */
+    /* the new initial stack: the kernel's one without our two first arguments, auxv describing the program and
+       naming the loader as its interpreter; strings stay where they are */
     long *p = sp; long n = 1 + argc + 1;                     /* argc, argv..., NULL */
     while (p[n]) n++;                                        /* envp... */
     n++;                                                     /* and its NULL */
     Elf64_auxv_t *aux = (Elf64_auxv_t *)(p + n); long naux = 0;
     while (aux[naux].a_type != AT_NULL) naux++;
     naux++;
-    long *nsp = (long *)(((unsigned long)sp - 16) & ~15UL);  /* one slot shorter: fits below the old block */
-    long *q = nsp; *q++ = argc - 1;
-    for (long i = 1; i <= argc; i++) *q++ = (long)argv[i];   /* argv[1..] and the NULL */
+    long *nsp = (long *)(((unsigned long)sp - 16) & ~15UL);  /* two slots shorter: fits below the old block */
+    long *q = nsp; *q++ = argc - 2;
+    for (long i = 2; i <= argc; i++) *q++ = (long)argv[i];   /* argv[2..] and the NULL */
     for (long i = 1 + argc + 1; i < n; i++) *q++ = p[i];     /* envp and its NULL */
     Elf64_auxv_t *naux_p = (Elf64_auxv_t *)q;
     for (long i = 0; i < naux; i++) {
@@ -222,16 +232,16 @@ __attribute__((noreturn, used)) static void boot(long *sp) {
         case AT_PHDR: e.a_un.a_val = phdr; break;
         case AT_PHENT: e.a_un.a_val = sizeof(Elf64_Phdr); break;
         case AT_PHNUM: e.a_un.a_val = phnum; break;
-        case AT_ENTRY: e.a_un.a_val = entry; break;
-        case AT_BASE: e.a_un.a_val = 0; break;
-        case AT_EXECFN: e.a_un.a_val = (unsigned long)argv[1]; break;
+        case AT_ENTRY: e.a_un.a_val = prog_entry; break;
+        case AT_BASE: e.a_un.a_val = ld_base; break;
+        case AT_EXECFN: e.a_un.a_val = (unsigned long)argv[2]; break;
         }
         naux_p[i] = e;
     }
 #if defined(__x86_64__)
-    asm volatile("mov %0, %%rsp\n\txor %%edx, %%edx\n\tjmp *%%rcx" : : "r"(nsp), "c"(entry) : "memory");
+    asm volatile("mov %0, %%rsp\n\txor %%edx, %%edx\n\tjmp *%%rcx" : : "r"(nsp), "c"(ld_entry) : "memory");
 #else
-    register long x16 asm("x16") = (long)entry; register long x17 asm("x17") = (long)nsp;
+    register long x16 asm("x16") = (long)ld_entry; register long x17 asm("x17") = (long)nsp;
     asm volatile("mov sp, x17\n\tmov x0, #0\n\tbr x16" : : "r"(x16), "r"(x17) : "memory");
 #endif
     for (;;) {}

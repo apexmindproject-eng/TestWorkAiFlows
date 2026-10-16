@@ -82,9 +82,9 @@ class FlyRuntime(private val ctx: Context) {
         val libPath = listOf("opt/fly/python/lib", "lib/$triple", "usr/lib/$triple", "lib", "usr/lib").joinToString(":") { File(root, it).path }
         val app = File(root, "opt/fly/app")
         File(root, "tmp/numba").mkdirs(); File(app, "out").mkdirs()
-        // flyboot (phone/flyboot.c) installs a handler for SIGSYS, the way Android refuses system calls, and then runs
-        // glibc's loader in the same process; the loader runs python, python runs the fly.
-        val cmd = listOf(File(root, "opt/fly/flyboot").path, loader.path, "--library-path", libPath, File(pyHome, "bin/$pyver").path,
+        // flyboot (phone/flyboot.c) installs a handler for SIGSYS, the way Android refuses system calls, and then starts
+        // python with glibc's loader as its interpreter in the same process, like the kernel would; python runs the fly.
+        val cmd = listOf(File(root, "opt/fly/flyboot").path, loader.path, File(pyHome, "bin/$pyver").path,
             "flybox.py", "--live", "8765", "--phone", "--out", "out/phone")
         val pb = ProcessBuilder(cmd).directory(app).redirectErrorStream(true)
         val env = pb.environment()

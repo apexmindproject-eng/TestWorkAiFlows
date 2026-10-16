@@ -49,14 +49,6 @@ mkdir -p data out
 curl -sL -o data/flywire_annotations_783.tsv \
     https://raw.githubusercontent.com/flyconnectome/flywire_annotations/main/supplemental_files/Supplemental_file1_neuron_annotations.tsv
 cp omm_centroids.npy out/
-# how the two LLVMs (numba's, Mesa's) get along in this build, for the log
-MUJOCO_GL=osmesa python -c "import ctypes; ctypes.CDLL('libOSMesa.so.8', mode=ctypes.RTLD_GLOBAL); print('OSMesa alone: loads')" 2>&1 | tail -1 || true
-MUJOCO_GL=osmesa python -c "import numba, ctypes; ctypes.CDLL('libOSMesa.so.8', mode=ctypes.RTLD_GLOBAL); print('OSMesa after numba: loads')" 2>&1 | tail -1 || true
-MUJOCO_GL=osmesa python -c "import mujoco, numba; from numba import njit; print('mujoco then numba, compile:', njit(lambda x: x + 1)(1))" 2>&1 | tail -1 || true
-MUJOCO_GL=osmesa python -c "
-import os, ctypes, glob, llvmlite
-for l in glob.glob(os.path.join(os.path.dirname(llvmlite.__file__), 'binding', 'libllvmlite*.so')): ctypes.CDLL(l, mode=os.RTLD_NOW | os.RTLD_DEEPBIND)
-import mujoco, numba; from numba import njit; print('deepbind llvmlite, mujoco, numba, compile:', njit(lambda x: x + 1)(1))" 2>&1 | tail -1 || true
 # smoke test in place: the whole loop for a third of a second (loads the brain, compiles the kernels, renders)
 MUJOCO_GL=osmesa python flybox.py --seconds 0.3 --phone --out out/smoke 2>&1 | tail -5
 rm -rf out/smoke
