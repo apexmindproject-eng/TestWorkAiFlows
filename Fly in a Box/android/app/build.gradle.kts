@@ -18,7 +18,7 @@ android {
         create("x86") { dimension = "cpu"; versionNameSuffix = "-x86_64" }   // the emulator used by the tests
     }
     buildTypes { release { isMinifyEnabled = false } }
-    androidResources { noCompress += listOf("gz") }                 // the runtime tarball is already compressed
+    androidResources { noCompress += listOf("bin") }                // runtime.bin is the gzip tarball; named .bin because aapt unpacks .gz assets, and stored as is so it can be opened by descriptor
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
     packaging { jniLibs { useLegacyPackaging = false } }
