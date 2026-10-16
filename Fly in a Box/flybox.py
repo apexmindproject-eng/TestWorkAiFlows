@@ -41,6 +41,7 @@ p.add_argument("--climb-p", type=float, default=0.6, help="probability that a fl
 p.add_argument("--published-brain", action="store_true", help="use the published model without the antennal-lobe and sensory corrections")
 p.add_argument("--turn-gain", type=float, default=100.0, help="Hz of DNa02 left-right difference that gives a full-strength turn")
 p.add_argument("--live", type=int, default=0, help="sandbox mode: serve the fly live on this port (phone app / browser), run until stopped")
+p.add_argument("--host", default="0.0.0.0", help="sandbox mode: address to serve on (0.0.0.0: other devices on the network can watch; 127.0.0.1: this computer only)")
 p.add_argument("--phys-dt", type=float, default=0.0, help="physics timestep while walking, standing, grooming, feeding and climbing (s); flight and landings always use 0.1 ms. Default: 0.1 ms, or 0.25 ms with --phone")
 p.add_argument("--brain-dt", type=float, default=0.0, help="brain integration timestep (s). Default 0.1 ms (as published), 0.2 ms with --phone (per-neuron rates match the 0.1 ms model within run-to-run noise: tested)")
 p.add_argument("--flight-dt", type=float, default=1e-4, help="physics timestep in flight and landings (s); the wingbeat is 200 Hz (0.2 ms: landings fail, tested)")
@@ -464,7 +465,7 @@ live = None; shadow_until = -1.0; poke_left = 0.0; poke_force = np.zeros(3); sim
 pace_ref = None; tick_wall = None; touch_LR = [0.0, 0.0]
 if args.live:
     from live import Live, LABELS
-    live = Live(args.live)
+    live = Live(args.live, args.host)
     live.set_scene(sim.mj_model, mj)
     px, py = pos[:, 0], pos[:, 1]; okp = np.isfinite(px) & np.isfinite(py)       # brain, frontal view: x across, y down
     cx_, cy_ = np.median(px[okp]), np.median(py[okp])

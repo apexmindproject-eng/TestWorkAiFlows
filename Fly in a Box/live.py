@@ -78,7 +78,7 @@ def export_scene(m, mj):
 
 class Live:
     """Shared between the simulation thread (which publishes and pops commands) and the server threads."""
-    def __init__(self, port):
+    def __init__(self, port, host="0.0.0.0"):
         self.state = {"label": "starting", "t": 0.0}; self.cmds = queue.Queue()
         self.paused = False; self.blindfold = False
         self.scene_json = b"{}"; self.scene_bin = b""; self.brain_bin = b""; self.eyes_json = b"{}"
@@ -122,9 +122,9 @@ class Live:
                     else: live.cmds.put(c)
                     self._send(200, "application/json", b'{"ok": true}')
                 else: self._send(400, "application/json", b'{"ok": false}')
-        self.server = ThreadingHTTPServer(("0.0.0.0", port), Handler); self.server.daemon_threads = True
+        self.server = ThreadingHTTPServer((host, port), Handler); self.server.daemon_threads = True
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
-        print(f"[live] sandbox at http://0.0.0.0:{port}/  (open it on the phone with this computer's address)", flush=True)
+        print(f"[live] sandbox at http://{host}:{port}/" + ("  (open it on the phone with this computer's address)" if host == "0.0.0.0" else ""), flush=True)
 
     # ----- static data, set once by the simulation
     def set_scene(self, m, mj):
@@ -251,13 +251,17 @@ function cmd(c,extra){fetch('/cmd',{method:'POST',body:JSON.stringify(Object.ass
 
 // ------------------------------------------------------------------ 3D scene
 const box=$('v3');
-const renderer=new THREE.WebGLRenderer({antialias:true});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+// ?quality=high (the PC app): full-resolution drawing, soft real-time shadows, finer brain and eye panels
+const HQ=new URLSearchParams(location.search).get('quality')==='high';
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(HQ?Math.min(window.devicePixelRatio||1,3):Math.min(window.devicePixelRatio||1,2));
+if(HQ){renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;}
 box.insertBefore(renderer.domElement,box.firstChild);
 const scene=new THREE.Scene(); scene.background=new THREE.Color(0x1a1a22);
 const camera=new THREE.PerspectiveCamera(42,1,0.2,600); camera.up.set(0,0,1);
 scene.add(new THREE.HemisphereLight(0xffffff,0x404050,0.75));
-const sun=new THREE.DirectionalLight(0xffffff,0.55); sun.position.set(-30,-40,90); scene.add(sun);
+const sun=new THREE.DirectionalLight(0xffffff,HQ?0.7:0.55); sun.position.set(-30,-40,90); scene.add(sun);
+if(HQ){sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);const sc=sun.shadow.camera;sc.left=-48;sc.right=48;sc.top=48;sc.bottom=-48;sc.near=1;sc.far=260;sun.shadow.bias=-0.0004;sun.shadow.radius=3;}
 function resize(){const w=box.clientWidth,h=box.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
 window.addEventListener('resize',resize);
 
@@ -304,6 +308,7 @@ async function loadScene(){
    geo=new THREE.PlaneGeometry(span,span);mat=new THREE.MeshLambertMaterial({map:t});}
   if(!geo)continue;
   const o=new THREE.Mesh(geo,mat);o.matrixAutoUpdate=false;
+  if(HQ){o.castShadow=g.type!==0;o.receiveShadow=g.type===0||g.type===6||g.type===5;}
   if(trans)o.renderOrder=2;
   if(g.dyn<0){o.position.set(g.pos[0],g.pos[1],g.pos[2]);o.quaternion.set(g.quat[1],g.quat[2],g.quat[3],g.quat[0]);o.updateMatrix();}
   o.userData.dyn=g.dyn;scene.add(o);if(g.dyn>=0)geomObjs[g.dyn]=o;if(g.name==='fly/c_thorax')fly=g.dyn;
@@ -368,7 +373,8 @@ function placeFood(e){const r=renderer.domElement.getBoundingClientRect();const 
  cmd('food',{x:o.x+s*d.x,y:o.y+s*d.y});}
 
 // ------------------------------------------------------------------ brain panel
-const bc=$('brain'),bx=bc.getContext('2d');let BN=0,bxy=null,bcls=null,bpix=null,heat=null,base=null,classes=[],palette=[];
+const bc=$('brain');if(HQ){bc.width=1200;bc.height=600;['eyeL','eyeR'].forEach(id=>{$(id).width=450;$(id).height=512;});}
+const bx=bc.getContext('2d');let BN=0,bxy=null,bcls=null,bpix=null,heat=null,base=null,classes=[],palette=[];
 const PAL={'sensory':[90,220,255],'optic':[70,120,255],'visual_projection':[120,160,255],'visual_centrifugal':[120,160,255],'central':[255,236,180],'descending':[255,150,60],'ascending':[120,255,140],'motor':[255,70,70],'endocrine':[230,120,255],'sensory_ascending':[90,220,255],'other':[200,200,200]};
 async function loadBrain(){
  const buf=await (await fetch('/brain.bin')).arrayBuffer();const hl=new DataView(buf).getUint32(0,true);
