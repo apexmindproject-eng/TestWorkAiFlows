@@ -20,6 +20,39 @@ fi
 [ -n "$PBS_URL" ] || { echo "no CPython build URL"; exit 1; }
 echo "python: $PBS_URL"
 mkdir -p /opt/fly && curl -sL "$PBS_URL" | tar -xzf - -C /opt/fly          # -> /opt/fly/python
+# A small preloaded library for Android: the app sandbox refuses some system calls with SIGSYS (which kills a
+# process outright). The library catches SIGSYS, logs which call it was, and resumes the program as if the kernel
+# had answered ENOSYS, the "not available" answer glibc and Python already know how to fall back from.
+apt-get install -y --no-install-recommends gcc libc6-dev
+cat > /opt/fly/sigsys.c <<'C'
+#define _GNU_SOURCE
+#include <signal.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <stdio.h>
+#include <ucontext.h>
+static int seen[1024];
+static void on_sigsys(int sig, siginfo_t *si, void *ucv) {
+    ucontext_t *uc = (ucontext_t *)ucv; int nr = si->si_syscall;
+    if (nr >= 0 && nr < 1024 && seen[nr]++ < 3) {
+        char b[128]; int n = snprintf(b, sizeof b, "[sandbox] Android refused system call %d; continuing as if it did not exist\n", nr);
+        if (n > 0) { ssize_t r = write(2, b, (size_t)n); (void)r; }
+    }
+#if defined(__x86_64__)
+    uc->uc_mcontext.gregs[REG_RAX] = -ENOSYS;
+#elif defined(__aarch64__)
+    uc->uc_mcontext.regs[0] = -ENOSYS;
+#endif
+}
+__attribute__((constructor)) static void install(void) {
+    struct sigaction sa; memset(&sa, 0, sizeof sa);
+    sa.sa_sigaction = on_sigsys; sa.sa_flags = SA_SIGINFO | SA_NODEFER | SA_RESTART;
+    sigaction(SIGSYS, &sa, 0);
+}
+C
+gcc -shared -fPIC -O2 -o /opt/fly/libsigsys.so /opt/fly/sigsys.c && rm /opt/fly/sigsys.c
+apt-get purge -y gcc libc6-dev; apt-get autoremove -y
 mkdir -p /opt/fly && cd /opt/fly
 # the project (code and small data only)
 rm -rf app && mkdir app

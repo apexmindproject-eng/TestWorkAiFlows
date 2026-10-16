@@ -89,6 +89,7 @@ class FlyRuntime(private val ctx: Context) {
         env.clear()
         env["PATH"] = File(root, "usr/bin").path + ":" + File(root, "bin").path
         env["LD_LIBRARY_PATH"] = libPath
+        env["LD_PRELOAD"] = File(root, "opt/fly/libsigsys.so").path     // a refused system call (SIGSYS) becomes ENOSYS and is logged, instead of killing the process
         env["PYTHONHOME"] = pyHome.path
         env["PYTHONPATH"] = File(root, "opt/fly/venv/lib/$pyver/site-packages").path
         env["PYTHONNOUSERSITE"] = "1"; env["PYTHONUNBUFFERED"] = "1"

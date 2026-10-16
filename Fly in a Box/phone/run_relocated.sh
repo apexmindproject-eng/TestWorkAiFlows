@@ -9,6 +9,7 @@ case "$ARCH" in aarch64) LD="$RT/lib/ld-linux-aarch64.so.1"; TRIPLE=aarch64-linu
 PYHOME="$RT/opt/fly/python"; PYVER=$(basename "$(ls -d "$PYHOME"/lib/python3.* | head -1)")
 export LD_LIBRARY_PATH="$PYHOME/lib:$RT/lib/$TRIPLE:$RT/usr/lib/$TRIPLE:$RT/lib:$RT/usr/lib"
 export PYTHONHOME="$PYHOME" PYTHONPATH="$RT/opt/fly/venv/lib/$PYVER/site-packages" PYTHONNOUSERSITE=1
+export LD_PRELOAD="$RT/opt/fly/libsigsys.so"                 # refused system calls become ENOSYS instead of a kill (Android)
 export HOME="$RT/root" TMPDIR="$RT/tmp" MUJOCO_GL=osmesa PYOPENGL_PLATFORM=osmesa LC_ALL=C.UTF-8
 export NUMBA_CACHE_DIR="$RT/tmp/numba" OMP_NUM_THREADS=${OMP_NUM_THREADS:-4} NUMBA_NUM_THREADS=${NUMBA_NUM_THREADS:-4}
 mkdir -p "$TMPDIR" "$NUMBA_CACHE_DIR"
