@@ -9,9 +9,13 @@
 step() { echo; echo "==> $*"; }
 fail() { echo; echo "!! $*"; echo "!! Run this installer again once that is sorted; it continues where it stopped."; exit 1; }
 
+step "Termux itself up to date (proot-distro needs the current Termux Python; a half-upgraded Termux fails with 'python3.14: bad interpreter')"
+yes | pkg upgrade -y -o Dpkg::Options::="--force-confnew" || fail "Termux could not upgrade its packages. If the mirror is slow, run: termux-change-repo (pick a mirror group near you) and run this again."
+
 step "Termux packages (proot-distro, git)"
-yes | pkg install -y proot-distro git curl || true          # a py3compile traceback from Termux's own python here is harmless
+yes | pkg install -y proot-distro git curl python || true
 command -v proot-distro >/dev/null || fail "proot-distro did not install. Try: pkg update && pkg install proot-distro"
+proot-distro list >/dev/null 2>&1 || fail "proot-distro does not run ($(head -1 "$(command -v proot-distro)")). Run: pkg upgrade && pkg install python, then this installer again."
 
 step "Ubuntu for the phone (a 40 MB download the first time)"
 ROOTFS="$PREFIX/var/lib/proot-distro/installed-rootfs/ubuntu"
