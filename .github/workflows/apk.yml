@@ -78,19 +78,4 @@ jobs:
           heap-size: 1024M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: |
-            adb install -r FlyInABox-x86_64.apk
-            adb shell am start -n com.flyinabox.app/.MainActivity
-            sleep 20
-            adb shell am startservice -a start -n com.flyinabox.app/.FlyService || true
-            adb forward tcp:8765 tcp:8765
-            ok=0
-            for i in $(seq 1 150); do
-              sleep 20
-              if curl -s --max-time 5 http://127.0.0.1:8765/state | grep -q '"t"'; then ok=1; break; fi
-              echo "--- $((i*20)) s"; adb shell run-as com.flyinabox.app sh -c 'tail -n 3 files/fly.log' 2>/dev/null || true
-            done
-            echo "=== fly.log"; adb shell run-as com.flyinabox.app sh -c 'tail -n 60 files/fly.log' || true
-            echo "=== logcat (app)"; adb logcat -d | grep -iE "flyinabox|AndroidRuntime" | tail -40 || true
-            curl -s --max-time 5 http://127.0.0.1:8765/state; echo
-            [ "$ok" = 1 ]
+          script: bash "Fly in a Box/phone/emulator_test.sh" FlyInABox-x86_64.apk

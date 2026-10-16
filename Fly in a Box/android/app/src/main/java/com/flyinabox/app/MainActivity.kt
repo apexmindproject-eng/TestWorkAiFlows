@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity() {
         status.addView(ScrollView(this).apply { addView(log) }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
         frame.addView(status)
         setContentView(frame)
-        if (FlyService.running || FlyRuntime(this).isUnpacked) FlyService.start(this)
+        if (FlyService.running || FlyRuntime(this).isUnpacked || intent?.getBooleanExtra("autostart", false) == true) FlyService.start(this)
         ui.post(tick)
     }
 
