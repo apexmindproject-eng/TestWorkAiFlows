@@ -19,9 +19,18 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      - name: Which CPython build (python-build-standalone, latest release, this architecture)
+        id: pbs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ARCH=$(uname -m)
+          URL=$(gh api repos/astral-sh/python-build-standalone/releases/latest --jq '.assets[].browser_download_url' | grep -E "cpython-3\.12\.[0-9]+\+[0-9]+-${ARCH}-unknown-linux-gnu-install_only\.tar\.gz$" | head -1)
+          echo "python: $URL"; test -n "$URL"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
       - name: Build the runtime in a plain Ubuntu container and export it
         run: |
-          docker create --name flyrt -v "$PWD:/src:ro" ubuntu:20.04 bash /src/"Fly in a Box"/phone/build_runtime.sh /src
+          docker create --name flyrt -e PBS_URL="${{ steps.pbs.outputs.url }}" -v "$PWD:/src:ro" ubuntu:20.04 bash /src/"Fly in a Box"/phone/build_runtime.sh /src
           docker start -a flyrt
           docker export flyrt | xz -6 -T0 > fly-runtime-${{ matrix.arch }}.tar.xz
           docker rm flyrt

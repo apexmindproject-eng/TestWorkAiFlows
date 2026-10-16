@@ -13,8 +13,11 @@ apt-get update
 apt-get install -y --no-install-recommends ca-certificates curl git libosmesa6 libgl1 libglu1-mesa libegl1 libglvnd0 libgomp1 libstdc++6 \
     libffi7 libssl1.1 zlib1g libbz2-1.0 liblzma5 libsqlite3-0 libncursesw6 libreadline8 libuuid1
 ARCH=$(uname -m)
-PBS_URL=$(curl -sL https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest \
-    | grep -o "https://[^\"]*cpython-3\.12\.[0-9]*+[0-9]*-${ARCH}-unknown-linux-gnu-install_only\.tar\.gz" | head -1)
+if [ -z "${PBS_URL:-}" ]; then      # normally handed in by the workflow (the API is rate-limited from inside the container)
+    PBS_URL=$(curl -sL https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest \
+        | grep -o "https://[^\"]*cpython-3\.12\.[0-9]*+[0-9]*-${ARCH}-unknown-linux-gnu-install_only\.tar\.gz" | head -1 || true)
+fi
+[ -n "$PBS_URL" ] || { echo "no CPython build URL"; exit 1; }
 echo "python: $PBS_URL"
 mkdir -p /opt/fly && curl -sL "$PBS_URL" | tar -xzf - -C /opt/fly          # -> /opt/fly/python
 mkdir -p /opt/fly && cd /opt/fly
