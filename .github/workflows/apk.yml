@@ -35,7 +35,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - run: gradle assembleArm64Debug assembleX86Debug --no-daemon -Dorg.gradle.jvmargs=-Xmx4g
+      - run: gradle assembleArm64Debug --no-daemon
+      - run: gradle assembleX86Debug --no-daemon
       - run: |
           cp app/build/outputs/apk/arm64/debug/app-arm64-debug.apk "$GITHUB_WORKSPACE/FlyInABox.apk"
           cp app/build/outputs/apk/x86/debug/app-x86-debug.apk "$GITHUB_WORKSPACE/FlyInABox-x86_64.apk"
