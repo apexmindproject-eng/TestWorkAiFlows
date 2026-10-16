@@ -1,0 +1,70 @@
+{
+  "name": "EclipseRealms",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "Shared": { "$path": "src/ReplicatedStorage/Shared" },
+      "Remotes": {
+        "$className": "Folder",
+        "SelectRace": { "$className": "RemoteFunction" },
+        "RaceAssigned": { "$className": "RemoteEvent" }
+      }
+    },
+
+    "ServerScriptService": { "$path": "src/ServerScriptService" },
+
+    "StarterGui": { "$path": "src/StarterGui" },
+
+    "StarterPlayer": {
+      "$properties": { "CharacterWalkSpeed": 22, "CameraMaxZoomDistance": 60, "CameraMinZoomDistance": 2 },
+      "StarterPlayerScripts": { "$path": "src/StarterPlayerScripts" }
+    },
+
+    "Teams": {
+      "$className": "Teams",
+      "Vampires": { "$className": "Team", "$properties": { "TeamColor": { "BrickColor": 1004 }, "AutoAssignable": false } },
+      "Wolves":   { "$className": "Team", "$properties": { "TeamColor": { "BrickColor": 106 }, "AutoAssignable": false } },
+      "Witches":  { "$className": "Team", "$properties": { "TeamColor": { "BrickColor": 1031 }, "AutoAssignable": false } },
+      "Humans":   { "$className": "Team", "$properties": { "TeamColor": { "BrickColor": 23 }, "AutoAssignable": false } },
+      "Monks":    { "$className": "Team", "$properties": { "TeamColor": { "BrickColor": 24 }, "AutoAssignable": false } }
+    },
+
+    "Lighting": {
+      "$properties": {
+        "Technology": "Future",
+        "ClockTime": 17.9,
+        "GeographicLatitude": 30,
+        "Brightness": 2.2,
+        "ExposureCompensation": 0.15,
+        "Ambient": [0.16, 0.15, 0.2],
+        "OutdoorAmbient": [0.33, 0.3, 0.4],
+        "ColorShift_Top": [1.0, 0.85, 0.7],
+        "ColorShift_Bottom": [0.45, 0.4, 0.55],
+        "EnvironmentDiffuseScale": 0.7,
+        "EnvironmentSpecularScale": 0.7,
+        "GlobalShadows": true,
+        "ShadowSoftness": 0.25,
+        "FogColor": [0.55, 0.48, 0.58],
+        "FogStart": 600,
+        "FogEnd": 3200
+      },
+      "Sky": {
+        "$className": "Sky",
+        "$properties": { "StarCount": 4500, "MoonAngularSize": 16, "SunAngularSize": 18, "CelestialBodiesShown": true }
+      },
+      "Atmosphere": {
+        "$className": "Atmosphere",
+        "$properties": { "Density": 0.38, "Offset": 0.3, "Color": [0.78, 0.7, 0.75], "Decay": [0.42, 0.36, 0.5], "Glare": 0.35, "Haze": 2.4 }
+      },
+      "Bloom": { "$className": "BloomEffect", "$properties": { "Intensity": 0.55, "Size": 32, "Threshold": 1.4 } },
+      "SunRays": { "$className": "SunRaysEffect", "$properties": { "Intensity": 0.12, "Spread": 0.7 } },
+      "ColorCorrection": { "$className": "ColorCorrectionEffect", "$properties": { "Contrast": 0.08, "Saturation": -0.04, "TintColor": [1.0, 0.97, 0.94] } }
+    },
+
+    "Workspace": {
+      "HoldingChamber": { "$className": "Folder" },
+      "Map": { "$className": "Folder" }
+    }
+  }
+}

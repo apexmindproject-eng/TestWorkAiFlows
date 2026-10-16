@@ -1,0 +1,81 @@
+name: Android APK
+on:
+  push:
+    paths: ["Fly in a Box/android/**", ".github/workflows/apk.yml"]
+  workflow_run:
+    workflows: ["Phone runtime"]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: Fly in a Box/android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Android SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
+      - name: The fly's runtime, from the apk release (built by the Phone runtime workflow)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download apk -R "$GITHUB_REPOSITORY" -p fly-runtime-arm64.tar.xz -O app/src/arm64/assets/runtime.bin
+          gh release download apk -R "$GITHUB_REPOSITORY" -p fly-runtime-x86_64.tar.xz -O app/src/x86/assets/runtime.bin
+          ls -la app/src/arm64/assets app/src/x86/assets
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - run: gradle assembleArm64Debug --no-daemon
+      - run: gradle assembleX86Debug --no-daemon
+      - run: |
+          cp app/build/outputs/apk/arm64/debug/app-arm64-debug.apk "$GITHUB_WORKSPACE/FlyInABox.apk"
+          cp app/build/outputs/apk/x86/debug/app-x86-debug.apk "$GITHUB_WORKSPACE/FlyInABox-x86_64.apk"
+          ls -la "$GITHUB_WORKSPACE"/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FlyInABox-apk
+          path: FlyInABox*.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk
+          name: Fly in a Box — Android app
+          body: "FlyInABox.apk is the whole thing: install it on an arm64 phone, open it, tap Start. It unpacks its runtime once (about 1.5 GB) and then runs the FlyWire brain and the NeuroMechFly body on the phone. FlyInABox-x86_64.apk is the emulator build used by the tests."
+          files: |
+            FlyInABox.apk
+            FlyInABox-x86_64.apk
+          prerelease: true
+  emulator:
+    needs: apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: FlyInABox-apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Run the app in an emulator until the fly serves its page
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: default
+          ram-size: 6144M
+          disk-size: 12G
+          heap-size: 1024M
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash "Fly in a Box/phone/emulator_test.sh" FlyInABox-x86_64.apk

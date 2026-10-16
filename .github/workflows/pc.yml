@@ -1,0 +1,82 @@
+name: PC app (Windows)
+on:
+  push:
+    paths: ["Fly in a Box/pc/**", ".github/workflows/pc.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Which CPython build (python-build-standalone, latest release, Windows x64)
+        id: pbs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RID=$(gh api repos/astral-sh/python-build-standalone/releases/latest --jq .id)
+          gh api --paginate "repos/astral-sh/python-build-standalone/releases/$RID/assets?per_page=100" --jq '.[].browser_download_url' > urls.txt
+          URL=$(grep -E "cpython-3\.12\.[0-9]+(\+|%2B)[0-9]+-x86_64-pc-windows-msvc-install_only\.tar\.gz$" urls.txt | head -1)
+          echo "python: $URL"; test -n "$URL"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+      - name: Assemble the app (Python, packages, the project, the FlyWire data)
+        run: |
+          set -e
+          D=dist/FlyInABox; mkdir -p $D/app
+          curl -sL "${{ steps.pbs.outputs.url }}" | tar -xzf - -C $D           # -> python/
+          PY=$D/python/python.exe
+          $PY -m pip install --no-cache-dir --upgrade pip
+          $PY -m pip install --no-cache-dir --prefer-binary numpy pandas pyarrow scipy numba pillow imageio flygym==2.1.0
+          $PY -c "import mujoco, numba, flygym, pandas, pyarrow, tkinter; print('imports ok', mujoco.__version__, numba.__version__)"
+          SRC="Fly in a Box"
+          cp "$SRC"/*.py "$D/app/"; cp -r "$SRC/flygym_demo" "$SRC/web" "$D/app/"; cp "$SRC/wing_stroke.npz" "$SRC/omm_centroids.npy" "$D/app/"
+          mkdir -p "$D/app/out" "$D/app/data"; cp "$SRC/omm_centroids.npy" "$D/app/out/"
+          cp "$SRC/pc/launcher.pyw" "$D/"
+          git clone --depth 1 https://github.com/philshiu/Drosophila_brain_model.git "$D/app/Drosophila_brain_model"
+          rm -rf "$D/app/Drosophila_brain_model/.git" "$D/app/Drosophila_brain_model"/*630*
+          curl -sL -o "$D/app/data/flywire_annotations_783.tsv" https://raw.githubusercontent.com/flyconnectome/flywire_annotations/main/supplemental_files/Supplemental_file1_neuron_annotations.tsv
+          rm -rf $D/python/Lib/test $D/python/Lib/idlelib/idle_test $D/python/Lib/turtledemo $D/python/Lib/site-packages/pip
+          find $D -name "__pycache__" -prune -exec rm -rf {} + 2>/dev/null || true
+          du -sh $D $D/python $D/app
+      - name: Smoke test (this runner has no graphics chip; Mesa's software OpenGL stands in, only for the test)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          D=dist/FlyInABox
+          MURL=$(gh api repos/pal1000/mesa-dist-win/releases/latest --jq '.assets[].browser_download_url' | grep -E "release-msvc\.7z$" | head -1)
+          echo "mesa: $MURL"; curl -sL -o mesa.7z "$MURL"; 7z x -y -omesa mesa.7z > /dev/null
+          cp mesa/x64/*.dll $D/python/
+          ROOT="$PWD"; cd $D/app
+          export NUMBA_CACHE_DIR="$RUNNER_TEMP/numba" PYTHONUNBUFFERED=1
+          ../python/python.exe flybox.py --seconds 0.3 --no-video --out out/smoke 2>&1 | tail -4
+          (../python/python.exe flybox.py --live 8799 --host 127.0.0.1 --out out/livecheck --pipeline 1 --phys-dt 2.5e-4 --ctrl-dt 1e-3 > "$RUNNER_TEMP/live.log" 2>&1 &)
+          ok=0; for i in $(seq 1 120); do sleep 5; if curl -s --max-time 3 http://127.0.0.1:8799/state | grep -q '"t"'; then ok=1; break; fi; done
+          tail -5 "$RUNNER_TEMP/live.log"; curl -s http://127.0.0.1:8799/state | head -c 400; echo
+          echo "scene $(curl -s http://127.0.0.1:8799/scene.bin | wc -c) bytes, page $(curl -s http://127.0.0.1:8799/ | wc -c) bytes"
+          taskkill //F //IM python.exe > /dev/null 2>&1 || true
+          sleep 3
+          cd "$ROOT"
+          for f in mesa/x64/*.dll; do rm -f "$D/python/$(basename "$f")"; done
+          rm -rf "$D/app/out/smoke" "$D/app/out/livecheck"; find $D -name "__pycache__" -prune -exec rm -rf {} + 2>/dev/null || true
+          test "$ok" = 1
+      - name: Installer (Inno Setup)
+        run: |
+          set -e
+          ISCC="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+          [ -f "$ISCC" ] || choco install innosetup -y --no-progress
+          "$ISCC" //DSrc="$(cygpath -w "$PWD/dist/FlyInABox")" //DOut="$(cygpath -w "$PWD/dist")" "Fly in a Box/pc/installer.iss" | tail -3
+          ls -la dist/FlyInABox-Setup.exe
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: pc
+          name: Fly in a Box — PC (Windows)
+          prerelease: true
+          make_latest: false
+          body: "FlyInABox-Setup.exe: run it (no administrator rights needed), then start Fly in a Box from the Start menu or the desktop. It runs the whole FlyWire brain and the NeuroMechFly body on the PC and opens the live view: the fly in 3D, the brain lighting up, both eyes. 'Fly in a Box (full physics)' runs every step at 0.1 ms, as in the videos."
+          files: dist/FlyInABox-Setup.exe
