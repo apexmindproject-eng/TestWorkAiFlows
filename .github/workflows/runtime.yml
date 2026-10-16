@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build the runtime in a plain Ubuntu container and export it
         run: |
-          docker create --name flyrt -v "$PWD:/src:ro" ubuntu:24.04 bash /src/"Fly in a Box"/phone/build_runtime.sh /src
+          docker create --name flyrt -v "$PWD:/src:ro" ubuntu:20.04 bash /src/"Fly in a Box"/phone/build_runtime.sh /src
           docker start -a flyrt
           docker export flyrt | xz -6 -T0 > fly-runtime-${{ matrix.arch }}.tar.xz
           docker rm flyrt
