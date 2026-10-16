@@ -23,7 +23,9 @@ OutputDir={#Out}
 OutputBaseFilename=FlyInABox-Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
-LZMANumBlockThreads=4
+LZMAUseSeparateProcess=yes
+LZMADictionarySize=262144
+LZMANumBlockThreads=2
 WizardStyle=modern
 UninstallDisplayName=Fly in a Box
 
