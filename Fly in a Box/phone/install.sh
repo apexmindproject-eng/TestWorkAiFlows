@@ -15,7 +15,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update && apt-get install -y python3 python3-venv python3-pip git curl libosmesa6 libgl1 libglu1-mesa libegl1 ffmpeg
 cd /root
 if [ ! -d TestWorkAiFlows ]; then
-  echo; echo "Cloning the project (GitHub asks for your user name and a personal access token):"
+  echo; echo "Cloning the project:"
   git clone --depth 1 -b claude/tanae-stuff-hhwfq6 https://github.com/apexmindproject-eng/TestWorkAiFlows.git
 fi
 cd "/root/TestWorkAiFlows/Fly in a Box"
