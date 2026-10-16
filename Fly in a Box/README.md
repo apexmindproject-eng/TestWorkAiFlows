@@ -338,6 +338,24 @@ Tested against the original settings on the same fly (40 s, `--seed 7`): the sam
 climbing and feeding, never on its back. Not usable: 0.5 ms on the ground (the fly spends half its
 time on its back) and 0.2 ms in flight (landings fail).
 
+## The PC app (Windows)
+
+`FlyInABox-Setup.exe` (the `pc` release of this repository) installs the whole thing for the current
+user, no administrator rights: CPython with the packages, this project and the FlyWire data. Start
+*Fly in a Box* from the Start menu or the desktop: a small window shows the brain loading (and, on
+the first start only, numba compiling the brain for this processor), then the live view opens in
+its own window (Edge in app mode), drawn by the graphics chip at full resolution with real-time
+shadows, next to the brain and both eyes. Closing the small window stops everything.
+
+- *Fly in a Box*: the published brain (every neuron, 0.1 ms steps) on all cores but one, the eyes at
+  full resolution (rendered by the graphics chip, as in the videos), the body at 0.25 ms on the
+  ground (tested to behave as at 0.1 ms) and 0.1 ms in flight, the brain alongside the body.
+- *Fly in a Box (full physics)*: every physics step at 0.1 ms and the brain strictly before the
+  body, exactly the settings of the videos; slower.
+
+The server listens on 127.0.0.1 only. `pc/launcher.pyw` is the launcher, `pc/installer.iss` the
+installer, `.github/workflows/pc.yml` builds and smoke-tests it on a Windows runner.
+
 ## Running it
 
 ```sh
