@@ -279,8 +279,10 @@ android/     the Android app (a full-screen window onto the live page)
 
 ## Sandbox mode and the phone app
 
-The simulation can be watched and poked from a phone, and can even run on one (see
-`phone/README.md`; it is slow there). Start it in sandbox mode:
+The simulation can be watched and poked from a phone, and can run on one: `FlyInABox.apk` in the
+`apk` release of this repository carries the whole runtime and runs the fly on the phone itself
+(install, open, tap Start; see `phone/README.md`; it is slow there). On a computer, start it in
+sandbox mode:
 
 ```sh
 MUJOCO_GL=osmesa python flybox.py --live 8765
@@ -289,10 +291,9 @@ MUJOCO_GL=osmesa python flybox.py --live 8765
 It runs until stopped and serves a page at `http://<that computer>:8765/` for any browser on the
 same network, with the chosen camera streamed as it is rendered (about 50 times slower than the
 clock: a second of watching is 20 ms of fly time). The Android app in `android/` is that page in a
-full-screen window; it asks once whether the fly runs on this phone or on a computer at some
-address (long-press Back to change it). The
-`Android APK` workflow in `.github/workflows/apk.yml` builds it on every push and attaches
-`FlyInABox.apk` to the `apk` release of the repository.
+full-screen window, with the simulation running inside the app. The `Phone runtime` and
+`Android APK` workflows in `.github/workflows/` build the runtime and the app and attach
+`FlyInABox.apk` to the `apk` release.
 
 What the page lets you do (all of it is the experimenter's hand, not the fly's brain; what the fly
 does about it is the brain's):
@@ -323,4 +324,5 @@ python render.py --run out/run1 --out out/fly_in_a_box.mp4
 
 `flybox.py` expects `out/omm_centroids.npy` (ommatidia centroids in the eye image); copy the
 `omm_centroids.npy` in this folder there. To run the whole thing on an Android phone instead of a
-computer, see `phone/README.md` (Termux; the same code, one to three minutes per simulated second).
+computer, install `FlyInABox.apk` (see `phone/README.md`; the same code, one to three minutes per
+simulated second).
