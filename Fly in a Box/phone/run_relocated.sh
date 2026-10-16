@@ -14,6 +14,8 @@ export LD_LIBRARY_PATH="$PYHOME/lib:$RT/lib/$TRIPLE:$RT/usr/lib/$TRIPLE:$RT/lib:
 export PYTHONHOME="$PYHOME" PYTHONPATH="$RT/opt/fly/venv/lib/$PYVER/site-packages" PYTHONNOUSERSITE=1
 export HOME="$RT/root" TMPDIR="$RT/tmp" MUJOCO_GL=osmesa PYOPENGL_PLATFORM=osmesa LC_ALL=C.UTF-8
 export PYGLFW_LIBRARY="$RT/opt/fly/libglfw.so"                 # see build_runtime.sh
+export LD_PRELOAD="$RT/opt/fly/libsigguard.so"                 # SIGSYS is never blocked (phone/sigguard.c)
+export JE_ARROW_MALLOC_CONF="background_thread:false"            # pyarrow's allocator: no background thread
 export NUMBA_CACHE_DIR="$RT/tmp/numba" OMP_NUM_THREADS=${OMP_NUM_THREADS:-4} NUMBA_NUM_THREADS=${NUMBA_NUM_THREADS:-4}
 # flyboot starts the loader with a SIGSYS handler already in place (Android refuses some system calls that way).
 # FLY_WRAP (optional) is a command put in front, e.g. the seccomp jail; "--python ARGS" runs python itself instead of flybox.py.

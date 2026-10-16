@@ -96,6 +96,8 @@ class FlyRuntime(private val ctx: Context) {
         env["PYTHONNOUSERSITE"] = "1"; env["PYTHONUNBUFFERED"] = "1"
         env["HOME"] = File(root, "root").path; env["TMPDIR"] = File(root, "tmp").path
         env["MUJOCO_GL"] = "osmesa"; env["PYOPENGL_PLATFORM"] = "osmesa"; env["LC_ALL"] = "C.UTF-8"
+        env["LD_PRELOAD"] = File(root, "opt/fly/libsigguard.so").path          // SIGSYS is never blocked, so flyboot's handler always answers (phone/sigguard.c)
+        env["JE_ARROW_MALLOC_CONF"] = "background_thread:false"                  // pyarrow's allocator would start a thread with every signal blocked
         env["PYGLFW_LIBRARY"] = File(root, "opt/fly/libglfw.so").path   // pyGLFW would otherwise probe libraries by starting python as a plain subprocess, which cannot start here
         env["GLIBC_TUNABLES"] = "glibc.pthread.rseq=0"      // Android's app sandbox forbids the rseq system call that glibc registers at start-up (SIGSYS, exit 159)
         env["NUMBA_CACHE_DIR"] = File(root, "tmp/numba").path

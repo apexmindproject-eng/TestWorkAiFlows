@@ -26,6 +26,8 @@ mkdir -p /opt/fly && curl -sL "$PBS_URL" | tar -xzf - -C /opt/fly          # -> 
 apt-get install -y --no-install-recommends gcc libc6-dev
 gcc -O2 -static-pie -nostdlib -nostartfiles -ffreestanding -fno-stack-protector -fno-builtin -fPIE -fno-asynchronous-unwind-tables \
     -o /opt/fly/flyboot "$SRC/Fly in a Box/phone/flyboot.c"
+# sigguard: keeps SIGSYS from being blocked, so the handler above always gets to answer (see phone/sigguard.c)
+gcc -O2 -shared -fPIC -o /opt/fly/libsigguard.so "$SRC/Fly in a Box/phone/sigguard.c"
 apt-get purge -y gcc libc6-dev; apt-get autoremove -y
 mkdir -p /opt/fly && cd /opt/fly
 # the project (code and small data only)

@@ -36,6 +36,10 @@ space for it and runs it the way a computer would, inside its own app directory:
   the call number to `files/fly.log` (`[sandbox] Android refused system call N`). (Running the
   loader "as a program" instead, `ld.so --library-path ... python`, trips a glibc 2.31 bug on
   aarch64 that leaves `getauxval` empty, on which LLVM aborts.)
+- `sigguard.c` is preloaded into python and keeps SIGSYS from ever being blocked. A handler only
+  runs while its signal is unblocked; with SIGSYS blocked, phone kernels kill the process anyway.
+  Some libraries block every signal while they start a thread (pyarrow's memory allocator does),
+  and that thread's first system call is one Android refuses.
 - `seccomp_jail.c` reproduces that sandbox on a Linux machine; the runtime workflow runs the
   smoke test under it. `run_relocated.sh` runs an unpacked runtime from any path the way the app
   does, and `emulator_test.sh` installs the x86_64 APK in an Android emulator and waits for the

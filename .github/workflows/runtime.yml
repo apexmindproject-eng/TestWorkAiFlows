@@ -1,7 +1,7 @@
 name: Phone runtime
 on:
   push:
-    paths: ["Fly in a Box/phone/build_runtime.sh", "Fly in a Box/phone/run_relocated.sh", "Fly in a Box/phone/flyboot.c", "Fly in a Box/phone/seccomp_jail.c", ".github/workflows/runtime.yml", "Fly in a Box/*.py"]
+    paths: ["Fly in a Box/phone/build_runtime.sh", "Fly in a Box/phone/run_relocated.sh", "Fly in a Box/phone/flyboot.c", "Fly in a Box/phone/sigguard.c", "Fly in a Box/phone/seccomp_jail.c", ".github/workflows/runtime.yml", "Fly in a Box/*.py"]
   workflow_dispatch:
 permissions:
   contents: write
