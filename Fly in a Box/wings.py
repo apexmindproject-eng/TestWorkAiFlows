@@ -78,61 +78,77 @@ def solve_base_stroke(sim, fly, cache="wing_stroke.npz", verbose=True):
     d.qpos[:] = q0; mj.mj_forward(m, d)
     np.savez(cache, l=out["l"], r=out["r"]); return out
 
+def _c(x, lo, hi):
+    """Clamp a plain number (np.clip on scalars costs microseconds; this runs 10,000 times per simulated second)."""
+    return lo if x < lo else (hi if x > hi else x)
+
+
+def _wrap(x):
+    return (x + np.pi) % (2 * np.pi) - np.pi
+
+
 class Flight:
     """Wing commands for stable flight: amplitude for lift, wing-pitch offset for body pitch, left/right amplitude
     asymmetry for roll, opposite wing-yaw offsets for yaw. Attitude signals are averaged over ~2 ms (haltere-like)."""
     G_P, G_R = 32000.0, 94000.0
     PK, PD, RK, RD = (float(os.environ.get(k, v)) for k, v in (("FLY_PK", 4000.0), ("FLY_PD", 400.0), ("FLY_RK", 40000.0), ("FLY_RD", 600.0)))
     def __init__(self, base, dt):
-        self.base = base; self.mean = {s: base[s].mean(0) for s in "lr"}; self.dt = dt; self.reset(0.0)
+        self.base = base; self.mean = {s: base[s].mean(0) for s in "lr"}; self.dt = dt
+        # the filters below were tuned as fractions per 0.1 ms step; these keep their time constants at any timestep
+        k = dt / 1e-4
+        self.f_att = 1 - 0.95 ** k; self.f_z = 1 - 0.98 ** k; self.slew_k = k; self.nbeat = max(1, int(round(50 / k)))
+        self.reset(0.0)
     def reset(self, z, R=None):
         self.t = 0.0; self.thf = 0.0; self.phf = 0.0
         if R is not None:
             up = R.T @ np.array([0.0, 0.0, 1.0]); self.thf = float(np.arctan2(up[0], up[2])); self.phf = float(np.arctan2(up[1], up[2]))
         self.thf = self.thf; self.dth = 0.0; self.dph = 0.0; self.th_prev = None; self.ph_prev = None
-        self.ip = 0.0; self.zf = z; self.vzf = 0.0; self.sc = 0.9; self.ramp = 0.0; self.off_p = 0.0; self.eps = 0.0; self.off_y = 0.0; self.theta_t = 0.0; self.wbuf = []
+        self.ip = 0.0; self.zf = z; self.vzf = 0.0; self.sc = 0.9; self.ramp = 0.0; self.off_p = 0.0; self.eps = 0.0; self.off_y = 0.0; self.theta_t = 0.0
+        self.wbuf = np.zeros((self.nbeat, 3)); self.wn = 0; self.wsum = np.zeros(3)     # haltere average: the body rates over one wingbeat, as a running sum
     W_P, W_R = (float(os.environ.get(k, v)) for k, v in (("FLY_WP", 25.0), ("FLY_WR", 40.0)))      # rate limits (rad/s)
     K2P, K2R = (float(os.environ.get(k, v)) for k, v in (("FLY_K2P", 150.0), ("FLY_K2R", 250.0)))   # rate-loop gains (1/s)
+    RF = float(os.environ.get("FLY_RF", 1.0))
     def step(self, R, z, vz, v_fwd, z_t, v_t, yaw_cmd, active=True, held=False, pitch_t=None, roll_t=0.0, lift=1.0, omega=None, roll_ctrl=True, fast_off=False, flip=None):
         """R: thorax rotation (world<-body), z/vz: height and vertical speed, v_fwd: body-forward speed.
         Returns {side: (yaw, pitch, roll)} wing joint targets. held: body still on its legs (no attitude integral).
         pitch_t / roll_t: attitude targets (rad, nose-up / left-side-up); pitch_t None = set by the speed loop."""
-        dt = self.dt; self.t += dt; filt = 0.05
-        up = R.T @ np.array([0.0, 0.0, 1.0])                                                  # world up in the body frame
+        dt = self.dt; self.t += dt; filt = self.f_att
+        up = R[2]                                                                              # world up in the body frame (= R.T @ z)
         theta = float(np.arctan2(up[0], up[2])); phi = float(np.arctan2(up[1], up[2]))       # nose-up, left-up; full range (an inverted fly reads 180 deg)
-        wrap = lambda x: (x + np.pi) % (2 * np.pi) - np.pi
+        wrap = _wrap
         theta = self.thf + wrap(theta - self.thf); phi = self.phf + wrap(phi - self.phf)       # continuous angles (no jump at +-180)
         self.thf += (theta - self.thf) * filt; self.phf += (phi - self.phf) * filt
         if self.th_prev is not None:
             self.dth += ((self.thf - self.th_prev) / dt - self.dth) * filt; self.dph += ((self.phf - self.ph_prev) / dt - self.dph) * filt
         self.th_prev, self.ph_prev = self.thf, self.phf
-        self.theta_t = float(np.clip(-0.012 * (v_t - v_fwd), -0.3, 0.3)) if pitch_t is None else float(pitch_t)   # nose down to speed up, nose up to slow
+        self.theta_t = _c(-0.012 * (v_t - v_fwd), -0.3, 0.3) if pitch_t is None else float(pitch_t)   # nose down to speed up, nose up to slow
         err = wrap(self.thf - self.theta_t); perr = wrap(self.phf - roll_t)
         if abs(perr) > 2.6: perr = 2.6 * np.sign(perr if perr != 0 else 1.0)                 # upside down: pick a side and commit
         if not held: self.ip += err * dt
         if omega is not None:                                                                  # body rates from the halteres, averaged over one wingbeat
-            self.wbuf.append(np.asarray(omega, float)); self.wbuf = self.wbuf[-50:]; w = np.mean(self.wbuf, axis=0)   # exactly one wingbeat: removes the 200 Hz body wobble
+            o = np.asarray(omega, float); k = self.wn % self.nbeat                            # exactly one wingbeat: removes the 200 Hz body wobble
+            self.wsum += o - self.wbuf[k]; self.wbuf[k] = o; self.wn += 1; w = self.wsum / min(self.wn, self.nbeat)
             rate_p, rate_r = -float(w[1]), float(w[0])                                         # omega = root free-joint angular velocity (thorax frame): nose-up = -w_y, left-up = +w_x (calibrated)
             self.rate_p, self.rate_r = rate_p, rate_r
         else:
             rate_p, rate_r = self.dth, self.dph
         # cascaded: a bounded rotation rate toward the target, then a rate loop
-        des_p = float(np.clip(-self.PK / self.PD * err, -self.W_P, self.W_P)); des_r = float(np.clip(-self.RK / self.RD * perr, -self.W_R, self.W_R))
+        des_p = _c(-self.PK / self.PD * err, -self.W_P, self.W_P); des_r = _c(-self.RK / self.RD * perr, -self.W_R, self.W_R)
 
         # plain proportional-derivative loops on wingbeat-averaged angles (the cascaded rate loop was less stable in hover)
-        RF = float(os.environ.get("FLY_RF", 1.0))
-        self.off_p = float(np.clip(-(4000 * err + 400 * self.dth) / self.G_P - 0.5 * self.ip, -0.35, 0.3))
+        RF = self.RF
+        self.off_p = _c(-(4000 * err + 400 * self.dth) / self.G_P - 0.5 * self.ip, -0.35, 0.3)
         if abs(err) > 1.0: self.off_p = -0.35 if err > 0 else 0.3                               # far off: full torque toward level (no braking yet)
-        if abs(perr) > 1.0: self.off_p = float(np.clip(-0.5 * self.ip, -0.35, 0.3))             # roll first
-        self.eps = float(np.clip(-RF * (4000 * perr + 400 * self.dph) / self.G_R, -0.25, 0.25))
+        if abs(perr) > 1.0: self.off_p = _c(-0.5 * self.ip, -0.35, 0.3)                         # roll first
+        self.eps = _c(-RF * (4000 * perr + 400 * self.dph) / self.G_R, -0.25, 0.25)
         if abs(perr) > 1.0: self.eps = -0.25 if perr > 0 else 0.25                               # far off: full roll torque
         if not roll_ctrl: self.eps = 0.0
-        self.off_y = float(np.clip(yaw_cmd, -0.06, 0.06))
-        self.zf += (z - self.zf) * 0.02; self.vzf += (vz - self.vzf) * 0.02
-        tilt = float(np.clip(up[2], -1, 1))                                                   # cos of the attitude error
+        self.off_y = _c(float(yaw_cmd), -0.06, 0.06)
+        self.zf += (z - self.zf) * self.f_z; self.vzf += (vz - self.vzf) * self.f_z
+        tilt = _c(float(up[2]), -1.0, 1.0)                                                    # cos of the attitude error
         hover = lift * (0.92 + 0.10 * (z_t - self.zf) - 0.012 * self.vzf)
-        if tilt < 0.0: sc_t, slew = 1.0, 0.01                                                 # upside down: beat hard anyway, the roll torque needs the stroke
-        else: sc_t, slew = float(np.clip(hover + 0.3 * (1.0 - tilt) / 1.0, 0.75, 1.2)), 0.01     # tilted: more lift, smoothly
+        if tilt < 0.0: sc_t, slew = 1.0, 0.01 * self.slew_k                                   # upside down: beat hard anyway, the roll torque needs the stroke
+        else: sc_t, slew = _c(hover + 0.3 * (1.0 - tilt) / 1.0, 0.75, 1.2), 0.01 * self.slew_k    # tilted: more lift, smoothly
         if flip:
             # the landing flip (Liu, Chen & Chang 2019): full torque over the first 90 degrees, full brake over the second,
             # so the body arrives inverted with little spin; flip_done once it is past 90 and no longer turning that way
@@ -142,8 +158,8 @@ class Flight:
             else: self.off_p = 0.0; self.eps = -0.25 if first_half else (0.25 if rate_r < 0 else 0.0); self.flip_done = (not first_half) and rate_r >= 0
             sc_t = 1.0
         else: self.flip_done = False
-        self.sc += float(np.clip(sc_t - self.sc, -slew, slew))
-        self.ramp = float(np.clip(self.ramp + (dt / 0.02 if active else -dt / (0.01 if fast_off else 0.05)), 0.0, 1.0))   # fast_off: the stroke stops within 10 ms (landing)
+        self.sc += _c(sc_t - self.sc, -slew, slew)
+        self.ramp = _c(self.ramp + (dt / 0.02 if active else -dt / (0.01 if fast_off else 0.05)), 0.0, 1.0)   # fast_off: the stroke stops within 10 ms (landing)
         ph = (self.t * F_BEAT * N_PHASE) % N_PHASE; i0 = int(ph); i1 = (i0 + 1) % N_PHASE; u = ph - i0
         out = {}
         for s, sgn in (("l", 1), ("r", -1)):

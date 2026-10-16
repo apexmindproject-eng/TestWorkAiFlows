@@ -54,7 +54,7 @@ class FlyService : Service() {
                 }
                 phase = "starting"; detail = "Loading the brain (138,639 neurons)…"; update("Fly in a Box", "loading the brain")
                 rt.logFile.writeText("")
-                val threads = java.lang.Runtime.getRuntime().availableProcessors().coerceIn(2, 4)
+                val threads = (java.lang.Runtime.getRuntime().availableProcessors() - 1).coerceIn(2, 7)   // the brain's threads; one core stays free for the body (physics runs alongside)
                 val p = rt.launch(threads); process = p
                 p.inputStream.bufferedReader().useLines { lines ->
                     rt.logFile.bufferedWriter().use { w ->

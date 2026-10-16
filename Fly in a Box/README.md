@@ -273,7 +273,8 @@ fullfly.py   the fully jointed NeuroMechFly body (legs, head, proboscis, antenna
 wings.py     flight: air on the wings, the wingbeat (solved once, cached in wing_stroke.npz), the stabiliser and the landing flip
 cns.py       whole-CNS simulator for the male dataset (brain + nerve cord), used for the tests above
 render.py    composes the video: body cameras, both eyes, brain activity, descending-neuron meters
-live.py      sandbox mode: the web server that streams the fly to a browser or the Android app and takes its commands
+live.py      sandbox mode: the web server behind the live page (3D view drawn in the browser, brain, eyes, controls)
+web/         three.js (MIT licence), served to the live page
 android/     the Android app (a full-screen window onto the live page)
 ```
 
@@ -289,9 +290,16 @@ MUJOCO_GL=osmesa python flybox.py --live 8765
 ```
 
 It runs until stopped and serves a page at `http://<that computer>:8765/` for any browser on the
-same network, with the chosen camera streamed as it is rendered (about 50 times slower than the
-clock: a second of watching is 20 ms of fly time). The Android app in `android/` is that page in a
-full-screen window, with the simulation running inside the app. The `Phone runtime` and
+same network. The page draws the fly in 3D itself (WebGL): the simulation streams the pose of every
+body part every 10 ms of fly time, plus spikes, eye images and state, and the browser interpolates
+between poses, so the motion is smooth at the screen's frame rate whatever the simulation's speed.
+The simulation never runs ahead of the clock; when it cannot keep up, the page plays it in smooth
+slow motion and says how fast it is going. Below the 3D view: the whole brain (every neuron a dot,
+lit as it spikes, coloured by class), both compound eyes ommatidium by ommatidium (what the brain's
+photoreceptors get), and the firing rates of the key neurons (giant fibre, the turning and walking
+descending neurons, the proboscis motor neuron, the reward dopamine neurons) next to the senses
+that drive them. The Android app in `android/` is that page in a full-screen window, with the
+simulation running inside the app. The `Phone runtime` and
 `Android APK` workflows in `.github/workflows/` build the runtime and the app and attach
 `FlyInABox.apk` to the `apk` release.
 
@@ -304,11 +312,31 @@ does about it is the brain's):
   take-off, or upside down so it lands on its back and rights itself.
 - *put on the lid* / *put on a wall*: placed there by hand, it walks on, and leaves when it chooses.
 - *blindfold*: the eyes see uniform grey (no looming, no dark objects).
-- *hunger* slider and *tap the overhead view to move the food*.
-- *pause*, and a choice of cameras.
+- *hunger* slider; *double-tap the floor* in the 3D view to move the food.
+- *pause*; cameras: follow, side, top, or drag with a finger to orbit (pinch to zoom).
 
-`live.py` is the whole server (motion JPEG stream, a JSON state line, a command queue applied by
-the simulation at its next 10 ms tick).
+`live.py` is the whole server: the scene once (meshes, colours, cube textures), then one binary feed
+(long poll) of poses, spikes, eye images and state, and a command queue the simulation applies at
+its next 10 ms tick.
+
+### Speed
+
+The brain kernel computes the same model as the published one in blocks of 18 steps: a spike takes
+1.8 ms to reach its targets, so for 18 steps of 0.1 ms every neuron evolves on its own. Each thread
+integrates its own range of neurons for the whole block with the state in registers, neurons at
+rest with no input on the way are skipped, and the block's spikes are then delivered (by target
+range, in parallel). On 4 cores it runs about 7 times faster than the step-by-step kernel, with
+per-neuron firing rates matching it within run-to-run noise (`run(reference=True)` runs the old
+kernel). With `--phone` (and in sandbox mode) the brain also runs alongside the body: the body
+moves on the previous 10 ms of brain output while the brain computes the next 10 ms, which adds
+10 ms of reflex delay (a fly's visual reactions take 20 to 30 ms).
+
+`--phone` also sets the body's physics timestep on the ground and on surfaces to 0.25 ms with the
+leg controller updating every 1 ms (flight and landings keep 0.1 ms, the wingbeat is 200 Hz), and
+renders the eyes at half resolution through one precomputed ommatidium table, without shadows.
+Tested against the original settings on the same fly (40 s, `--seed 7`): the same walking speed,
+climbing and feeding, never on its back. Not usable: 0.5 ms on the ground (the fly spends half its
+time on its back) and 0.2 ms in flight (landings fail).
 
 ## Running it
 
@@ -318,11 +346,10 @@ pip install numpy pandas pyarrow scipy numba imageio imageio-ffmpeg pillow flygy
 git clone --depth 1 https://github.com/philshiu/Drosophila_brain_model.git   # contains Connectivity_783.parquet
 mkdir -p data && curl -sL -o data/flywire_annotations_783.tsv \
   https://raw.githubusercontent.com/flyconnectome/flywire_annotations/main/supplemental_files/Supplemental_file1_neuron_annotations.tsv
-MUJOCO_GL=osmesa python flybox.py --seconds 25 --out out/run1    # ~50 s of compute per simulated second
+MUJOCO_GL=osmesa python flybox.py --seconds 25 --out out/run1    # ~15 s of compute per simulated second on 4 cores
 python render.py --run out/run1 --out out/fly_in_a_box.mp4
 ```
 
 `flybox.py` expects `out/omm_centroids.npy` (ommatidia centroids in the eye image); copy the
 `omm_centroids.npy` in this folder there. To run the whole thing on an Android phone instead of a
-computer, install `FlyInABox.apk` (see `phone/README.md`; the same code, one to three minutes per
-simulated second).
+computer, install `FlyInABox.apk` (see `phone/README.md`; the same code).
