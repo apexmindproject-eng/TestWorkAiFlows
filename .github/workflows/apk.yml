@@ -29,8 +29,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download apk -R "$GITHUB_REPOSITORY" -p fly-runtime-arm64.tar.gz -O app/src/arm64/assets/runtime.bin
-          gh release download apk -R "$GITHUB_REPOSITORY" -p fly-runtime-x86_64.tar.gz -O app/src/x86/assets/runtime.bin
+          gh release download apk -R "$GITHUB_REPOSITORY" -p fly-runtime-arm64.tar.xz -O app/src/arm64/assets/runtime.bin
+          gh release download apk -R "$GITHUB_REPOSITORY" -p fly-runtime-x86_64.tar.xz -O app/src/x86/assets/runtime.bin
           ls -la app/src/arm64/assets app/src/x86/assets
       - uses: gradle/actions/setup-gradle@v4
         with:

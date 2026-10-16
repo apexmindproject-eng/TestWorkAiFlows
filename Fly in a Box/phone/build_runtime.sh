@@ -29,7 +29,14 @@ cp omm_centroids.npy out/
 # smoke test in place: the whole loop for a third of a second (loads the brain, compiles the kernels, renders)
 MUJOCO_GL=osmesa python flybox.py --seconds 0.3 --phone --out out/smoke 2>&1 | tail -5
 rm -rf out/smoke
-# slim down
-apt-get clean; rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man /root/.cache
-find / -xdev -name "__pycache__" -path "*site-packages*" -prune -exec rm -rf {} + 2>/dev/null || true
+# slim down: the app carries all of this inside the APK
+apt-get install -y --no-install-recommends binutils
+find /opt/fly/venv /usr/lib -xdev \( -name "*.so" -o -name "*.so.*" \) -type f -exec strip --strip-unneeded {} + 2>/dev/null || true
+apt-get purge -y binutils; apt-get autoremove -y; apt-get clean
+rm -rf /var/lib/apt/lists/* /var/cache/* /usr/share/doc /usr/share/man /usr/share/info /usr/share/locale /usr/share/i18n /root/.cache
+rm -rf /usr/lib/python3*/test /usr/lib/python3*/idlelib /usr/lib/python3*/tkinter /usr/lib/python3*/turtledemo /usr/lib/python3*/ensurepip
+rm -rf /opt/fly/venv/lib/python3*/site-packages/pip /opt/fly/venv/lib/python3*/site-packages/setuptools
+find / -xdev -name "__pycache__" -prune -exec rm -rf {} + 2>/dev/null || true
+# the kernels compile again on first start on the phone; the caches would be for this machine's CPU anyway
+MUJOCO_GL=osmesa python -c "import flygym, mujoco, numba, pandas, pyarrow; print('imports ok after slimming')"
 echo "runtime built: $(du -sh / --exclude=proc --exclude=sys --exclude=dev 2>/dev/null | cut -f1)"

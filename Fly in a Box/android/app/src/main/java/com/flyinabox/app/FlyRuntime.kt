@@ -8,11 +8,11 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileOutputStream
-import java.util.zip.GZIPInputStream
+import org.tukaani.xz.XZInputStream
 
 /**
  * The fly's Linux runtime: an Ubuntu file tree with Python, MuJoCo, numba, flygym, the FlyWire brain and the
- * project, carried inside the APK (assets/runtime.bin (a gzip tar)) and unpacked once into the app's own storage.
+ * project, carried inside the APK (assets/runtime.bin (an xz tar)) and unpacked once into the app's own storage.
  * It is executed through the runtime's own glibc loader, so nothing is installed on the phone and no root is used.
  * Mirrors phone/run_relocated.sh, which tests the same tree on a Linux machine.
  */
@@ -26,7 +26,7 @@ class FlyRuntime(private val ctx: Context) {
     private val triple get() = if (arm) "aarch64-linux-gnu" else "x86_64-linux-gnu"
     private val loader get() = if (arm) File(root, "lib/aarch64-linux-gnu/ld-linux-aarch64.so.1") else File(root, "lib/x86_64-linux-gnu/ld-linux-x86-64.so.2")
 
-    /** Unpack assets/runtime.bin (a gzip tar) into root. progress(bytesRead, totalBytes, lastPath). */
+    /** Unpack assets/runtime.bin (an xz tar) into root. progress(bytesRead, totalBytes, lastPath). */
     fun unpack(progress: (Long, Long, String) -> Unit) {
         if (root.exists()) root.deleteRecursively()
         root.mkdirs()
@@ -34,7 +34,7 @@ class FlyRuntime(private val ctx: Context) {
         val total = fd.length
         val counting = CountingInputStream(fd.createInputStream())
         val links = ArrayList<Pair<File, String>>()
-        TarArchiveInputStream(GZIPInputStream(BufferedInputStream(counting, 1 shl 20), 1 shl 16)).use { tar ->
+        TarArchiveInputStream(XZInputStream(BufferedInputStream(counting, 1 shl 20))).use { tar ->
             var n = 0
             while (true) {
                 val e: TarArchiveEntry = tar.nextTarEntry ?: break
