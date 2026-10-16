@@ -1,91 +1,128 @@
 package com.flyinabox.app
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
+import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
-import android.view.KeyEvent
+import android.os.Handler
+import android.os.Looper
+import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
-import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.EditText
+import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.ScrollView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.concurrent.thread
 
-/** A window onto the simulation: the phone shows the page the simulation serves (flybox.py --live PORT). */
+/** The fly, on this phone: a status screen while the runtime unpacks and the brain loads, then the live page. */
 class MainActivity : AppCompatActivity() {
-    private lateinit var web: WebView
-    private val prefs by lazy { getSharedPreferences("fly", MODE_PRIVATE) }
+    private lateinit var frame: FrameLayout
+    private lateinit var status: LinearLayout
+    private lateinit var title: TextView
+    private lateinit var detail: TextView
+    private lateinit var bar: ProgressBar
+    private lateinit var log: TextView
+    private lateinit var button: Button
+    private var web: WebView? = null
+    private val ui = Handler(Looper.getMainLooper())
+    private var showingFly = false
+    private var lastProbe = 0L
 
-    @SuppressLint("SetJavaScriptEnabled")
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        web = WebView(this)
-        web.settings.javaScriptEnabled = true
-        web.settings.domStorageEnabled = true
-        web.settings.mediaPlaybackRequiresUserGesture = false
-        web.settings.loadWithOverviewMode = true
-        web.settings.useWideViewPort = true
-        web.webViewClient = object : WebViewClient() {
-            /** Nothing answers yet (the simulation is not started): show our own page, which keeps checking. */
-            override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                if (request.isForMainFrame) {
-                    val target = request.url.toString()
-                    view.loadUrl("file:///android_asset/waiting.html#" + java.net.URLEncoder.encode(target, "UTF-8").replace("+", "%20"))
-                }
-            }
+        frame = FrameLayout(this).apply { setBackgroundColor(0xFF0B0B10.toInt()) }
+        status = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(48, 96, 48, 48) }
+        title = TextView(this).apply { text = "Fly in a Box"; textSize = 26f; setTextColor(0xFF8CC8FF.toInt()); typeface = Typeface.DEFAULT_BOLD }
+        detail = TextView(this).apply { textSize = 15f; setTextColor(0xFFE8E8F0.toInt()); setPadding(0, 16, 0, 16) }
+        bar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = 1000; visibility = View.GONE }
+        log = TextView(this).apply { textSize = 11f; setTextColor(0xFF99A0B0.toInt()); typeface = Typeface.MONOSPACE; setPadding(0, 24, 0, 0) }
+        button = Button(this).apply { text = "Start the fly"; setOnClickListener { onButton() } }
+        val hint = TextView(this).apply {
+            text = "A real FlyWire brain (138,639 neurons, 15 million synapses) in a NeuroMechFly body, in a box, computed on this phone. " +
+                "The first start unpacks about 1.5 GB (a few minutes); every start then loads the brain (about a minute). " +
+                "It runs in slow motion: one second of fly time takes one to three minutes here."
+            textSize = 13f; setTextColor(0xFF99A0B0.toInt()); setPadding(0, 24, 0, 0)
         }
-        web.addJavascriptInterface(object { @JavascriptInterface fun changeServer() { runOnUiThread { askForServer() } } }, "Android")
-        web.settings.allowFileAccess = true
-        web.webChromeClient = WebChromeClient()
-        web.setBackgroundColor(0xFF0B0B10.toInt())
-        setContentView(web)
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-        val url = prefs.getString("url", null)
-        if (url == null) askForServer() else web.loadUrl(url)
+        status.addView(title); status.addView(detail); status.addView(bar); status.addView(button); status.addView(hint)
+        status.addView(ScrollView(this).apply { addView(log) }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+        frame.addView(status)
+        setContentView(frame)
+        if (FlyService.running || Runtime(this).isUnpacked) FlyService.start(this)
+        ui.post(tick)
     }
 
-    private fun askForServer() {
-        val box = EditText(this)
-        box.hint = "http://192.168.1.20:8765"
-        box.setText(prefs.getString("url", "http://"))
-        AlertDialog.Builder(this)
-            .setTitle("Where is the fly?")
-            .setMessage("On this phone: install it with Termux (phone/README.md in the project) and start it with  bash ~/fly.sh.\n\nOn a computer: start it there with  python flybox.py --live 8765  and enter that computer's address below.")
-            .setView(box)
-            .setCancelable(false)
-            .setNeutralButton("This phone") { _, _ -> go("http://127.0.0.1:8765") }
-            .setPositiveButton("That address") { _, _ ->
-                var u = box.text.toString().trim()
-                if (!u.startsWith("http")) u = "http://$u"
-                if (!u.substringAfter("://").contains(":")) u = "$u:8765"
-                go(u)
+    private fun onButton() {
+        if (FlyService.running) { FlyService.stop(this); showStatus() } else FlyService.start(this)
+    }
+
+    private val tick = object : Runnable {
+        @SuppressLint("SetTextI18n")
+        override fun run() {
+            val phase = FlyService.phase
+            button.text = if (FlyService.running) "Stop the fly" else "Start the fly"
+            detail.text = when (phase) {
+                "idle" -> "Not running."
+                "unpacking" -> "Unpacking the runtime (one time): ${FlyService.detail}"
+                "starting" -> "Starting… ${FlyService.detail}"
+                "running" -> "Running. ${FlyService.detail}"
+                "failed" -> "It stopped with an error. ${FlyService.detail}"
+                else -> FlyService.detail
             }
-            .show()
+            bar.visibility = if (phase == "unpacking") View.VISIBLE else View.GONE
+            bar.progress = (1000 * FlyService.progress).toInt()
+            if (!showingFly) {
+                try { val f = Runtime(this@MainActivity).logFile; if (f.exists()) { val lines = f.readLines(); log.text = lines.takeLast(25).joinToString("\n") } } catch (_: Exception) {}
+                val now = System.currentTimeMillis()
+                if (FlyService.running && now - lastProbe > 3000) { lastProbe = now; probe() }
+            } else if (!FlyService.running) showStatus()
+            ui.postDelayed(this, 1000)
+        }
     }
 
-    private fun go(u: String) {
-        prefs.edit().putString("url", u).apply()
-        web.loadUrl(u)
+    /** Is the simulation serving yet? Then switch to its page. */
+    private fun probe() = thread {
+        try {
+            val c = URL("http://127.0.0.1:8765/state").openConnection() as HttpURLConnection
+            c.connectTimeout = 1500; c.readTimeout = 1500
+            if (c.responseCode == 200) ui.post { showFly() }
+            c.disconnect()
+        } catch (_: Exception) {}
     }
 
-    /** Long-press the back key to change the server address. */
-    override fun onKeyLongPress(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK) { askForServer(); return true }
-        return super.onKeyLongPress(keyCode, event)
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun showFly() {
+        if (showingFly) return
+        showingFly = true
+        val w = WebView(this)
+        w.settings.javaScriptEnabled = true; w.settings.domStorageEnabled = true
+        w.settings.loadWithOverviewMode = true; w.settings.useWideViewPort = true
+        w.webViewClient = WebViewClient(); w.webChromeClient = WebChromeClient()
+        w.setBackgroundColor(0xFF0B0B10.toInt())
+        frame.removeAllViews(); frame.addView(w)
+        web = w
+        w.loadUrl("http://127.0.0.1:8765/")
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK) { event?.startTracking(); return true }
-        return super.onKeyDown(keyCode, event)
+    private fun showStatus() {
+        if (!showingFly) return
+        showingFly = false
+        web?.destroy(); web = null
+        frame.removeAllViews(); frame.addView(status)
     }
 
-    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK && event?.isTracking == true && !event.isCanceled) { web.reload(); return true }
-        return super.onKeyUp(keyCode, event)
+    /** Back on the live page: back to the status screen (the fly keeps running); back there: leave. */
+    override fun onBackPressed() {
+        if (showingFly) showStatus() else super.onBackPressed()
     }
 }

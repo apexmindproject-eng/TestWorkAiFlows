@@ -2,12 +2,16 @@ name: Android APK
 on:
   push:
     paths: ["Fly in a Box/android/**", ".github/workflows/apk.yml"]
+  workflow_run:
+    workflows: ["Phone runtime"]
+    types: [completed]
   workflow_dispatch:
 permissions:
   contents: write
 jobs:
   apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     defaults:
       run:
         working-directory: Fly in a Box/android
@@ -17,23 +21,75 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: Android SDK packages (the runner image has the SDK; accept licences, add the platform and build tools)
+      - name: Android SDK packages
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
+      - name: The fly's runtime, from the apk release (built by the Phone runtime workflow)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download apk -R "$GITHUB_REPOSITORY" -p fly-runtime-arm64.tar.gz -O app/src/arm64/assets/runtime.tar.gz
+          gh release download apk -R "$GITHUB_REPOSITORY" -p fly-runtime-x86_64.tar.gz -O app/src/x86/assets/runtime.tar.gz
+          ls -la app/src/arm64/assets app/src/x86/assets
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - run: gradle assembleDebug --no-daemon
-      - run: cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/FlyInABox.apk"
+      - run: gradle assembleArm64Debug assembleX86Debug --no-daemon -Dorg.gradle.jvmargs=-Xmx4g
+      - run: |
+          cp app/build/outputs/apk/arm64/debug/app-arm64-debug.apk "$GITHUB_WORKSPACE/FlyInABox.apk"
+          cp app/build/outputs/apk/x86/debug/app-x86-debug.apk "$GITHUB_WORKSPACE/FlyInABox-x86_64.apk"
+          ls -la "$GITHUB_WORKSPACE"/*.apk
       - uses: actions/upload-artifact@v4
         with:
           name: FlyInABox-apk
-          path: FlyInABox.apk
+          path: FlyInABox*.apk
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: apk
           name: Fly in a Box — Android app
-          body: "Install FlyInABox.apk on the phone, start `python flybox.py --live 8765` on the computer, enter its address in the app."
-          files: FlyInABox.apk
+          body: "FlyInABox.apk is the whole thing: install it on an arm64 phone, open it, tap Start. It unpacks its runtime once (about 1.5 GB) and then runs the FlyWire brain and the NeuroMechFly body on the phone. FlyInABox-x86_64.apk is the emulator build used by the tests."
+          files: |
+            FlyInABox.apk
+            FlyInABox-x86_64.apk
           prerelease: true
+  emulator:
+    needs: apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: FlyInABox-apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Run the app in an emulator until the fly serves its page
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: default
+          ram-size: 6144M
+          disk-size: 12G
+          heap-size: 1024M
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            adb install -r FlyInABox-x86_64.apk
+            adb shell am start -n com.flyinabox.app/.MainActivity
+            sleep 20
+            adb shell am startservice -a start -n com.flyinabox.app/.FlyService || true
+            adb forward tcp:8765 tcp:8765
+            ok=0
+            for i in $(seq 1 150); do
+              sleep 20
+              if curl -s --max-time 5 http://127.0.0.1:8765/state | grep -q '"t"'; then ok=1; break; fi
+              echo "--- $((i*20)) s"; adb shell run-as com.flyinabox.app sh -c 'tail -n 3 files/fly.log' 2>/dev/null || true
+            done
+            echo "=== fly.log"; adb shell run-as com.flyinabox.app sh -c 'tail -n 60 files/fly.log' || true
+            echo "=== logcat (app)"; adb logcat -d | grep -iE "flyinabox|AndroidRuntime" | tail -40 || true
+            curl -s --max-time 5 http://127.0.0.1:8765/state; echo
+            [ "$ok" = 1 ]
