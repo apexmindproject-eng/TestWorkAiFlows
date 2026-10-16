@@ -6,7 +6,10 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
+import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.EditText
@@ -27,7 +30,17 @@ class MainActivity : AppCompatActivity() {
         web.settings.mediaPlaybackRequiresUserGesture = false
         web.settings.loadWithOverviewMode = true
         web.settings.useWideViewPort = true
-        web.webViewClient = WebViewClient()
+        web.webViewClient = object : WebViewClient() {
+            /** Nothing answers yet (the simulation is not started): show our own page, which keeps checking. */
+            override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+                if (request.isForMainFrame) {
+                    val target = request.url.toString()
+                    view.loadUrl("file:///android_asset/waiting.html#" + java.net.URLEncoder.encode(target, "UTF-8").replace("+", "%20"))
+                }
+            }
+        }
+        web.addJavascriptInterface(object { @JavascriptInterface fun changeServer() { runOnUiThread { askForServer() } } }, "Android")
+        web.settings.allowFileAccess = true
         web.webChromeClient = WebChromeClient()
         web.setBackgroundColor(0xFF0B0B10.toInt())
         setContentView(web)
