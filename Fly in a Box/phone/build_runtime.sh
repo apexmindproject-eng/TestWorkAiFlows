@@ -42,7 +42,8 @@ MUJOCO_GL=osmesa python flybox.py --seconds 0.3 --phone --out out/smoke 2>&1 | t
 rm -rf out/smoke
 # slim down: the app carries all of this inside the APK
 apt-get install -y --no-install-recommends binutils
-find /opt/fly/venv /opt/fly/python /usr/lib -xdev \( -name "*.so" -o -name "*.so.*" \) -type f -exec strip --strip-unneeded {} + 2>/dev/null || true
+# only the system libraries: this release's strip mangles the wheels' 64 KB-aligned libraries (OpenBLAS: "load command not properly aligned")
+find /usr/lib -xdev \( -name "*.so" -o -name "*.so.*" \) -type f -exec strip --strip-unneeded {} + 2>/dev/null || true
 apt-get purge -y binutils; apt-get autoremove -y; apt-get clean
 rm -rf /var/lib/apt/lists/* /var/cache/* /usr/share/doc /usr/share/man /usr/share/info /usr/share/locale /usr/share/i18n /root/.cache
 rm -rf /opt/fly/python/lib/python3*/test /opt/fly/python/lib/python3*/idlelib /opt/fly/python/lib/python3*/tkinter /opt/fly/python/lib/python3*/turtledemo /opt/fly/python/lib/python3*/ensurepip /opt/fly/python/lib/python3*/site-packages/pip /opt/fly/python/share
