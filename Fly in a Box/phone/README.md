@@ -28,11 +28,14 @@ space for it and runs it the way a computer would, inside its own app directory:
   loader, and the activity shows the live page from `127.0.0.1:8765` in a WebView.
 - `flyboot.c` is the small launcher the service actually starts. Android's app sandbox answers a
   few system calls with SIGSYS, which kills a normal process (that is "exit 159"). flyboot needs
-  no libc; it installs a handler for SIGSYS, maps glibc's loader into the same process and jumps
-  to it, so the handler is there from the loader's first system call. The handler translates the
-  old x86_64 calls that glibc 2.31 still uses (open, stat, access, readlink, poll, select, ...)
-  into their modern forms, which the sandbox allows, and answers anything else with ENOSYS,
-  logging the call number to `files/fly.log` (`[sandbox] Android refused system call N`).
+  no libc; it installs a handler for SIGSYS, then maps python and glibc's loader into the same
+  process and jumps to the loader, the way the kernel starts a dynamically linked program, so
+  the handler is there from the loader's first system call. The handler translates the old
+  x86_64 calls that glibc 2.31 still uses (open, stat, access, readlink, poll, select, ...) into
+  their modern forms, which the sandbox allows, and answers anything else with ENOSYS, logging
+  the call number to `files/fly.log` (`[sandbox] Android refused system call N`). (Running the
+  loader "as a program" instead, `ld.so --library-path ... python`, trips a glibc 2.31 bug on
+  aarch64 that leaves `getauxval` empty, on which LLVM aborts.)
 - `seccomp_jail.c` reproduces that sandbox on a Linux machine; the runtime workflow runs the
   smoke test under it. `run_relocated.sh` runs an unpacked runtime from any path the way the app
   does, and `emulator_test.sh` installs the x86_64 APK in an Android emulator and waits for the
