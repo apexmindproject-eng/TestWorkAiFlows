@@ -41,6 +41,7 @@ p.add_argument("--climb-p", type=float, default=0.6, help="probability that a fl
 p.add_argument("--published-brain", action="store_true", help="use the published model without the antennal-lobe and sensory corrections")
 p.add_argument("--turn-gain", type=float, default=100.0, help="Hz of DNa02 left-right difference that gives a full-strength turn")
 p.add_argument("--live", type=int, default=0, help="sandbox mode: serve the fly live on this port (phone app / browser), run until stopped")
+p.add_argument("--phone", action="store_true", help="running on a phone: two cameras instead of five, eyes at 25 Hz, 10 frames per simulated second")
 args = p.parse_args()
 if args.live: args.seconds = 1e7
 os.makedirs(args.out + "/frames", exist_ok=True)
@@ -49,6 +50,7 @@ DT = 1e-4
 CHUNK = 100               # brain/body steps per control tick (10 ms)
 VISION_EVERY = 2          # ticks between eye updates (20 ms)
 FRAME_EVERY = 3.3333      # ticks between video frames (30 fps)
+if args.phone: VISION_EVERY, FRAME_EVERY = 4, 10.0      # a phone renders slowly: eyes every 40 ms, 10 frames per simulated second
 
 # ----------------------------------------------------------------------------- brain
 b = Brain("Drosophila_brain_model/Completeness_783.csv", "Drosophila_brain_model/Connectivity_783.parquet", "data/flywire_annotations_783.tsv")
@@ -165,7 +167,7 @@ for g in ("fly/c_haustellum", "fly/c_rostrum", "fly/c_head"):
 print(f"[box] {len(fly_geoms)} body parts collide with the walls and post:", fly_geoms)
 sim = Simulation(world)
 WBASE = solve_base_stroke(sim, fly, cache="wing_stroke.npz")     # the wing stroke, solved on this model's hinges (cached)
-sim.set_renderer([follow, close, "overhead", follow_b, close_b], camera_res=(480, 640), playback_speed=1.0, output_fps=30, buffer_frames=True)
+sim.set_renderer([follow, "overhead"] if args.phone else [follow, close, "overhead", follow_b, close_b], camera_res=(480, 640), playback_speed=1.0, output_fps=10 if args.phone else 30, buffer_frames=True)
 
 steps = PreprogrammedSteps()
 BODY = FullBodyActions(fly, steps)

@@ -42,17 +42,22 @@ class MainActivity : AppCompatActivity() {
         box.setText(prefs.getString("url", "http://"))
         AlertDialog.Builder(this)
             .setTitle("Where is the fly?")
-            .setMessage("On the computer running the simulation, start it with\n\npython flybox.py --live 8765\n\nand enter that computer's address here (it prints it when it starts).")
+            .setMessage("On this phone: install it with Termux (phone/README.md in the project) and start it with  bash ~/fly.sh.\n\nOn a computer: start it there with  python flybox.py --live 8765  and enter that computer's address below.")
             .setView(box)
             .setCancelable(false)
-            .setPositiveButton("Watch") { _, _ ->
+            .setNeutralButton("This phone") { _, _ -> go("http://127.0.0.1:8765") }
+            .setPositiveButton("That address") { _, _ ->
                 var u = box.text.toString().trim()
                 if (!u.startsWith("http")) u = "http://$u"
                 if (!u.substringAfter("://").contains(":")) u = "$u:8765"
-                prefs.edit().putString("url", u).apply()
-                web.loadUrl(u)
+                go(u)
             }
             .show()
+    }
+
+    private fun go(u: String) {
+        prefs.edit().putString("url", u).apply()
+        web.loadUrl(u)
     }
 
     /** Long-press the back key to change the server address. */

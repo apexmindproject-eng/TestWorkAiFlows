@@ -279,8 +279,8 @@ android/     the Android app (a full-screen window onto the live page)
 
 ## Sandbox mode and the phone app
 
-The simulation cannot run on a phone (it needs the 15-million-synapse brain and MuJoCo), but it
-can be watched and poked from one. Start it on a computer in sandbox mode:
+The simulation can be watched and poked from a phone, and can even run on one (see
+`phone/README.md`; it is slow there). Start it in sandbox mode:
 
 ```sh
 MUJOCO_GL=osmesa python flybox.py --live 8765
@@ -289,7 +289,8 @@ MUJOCO_GL=osmesa python flybox.py --live 8765
 It runs until stopped and serves a page at `http://<that computer>:8765/` for any browser on the
 same network, with the chosen camera streamed as it is rendered (about 50 times slower than the
 clock: a second of watching is 20 ms of fly time). The Android app in `android/` is that page in a
-full-screen window; it asks for the computer's address once (long-press Back to change it). The
+full-screen window; it asks once whether the fly runs on this phone or on a computer at some
+address (long-press Back to change it). The
 `Android APK` workflow in `.github/workflows/apk.yml` builds it on every push and attaches
 `FlyInABox.apk` to the `apk` release of the repository.
 
@@ -320,5 +321,6 @@ MUJOCO_GL=osmesa python flybox.py --seconds 25 --out out/run1    # ~50 s of comp
 python render.py --run out/run1 --out out/fly_in_a_box.mp4
 ```
 
-`flybox.py` expects `out/omm_centroids.npy` (ommatidia centroids in the eye image), produced by
-reading `Retina().ommatidia_id_map` once; see the top of `render.py` for the same map.
+`flybox.py` expects `out/omm_centroids.npy` (ommatidia centroids in the eye image); copy the
+`omm_centroids.npy` in this folder there. To run the whole thing on an Android phone instead of a
+computer, see `phone/README.md` (Termux; the same code, one to three minutes per simulated second).
