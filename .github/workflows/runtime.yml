@@ -1,0 +1,44 @@
+name: Phone runtime
+on:
+  push:
+    paths: ["Fly in a Box/phone/build_runtime.sh", "Fly in a Box/phone/run_relocated.sh", ".github/workflows/runtime.yml", "Fly in a Box/*.py"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+          - arch: x86_64
+            runner: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the runtime in a plain Ubuntu container and export it
+        run: |
+          docker create --name flyrt -v "$PWD:/src:ro" ubuntu:24.04 bash /src/"Fly in a Box"/phone/build_runtime.sh /src
+          docker start -a flyrt
+          docker export flyrt | gzip -6 > fly-runtime-${{ matrix.arch }}.tar.gz
+          docker rm flyrt
+          ls -la fly-runtime-${{ matrix.arch }}.tar.gz
+      - name: Test it relocated, through the loader, like the app does
+        run: |
+          mkdir -p "$HOME/rt" && tar -xzf fly-runtime-${{ matrix.arch }}.tar.gz -C "$HOME/rt" --exclude=dev/* --exclude=proc/* --exclude=sys/*
+          bash "Fly in a Box/phone/run_relocated.sh" "$HOME/rt" --seconds 0.3 --phone --out out/reloc 2>&1 | tail -8
+      - name: Manifest
+        run: |
+          sha256sum fly-runtime-${{ matrix.arch }}.tar.gz | cut -d" " -f1 > sha.txt
+          printf '{"arch":"%s","file":"fly-runtime-%s.tar.gz","sha256":"%s","bytes":%s,"commit":"%s"}\n' "${{ matrix.arch }}" "${{ matrix.arch }}" "$(cat sha.txt)" "$(stat -c %s fly-runtime-${{ matrix.arch }}.tar.gz)" "$GITHUB_SHA" > fly-runtime-${{ matrix.arch }}.json
+          cat fly-runtime-${{ matrix.arch }}.json
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk
+          prerelease: true
+          files: |
+            fly-runtime-${{ matrix.arch }}.tar.gz
+            fly-runtime-${{ matrix.arch }}.json
