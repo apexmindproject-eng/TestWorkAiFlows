@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
         SYS_epoll_create, SYS_epoll_wait, SYS_eventfd, SYS_inotify_init, SYS_signalfd, SYS_alarm, SYS_pause, SYS_fork, SYS_vfork,
         SYS_utimes, SYS_futimesat, SYS_getpgrp, SYS_uselib, SYS_ustat, SYS_sysfs,
 #else
-        SYS_uselib, SYS_ustat,                      // no legacy calls exist on aarch64; the filter is nearly empty there
+        SYS_reboot, SYS_swapon,                     // no legacy calls exist on aarch64; the filter is nearly empty there
 #endif
     };
     int n = sizeof bad / sizeof *bad;
