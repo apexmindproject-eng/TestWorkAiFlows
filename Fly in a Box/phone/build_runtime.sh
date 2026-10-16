@@ -36,6 +36,11 @@ rm -rf app && mkdir app
 . venv/bin/activate
 pip install --no-cache-dir --upgrade pip
 pip install --no-cache-dir --prefer-binary numpy pandas pyarrow scipy numba imageio imageio-ffmpeg pillow flygym==2.1.0
+# pyGLFW (imported by mujoco.viewer) probes candidate libraries by starting "python" as a subprocess, which cannot work
+# where python only runs through flyboot and the loader; naming the library (its own bundled one) skips the probe.
+GLFW=$(ls /opt/fly/venv/lib/python3*/site-packages/glfw/x11/libglfw.so | head -1)
+ln -sr "$GLFW" /opt/fly/libglfw.so
+export PYGLFW_LIBRARY=/opt/fly/libglfw.so
 # the brain: FlyWire v783 connectivity (Shiu et al.) and the neuron annotations
 cd app
 git clone --depth 1 https://github.com/philshiu/Drosophila_brain_model.git
