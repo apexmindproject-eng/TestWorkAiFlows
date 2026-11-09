@@ -1,0 +1,1059 @@
+{
+  "mechanics": [
+    {
+      "topic": "meta",
+      "fact": "Provenance: every fact in this file was read from web-search extracts of the cited page, not from a direct page fetch (jujutsu-shenanigans.fandom.com, games.gg, op.gg, rblxguide.com and bloxodes.com all failed DNS resolution from this session). The Fandom mechanics and character pages were reported as roughly 100 days old at search time, so numbers may lag the live game.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "m1",
+      "fact": "Holding or repeating M1 chains up to four hits, a 4-hit string dealing 14 damage in total (3 + 3 + 4 + 4).",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "m1",
+      "fact": "After the 4-hit M1 string finishes, M1 goes on a downtime of 2 seconds.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "m1",
+      "fact": "A landed M1 stuns the target for about 0.75 s and pulls the attacker about 1 stud towards the target.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "m1",
+      "fact": "A blocked M1 carries double the endlag for the attacker.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "m1",
+      "fact": "The fourth M1 is the hit that ragdolls, and which variant comes out depends on the attacker's vertical movement at that moment.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "m1",
+      "fact": "Fourth M1 with no vertical speed (neutral): knocks the enemy backwards and has the shortest ragdoll of the M1 variants.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "m1",
+      "fact": "Uppercut: fourth M1 while moving upward (jumping). It is an uptilt that knocks the enemy into the air and has the longest ragdoll duration of all M1 variants because of the target's airtime.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "m1",
+      "fact": "Downslam: fourth M1 while falling after a jump. It is unblockable and bypasses ragdoll (it can hit a ragdolled target).",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "m1",
+      "fact": "Uppercuts and downslams refill the VICTIM's ragdoll-cancel meter when they land on a target that is ragdolled or just waking up; one extract of the page gave the amount as +20% (downslam on a ragdolled target, or uppercut / neutral fourth M1 on wakeup). A second extract of the same page did not show the 20% figure.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "m1",
+      "fact": "Sources disagree on M1 damage: the games.gg beginner guide says the first two hits deal 3 and the last two deal 2 (10 total), while the Fandom wiki says 3 + 3 + 4 + 4 (14 total).",
+      "confidence": "stated",
+      "source": "https://games.gg/roblox/guides/jujutsu-shenanigans-beginners-guide/"
+    },
+    {
+      "topic": "m1",
+      "fact": "games.gg describes the inputs as: jump before the fourth hit for a ground slam, hold jump during the combo for an uppercut.",
+      "confidence": "stated",
+      "source": "https://games.gg/roblox/guides/jujutsu-shenanigans-beginners-guide/"
+    },
+    {
+      "topic": "m1",
+      "fact": "Uppercut-surfing tech: holding jump during an M1 chain and delaying the fourth input lets you jump on the opponent's head while uppercutting, gaining height and lengthening the opponent's ragdoll time. (The search extract said one tech on this page is marked outdated without saying which.)",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Techs"
+    },
+    {
+      "topic": "m1",
+      "fact": "No source found states a general 'M1 cancels into skills at time X' rule. What the wiki does state: a side/back dash can be used during the startup of abilities or M1s at the cost of a slight delay in their windup.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "m1",
+      "fact": "Skills are routinely used between M1s in wiki combo listings, e.g. Sky Bender: '3 M1s + Blind Rage + 3 M1s + Turbulence + Thin Ice Breaker + 4 M1s' for 75 damage. The pattern is to stop at 3 M1s (before the ragdolling fourth hit), use a skill, and only finish with the full 4.",
+      "confidence": "inferred",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Sky_Bender"
+    },
+    {
+      "topic": "m1",
+      "fact": "Character-specific 'M1 reset' techs exist and are timing-tight: Vessel must use a move within a few frames after the first M1; Locust Guy gets a full reset from one M1 followed immediately by Clever (four M1s instead of three); True Cannon resets with an uncharged Granite Blast during the string. (Each is on that character's own wiki page: /wiki/Vessel, /wiki/Locust_Guy, /wiki/True_Cannon.)",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Vessel"
+    },
+    {
+      "topic": "blocking",
+      "fact": "Block is the main defensive option: it nullifies the damage and/or stun of incoming attacks in exchange for slower movement and the inability to attack or dash while blocking. On PC it is held with F (rebindable).",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "blocking",
+      "fact": "Blocking only works within a 170-degree arc in front of the blocker; some attacks are tagged as blockable from all sides.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "blocking",
+      "fact": "Block is not blanket immunity: some attacks deal reduced damage on block, some are entirely unblockable, some can only be 'perfect-blocked' by blocking before impact, and some get stronger when blocked.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "blocking",
+      "fact": "The downslam (fourth M1 while falling) is unblockable; the neutral and uppercut fourth hits are not described as unblockable.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "blocking",
+      "fact": "Blocking an M1 doubles the attacker's endlag, and a blocked front-dash punch also gets additional endlag, so a successful block hands the blocker the next action.",
+      "confidence": "inferred",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "blocking",
+      "fact": "Attacks from behind bypass block: listed techs are the wrap-around (front dash past the defender while flicking the camera 180 degrees so the hit lands from behind) and side dash + M1.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Techs"
+    },
+    {
+      "topic": "blocking",
+      "fact": "NamuWiki agrees: F blocks normal attacks and some skills coming from the front, attacks from behind cannot be blocked, and some skills/basic attacks can be defended from all 360 degrees.",
+      "confidence": "stated",
+      "source": "https://en.namu.wiki/w/Jujutsu%20Shenanigans"
+    },
+    {
+      "topic": "blocking",
+      "fact": "The wiki tags each move individually: UNBLOCKABLE, BLOCKABLE, SEMI BLOCKABLE, BLOCKABLE FROM ALL SIDES, plus INTERRUPTIBLE / UNINTERRUPTIBLE. Blockability is per move, not per move type.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Vessel"
+    },
+    {
+      "topic": "blocking",
+      "fact": "Sources disagree on grabs: the gamesving beginner guide says some abilities break guard and 'grabs completely ignore blocking', but the Fandom wiki tags Black Death's Chokehold as a BLOCKABLE grab. Treat grab blockability as per-move.",
+      "confidence": "stated",
+      "source": "https://gamesving.com/guides/jujutsu-shenanigans-beginner-guide/"
+    },
+    {
+      "topic": "blocking",
+      "fact": "No general block-durability meter and no general guard-break stun duration was found. Block breaks are described only on individual moves (e.g. Defense Attorney's Justice Served leaves a blocking target 'block broken on the floor for a few seconds', which the page calls visual only).",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Defense_Attorney"
+    },
+    {
+      "topic": "blocking",
+      "fact": "Some moves punish blocking specifically: Perfection's Homerun bypasses guard and removes the blocker's ragdoll cancel; Club Mode's last 2 hits bypass block entirely.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Perfection"
+    },
+    {
+      "topic": "blocking",
+      "fact": "No universal parry was found. 'Perfect block' in the wiki means blocking before impact, required for certain attacks. Separately, 'counters' are a class of ability: the user enters a brief stance and, if hit during it, evades or blocks and strikes back while disabling the attacker's ragdoll cancel.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "blocking",
+      "fact": "No source found states a delay between releasing block and acting. The only stated restriction is that you cannot attack or dash WHILE blocking.",
+      "confidence": "inferred",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "blocking",
+      "fact": "Guide advice: do not rely on block alone; mix it with side dashes and movement so you are harder to read.",
+      "confidence": "stated",
+      "source": "https://gamesving.com/guides/jujutsu-shenanigans-beginner-guide/"
+    },
+    {
+      "topic": "blocking",
+      "fact": "Guide advice: blocking too early lets the opponent wait out the guard; react to the swing instead. (Attribution within the jujutsushenanigans.org / gamesving extracts was not precise.)",
+      "confidence": "stated",
+      "source": "https://jujutsushenanigans.org/"
+    },
+    {
+      "topic": "evasive",
+      "fact": "Ragdoll cancel (the 'evasive') is a side dash performed while ragdolled: the user quick-steps and gets up from ragdoll while gaining about a second of i-frames.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "evasive",
+      "fact": "It is gated by a meter that refills from both dealing and taking damage. Above 50 HP the bar fully charges after sustaining about 77 damage or dealing 200 damage; at 50 HP or below it charges faster.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "evasive",
+      "fact": "One extract of the page gave low-HP fill figures of 62.5 damage taken or 100 damage dealt (damage dealt counting double at 50 HP or below). The extract attached them to the Awakening bar, but 100 is exactly half of the ragdoll-cancel figure of 200, so they most plausibly belong to the ragdoll-cancel bar. Unresolved.",
+      "confidence": "inferred",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "evasive",
+      "fact": "History: the meter was added in the V1.51-V1.60 range so players manage ragdoll cancels; it is instantly restored after every kill and gained by being damaged or damaging enemies. A later update tuned gain per damage and made it slowly regenerate out of combat or when healing with a soda.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Update_Log/V1.60_to_V1.51"
+    },
+    {
+      "topic": "evasive",
+      "fact": "The 'Evade 50' value shown on characters was not explained by any source found. The only 50 the wiki ties to the evasive is the 50 HP threshold below which the ragdoll-cancel bar charges faster.",
+      "confidence": "inferred",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "evasive",
+      "fact": "True ragdoll cannot be evaded, but its timer starts counting down immediately on hit. A regular ragdoll only starts counting down once the player touches a surface (so being juggled in the air prolongs it).",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "evasive",
+      "fact": "After getting up from ragdoll the player stands immediately and has about 0.5 s of immunity to melee stun.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "evasive",
+      "fact": "Things that remove the option: counters (disable ragdoll cancel on the player who hit them), and specific moves such as Restless Gambler's Overwhelming Luck (until its last hit), Perfection's Homerun on a blocking target, Lucky Coward's Trip on a moving target, and grabs like Perfection's Heart Piercer (no escape until the move ends).",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Perfection"
+    },
+    {
+      "topic": "evasive",
+      "fact": "Move tags that matter after a knockdown: BYPASSES RAGDOLL means the move can hit a target lying in grounded ragdoll; CANNOT BYPASS GROUNDED RAGDOLL means it whiffs on one; TRUE RAGDOLL marks an unevadable ragdoll. Meanings are read from usage; the wiki has no single glossary in the extracts.",
+      "confidence": "inferred",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Head_of_the_Hei"
+    },
+    {
+      "topic": "evasive",
+      "fact": "The op.gg guide agrees in outline: watch the evasive bar; true ragdolls and moves that disable evasives cannot be escaped; dealing or taking damage refills the resource and a kill refills it fully.",
+      "confidence": "stated",
+      "source": "https://op.gg/roblox/wiki/jujutsu-shenanigans/guides"
+    },
+    {
+      "topic": "evasive",
+      "fact": "Sources describe the input differently: the wiki says side dash while ragdolled; the op.gg game listing says 'Q - dash (use in stun to escape)'; games.gg says press Q while holding M1 toward the enemy after being hit, and that missing the window means eating the full combo.",
+      "confidence": "stated",
+      "source": "https://games.gg/roblox/guides/jujutsu-shenanigans-beginners-guide/"
+    },
+    {
+      "topic": "evasive",
+      "fact": "Landing certain moves is punishable by the victim's ragdoll cancel (Vessel's Divergent Fist and Aerial Cursed Strikes), so the wiki advises using them only after baiting the evasive out first.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Vessel"
+    },
+    {
+      "topic": "evasive",
+      "fact": "games.gg: dashing toward the opponent during their windup or endlag turns the cancel into a punish.",
+      "confidence": "stated",
+      "source": "https://games.gg/roblox/guides/jujutsu-shenanigans-beginners-guide/"
+    },
+    {
+      "topic": "dashes",
+      "fact": "Front dash (dash while moving forward or standing still): the user slides forward about 20 studs while winding up a jab, then punches. Cooldown 6 s.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "dashes",
+      "fact": "The front-dash punch deals 4 blockable melee damage, cannot bypass grounded ragdoll, and has additional endlag when blocked.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "dashes",
+      "fact": "The front-dash punch normally stuns, but it ragdolls any enemy it meets before the dash has travelled half its full distance (i.e. at point-blank).",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "dashes",
+      "fact": "Side or back dash: a quick-step that slides about 17.5 studs in the direction the player was walking. Cooldown 2 s. Its trajectory can be steered by turning mid-dash.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "dashes",
+      "fact": "Front side dash (anti-run): if the front dash goes on cooldown while chasing a target, a 'front' side dash is allocated and can repeat while the regular front dash is on cooldown. It is unavailable if the running target turns to face back, or if the pursuer faces away.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "dashes",
+      "fact": "No i-frames are stated for ordinary dashes. The only stated dash invulnerability is the roughly 1 s of i-frames on a ragdoll cancel.",
+      "confidence": "inferred",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "dashes",
+      "fact": "Default keys per the op.gg game listing: M1 melee combo, 1-4 skills, Q dash, F block, R special, W+W sprint (automatically avoids obstacles), G awaken.",
+      "confidence": "stated",
+      "source": "https://op.gg/roblox/games/3508322461"
+    },
+    {
+      "topic": "dashes",
+      "fact": "Guide advice: a forward dash is a good way to pressure and close the gap before starting a combo.",
+      "confidence": "stated",
+      "source": "https://gamesving.com/guides/jujutsu-shenanigans-beginner-guide/"
+    },
+    {
+      "topic": "combos",
+      "fact": "A combo is a sequence where each hit connects before the defender can block, dash away or ragdoll cancel. If the opponent can interrupt, it is a string with an escape window, not a guaranteed combo.",
+      "confidence": "stated",
+      "source": "https://jujutsushenanigans.org/combos/"
+    },
+    {
+      "topic": "combos",
+      "fact": "'True combo' as defined by sabertoothgames: zero gap between hits, i.e. the hitstun from the previous hit is longer than the startup of the next attack. (The search tool flagged another article on this site as generic, so weight it lightly.)",
+      "confidence": "stated",
+      "source": "https://sabertoothgames.com/how-to-chain-combos-per-character-in-jujutsu-shenanigans/"
+    },
+    {
+      "topic": "combos",
+      "fact": "Since a landed M1 stuns for about 0.75 s, the next hit of a true string has to start inside that window.",
+      "confidence": "inferred",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "combos",
+      "fact": "Universal beginner opener per jujutsushenanigans.org: three M1 hits into a downslam, then one skill; check that it works for your character, because follow-ups vary by moveset and opponent state.",
+      "confidence": "stated",
+      "source": "https://jujutsushenanigans.org/combos/"
+    },
+    {
+      "topic": "combos",
+      "fact": "sabertoothgames: downslam resets are generally true if you act immediately during the ragdoll animation.",
+      "confidence": "stated",
+      "source": "https://sabertoothgames.com/how-to-chain-combos-per-character-in-jujutsu-shenanigans/"
+    },
+    {
+      "topic": "combos",
+      "fact": "Typical wiki combo shape: 3 M1s -> skill -> 3 M1s -> skill -> skill -> 4 M1s (Sky Bender, 75 damage). Listed Sky Bender Temper combos fall in the 58-75 damage range.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Sky_Bender"
+    },
+    {
+      "topic": "combos",
+      "fact": "gamesving describes the basic pattern as M1, then dash, then skill, then a follow-up attack, and warns that throwing abilities from long range gives the opponent plenty of time to escape.",
+      "confidence": "stated",
+      "source": "https://gamesving.com/guides/jujutsu-shenanigans-beginner-guide/"
+    },
+    {
+      "topic": "combos",
+      "fact": "What ends a combo, pieced together from the wiki: the fourth M1 ragdolls and knocks the target away and puts M1 on a 2 s downtime; the defender's ragdoll cancel (about 1 s of i-frames); follow-ups tagged CANNOT BYPASS GROUNDED RAGDOLL whiffing on a floored target; and the roughly 0.5 s melee-stun immunity on wakeup.",
+      "confidence": "inferred",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "combos",
+      "fact": "Walls help extend: pushing a ragdolled enemy into a wall reduces knockback so a combo can continue without spending a dash (stated for Aspiring Mangaka's Shut Up! after an uppercut).",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Aspiring_Mangaka"
+    },
+    {
+      "topic": "combos",
+      "fact": "itemlevel's Nanami guide notes that longer strings rely on reads and pressure rather than being true combos.",
+      "confidence": "stated",
+      "source": "https://itemlevel.net/jujutsu-shenanigans-nanami-guide-salaryman/"
+    },
+    {
+      "topic": "awakening",
+      "fact": "The Awakening bar sits above the skill boxes and only fills as damage is dealt; it loses all progress when switching characters.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "awakening",
+      "fact": "It takes about 286 damage dealt in total (2000/7) to fill; the user briefly flashes white when the bar reaches maximum.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "awakening",
+      "fact": "One extract says that at 50 HP or below damage taken also feeds the bar and damage dealt counts double, and that a kill or landing the anti-team burst fills it to maximum. The V1.60 log says the same 'restored after every kill' rule about the ragdoll-cancel bar, so which bar these lines describe was not fully clear from the extracts.",
+      "confidence": "inferred",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "awakening",
+      "fact": "Awakening for a complete character: a brief invulnerable sequence with some healing, then an awakening moveset that lasts about a minute. Some characters must meet requirements first, and 'Base-only' characters have no awakening.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "awakening",
+      "fact": "Halloween patch: hitting dead players no longer grants awakening.",
+      "confidence": "stated",
+      "source": "https://games.gg/roblox/guides/halloween-candy-shop-rewards-patch-notes/"
+    },
+    {
+      "topic": "awakening",
+      "fact": "Sources disagree on fill sources: beginner guides say awakening builds from landing M1s, using your technique and surviving exchanges, while the wiki says the bar only fills as damage is dealt.",
+      "confidence": "stated",
+      "source": "https://gamesving.com/guides/jujutsu-shenanigans-beginner-guide/"
+    },
+    {
+      "topic": "awakening",
+      "fact": "Guide advice on timing: do not cast the moment it is ready; wait until the opponent cannot interrupt the 1.25 s windup. 'An uppercut after an evasive' is called the most reliable setup. (The extract tied the 1.25 s figure to the domain windup, and did not say which of the jujutsushenanigans.org / gamesving pages it came from.)",
+      "confidence": "stated",
+      "source": "https://jujutsushenanigans.org/"
+    },
+    {
+      "topic": "awakening",
+      "fact": "Character-specific bars differ. Sky Bender's Temper is a passive on the Awakening bar that fills four times faster, activates with the Awakening button, drains after 15 s without dealing damage, and shortens all active cooldowns to 3 s.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Sky_Bender"
+    },
+    {
+      "topic": "domain",
+      "fact": "A domain is a move category that expands after a short hand-sign windup; those caught inside are frozen in a neutral stage while on-screen text explains that domain's rules.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Domain_Expansion"
+    },
+    {
+      "topic": "domain",
+      "fact": "A domain clash happens when two or more players cast their domain expansions simultaneously; a caster who loses the clash is refunded 75% of the Awakening bar.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Domain_Expansion"
+    },
+    {
+      "topic": "domain",
+      "fact": "A clash meter appears above each participant's bar and after 10 seconds the player with more progress on it wins. (The extract tied this wording to the True Love Beam clash on the mechanics page.)",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    },
+    {
+      "topic": "domain",
+      "fact": "bloxodes: during a clash sure-hit pressure is disabled, landing hits fills the clash bar, and the winner keeps their domain while the losing domains are cancelled.",
+      "confidence": "stated",
+      "source": "https://bloxodes.com/articles/jujutsu-shenanigans-domains-explained"
+    },
+    {
+      "topic": "domain",
+      "fact": "A domain can be stopped at startup: any attack during the 1.25 s windup (a single M1, a projectile or any stun) cancels it. bloxodes agrees that interrupting the startup is cleaner than dealing with the domain afterwards. (Which jujutsushenanigans.org page carried the 1.25 s figure was not precise in the extract.)",
+      "confidence": "stated",
+      "source": "https://jujutsushenanigans.org/how-to-invade-domains/"
+    },
+    {
+      "topic": "domain",
+      "fact": "Inside slash-style domains blocking is recommended; Time Cell Moon Palace punishes movement and attacks, so blocking is the safer choice there too.",
+      "confidence": "stated",
+      "source": "https://bloxodes.com/wiki/jujutsu-shenanigans/domains"
+    },
+    {
+      "topic": "combat_tag",
+      "fact": "Halloween update patch notes: hitting a player now triggers combat tag, and hitting dead players no longer grants awakening. So the attacker is tagged too, not only the player who was hit.",
+      "confidence": "stated",
+      "source": "https://games.gg/roblox/guides/halloween-candy-shop-rewards-patch-notes/"
+    },
+    {
+      "topic": "combat_tag",
+      "fact": "Halloween update: players no longer respawn automatically. Automatic respawn is disabled by default and a 'Respawns' general setting can turn it back on (a Damage Counter setting was added in the same patch).",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Update_Log"
+    },
+    {
+      "topic": "combat_tag",
+      "fact": "Version label: the sources found call the Halloween update V1.84, not V1.85. The wiki's version list has a V1.85 entry whose contents were not shown in the extracts.",
+      "confidence": "stated",
+      "source": "https://games.gg/roblox/guides/halloween-candy-shop-rewards-patch-notes/"
+    },
+    {
+      "topic": "combat_tag",
+      "fact": "An earlier update introduced combat tag as a 15-second lock after being hit during which the player cannot switch or reset characters.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Update_Log"
+    },
+    {
+      "topic": "combat_tag",
+      "fact": "The Halloween event ran from 23 October 2026 to 23 November 2026 22:00 UTC per the game's Roblox event listing as reported by games.gg.",
+      "confidence": "stated",
+      "source": "https://games.gg/roblox/guides/halloween-candy-shop-rewards-patch-notes/"
+    },
+    {
+      "topic": "neutral_tips",
+      "fact": "Most fights are decided by movement, positioning and knowing when to use skills rather than by fast ability use.",
+      "confidence": "stated",
+      "source": "https://gamesving.com/guides/jujutsu-shenanigans-beginner-guide/"
+    },
+    {
+      "topic": "neutral_tips",
+      "fact": "The core exchange: get close without taking a punish, confirm hits, then block or dash out before the opponent turns the combo around. Most kits rely on opening hits, avoiding endlag and using the right move variant.",
+      "confidence": "stated",
+      "source": "https://bloxodes.com/articles/roblox-anime-games-skill-combat"
+    },
+    {
+      "topic": "neutral_tips",
+      "fact": "Do not throw abilities from long range: raw skills at distance give the opponent plenty of time to escape. Skills are meant to be confirmed off M1s.",
+      "confidence": "stated",
+      "source": "https://gamesving.com/guides/jujutsu-shenanigans-beginner-guide/"
+    },
+    {
+      "topic": "neutral_tips",
+      "fact": "Missed moves carry endlag that is punishable (e.g. Crow Charmer's Impetus Updraft has 'major endlag' on a miss; Aspiring Mangaka's page notes punishable endlag on all its moves but one).",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Crow_Charmer"
+    },
+    {
+      "topic": "neutral_tips",
+      "fact": "Feints exist to bait defensive options: Vessel's special cancels an M1 or skill windup with no endlag and keeps the move off cooldown, and the wiki says it is mainly used to bait enemies into blocking or using a counter.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Vessel"
+    },
+    {
+      "topic": "neutral_tips",
+      "fact": "If your attack is blocked, expect the opponent's full combo in return (stated in itemlevel's Vessel guide; consistent with the wiki's doubled endlag on blocked M1s).",
+      "confidence": "stated",
+      "source": "https://itemlevel.net/jujutsu-shenanigans-yuji-itadori-vessel-guide-showcase/"
+    },
+    {
+      "topic": "neutral_tips",
+      "fact": "Bait the opponent's ragdoll cancel before committing your best move; several wiki techs are prefaced with 'need to waste their evasive before'.",
+      "confidence": "stated",
+      "source": "https://jujutsu-shenanigans.fandom.com/f/p/4400000000000044707"
+    },
+    {
+      "topic": "neutral_tips",
+      "fact": "Button-mashing loses; games.gg recommends using training modes before PvP, and jujutsushenanigans.org recommends practising one extension at a time until it lands ten times in a row.",
+      "confidence": "stated",
+      "source": "https://games.gg/roblox/guides/jujutsu-shenanigans-beginners-guide/"
+    },
+    {
+      "topic": "neutral_tips",
+      "fact": "Uppercut and downslam on a floored or waking opponent hand them ragdoll-cancel meter, so repeatedly re-launching the same target feeds their escape.",
+      "confidence": "inferred",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics"
+    }
+  ],
+  "moves": [
+    {
+      "name": "Impetus Updraft",
+      "character": "Crow Charmer",
+      "slot": "base",
+      "kind": "melee",
+      "blockable": true,
+      "damage": 11,
+      "damage_note": "11 base; press-twice variant 17 total (3 per extra swing); finisher variant 12 plus 3 per extra hit",
+      "cooldown_s": 16,
+      "range_studs": null,
+      "range_word": "melee",
+      "aim": null,
+      "air": true,
+      "hits_ragdolled": true,
+      "combo": "Launcher: knocks the target airborne for air follow-ups",
+      "when_it_whiffs": "Major endlag on a miss; a forum post claims a blocked swing stuns the user for 2 s (unverified)",
+      "description": "Vertical battle-axe swing that launches the target upward; tagged blockable, interruptible and bypasses ragdoll. Pressing it twice before landing adds two extra swings and tosses the target away instead of up, and the target can ragdoll-cancel during those swings.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Crow_Charmer"
+    },
+    {
+      "name": "Circling",
+      "character": "Crow Charmer",
+      "slot": "base",
+      "kind": "melee",
+      "blockable": true,
+      "damage": 14,
+      "damage_note": "6 for the first swing, 8 for the second",
+      "cooldown_s": 18,
+      "range_studs": null,
+      "range_word": "melee",
+      "aim": null,
+      "air": true,
+      "hits_ragdolled": null,
+      "combo": "Charge it to beat block: about 0.3 s hold makes the second swing unblockable, about 0.8 s makes both unblockable",
+      "when_it_whiffs": "If a swing is blocked the user stays in place",
+      "description": "Two spinning axe swings. Holding the input charges it (yellow glow at about 0.3 s, red glow at about 0.8 s) to make one or both swings unblockable. An air variant exists that latches onto a target; Sportskeeda describes the aerial version as slamming the target into the ground as a combo ender.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Crow_Charmer"
+    },
+    {
+      "name": "Gliding Flight",
+      "character": "Crow Charmer",
+      "slot": "base",
+      "kind": "melee",
+      "blockable": null,
+      "damage": null,
+      "damage_note": null,
+      "cooldown_s": null,
+      "range_studs": null,
+      "range_word": "melee",
+      "aim": null,
+      "air": true,
+      "hits_ragdolled": true,
+      "combo": "Was the reliable air combo ender; REMOVED in V1.77",
+      "when_it_whiffs": null,
+      "description": "No longer in the kit: V1.77 replaced Gliding Flight with Murmurate and kept only its 'Free Fall' part with a lower height requirement. Older guides describe a vertical spinning slash that bypasses ragdoll, with an aerial version that slams the enemy down and rebounds them. No damage or cooldown was found.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Update_Log/V1.80_to_V1.71"
+    },
+    {
+      "name": "Murmurate",
+      "character": "Crow Charmer",
+      "slot": "base",
+      "kind": "projectile",
+      "blockable": true,
+      "damage": 9,
+      "damage_note": "9 on first hit, 5 if it hits again",
+      "cooldown_s": 16,
+      "range_studs": null,
+      "range_word": "mid",
+      "aim": "facing",
+      "air": null,
+      "hits_ragdolled": null,
+      "combo": "Combo starter: launches upward, safe on block, and starts an air combo if feinted with the special",
+      "when_it_whiffs": null,
+      "description": "Throws the axe so it spins around the user and returns, launching any enemy in its path upward. The user can keep walking and turning to steer it. Replaced Gliding Flight in V1.77. Blockable is inferred from the wiki calling it safe on block.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Crow_Charmer"
+    },
+    {
+      "name": "Bird Control",
+      "character": "Crow Charmer",
+      "slot": "base",
+      "kind": "mobility",
+      "blockable": true,
+      "damage": null,
+      "damage_note": "No damage for the glide; one extract gave 6 for the forward (crow attack) variant, another could not confirm it",
+      "cooldown_s": 18,
+      "range_studs": 35,
+      "range_word": "mid",
+      "aim": "cursor",
+      "air": true,
+      "hits_ragdolled": null,
+      "combo": "Glide to reposition or start air pressure; the forward variant lifts the target off the ground",
+      "when_it_whiffs": "No cooldown if feinted; cancelling the flight with Spatial Transference keeps it off cooldown",
+      "description": "Standing still or walking sideways calls a crow that carries the user in a glide for 2.5 s, cancellable early with an M1, a move or the special. Walking forward while aiming at a target within 35 studs sends the crow to crash into and lift that target instead; that variant is blockable from all sides, interruptible and deals bullet-type damage.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Crow_Charmer"
+    },
+    {
+      "name": "Flock",
+      "character": "Crow Charmer",
+      "slot": "special",
+      "kind": "other",
+      "blockable": null,
+      "damage": 5,
+      "damage_note": null,
+      "cooldown_s": 10,
+      "range_studs": null,
+      "range_word": null,
+      "aim": null,
+      "air": true,
+      "hits_ragdolled": null,
+      "combo": "Used from behind the target (Early Bird tech) to bypass block",
+      "when_it_whiffs": null,
+      "description": "No longer the R special: V1.77 raised its damage from 2 to 5, cut its cooldown from 17 s to 10 s and turned it into the front-dash air variant, with Spatial Transference taking the R slot. What the attack itself looks like was not described in the extracts.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Update_Log/V1.80_to_V1.71"
+    },
+    {
+      "name": "Spatial Transference",
+      "character": "Crow Charmer",
+      "slot": "special",
+      "kind": "other",
+      "blockable": null,
+      "damage": null,
+      "damage_note": null,
+      "cooldown_s": null,
+      "range_studs": null,
+      "range_word": null,
+      "aim": null,
+      "air": null,
+      "hits_ragdolled": null,
+      "combo": "Feint / cancel tool the wiki calls indispensable for combos",
+      "when_it_whiffs": null,
+      "description": "Current R special since V1.77. The wiki says it feints moves (Bird Control has no cooldown if feinted, Murmurate starts an air combo when feinted with it). Its own damage, cooldown and exact effect were not shown in the extracts.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Crow_Charmer"
+    },
+    {
+      "name": "Free Fall",
+      "character": "Crow Charmer",
+      "slot": "base",
+      "kind": "melee",
+      "blockable": null,
+      "damage": null,
+      "damage_note": null,
+      "cooldown_s": null,
+      "range_studs": null,
+      "range_word": null,
+      "aim": null,
+      "air": true,
+      "hits_ragdolled": null,
+      "combo": "Appears in the wiki's listed combos, including a 70-damage route with Dive Bomb that needs little timing",
+      "when_it_whiffs": null,
+      "description": "Aerial follow-up kept from Gliding Flight when that move was removed in V1.77; it has a height requirement, which was lowered. No numbers found.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Update_Log/V1.80_to_V1.71"
+    },
+    {
+      "name": "Dive Bomb",
+      "character": "Crow Charmer",
+      "slot": "base",
+      "kind": "other",
+      "blockable": true,
+      "damage": null,
+      "damage_note": null,
+      "cooldown_s": null,
+      "range_studs": null,
+      "range_word": null,
+      "aim": null,
+      "air": true,
+      "hits_ragdolled": null,
+      "combo": "Paired with Free Fall in a 70-damage combo",
+      "when_it_whiffs": null,
+      "description": "Aerial move named in patch notes and combo lists; a patch made it no longer unblockable and stopped it launching the user upward. No numbers found.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Update_Log/V1.80_to_V1.71"
+    },
+    {
+      "name": "Bird Strike",
+      "character": "Crow Charmer",
+      "slot": "awakening",
+      "kind": "projectile",
+      "blockable": false,
+      "damage": null,
+      "damage_note": "Two wiki listings: '75 for AoE' and '5 on impact, 115 for explosion'; which is current is unclear",
+      "cooldown_s": null,
+      "range_studs": null,
+      "range_word": "long",
+      "aim": "cursor",
+      "air": null,
+      "hits_ragdolled": null,
+      "combo": null,
+      "when_it_whiffs": null,
+      "description": "Awakening attack: a crow flies wherever the user aims and on meeting a surface a 15x15-stud explosion hurls away everyone around the impact point. Tagged unblockable and uninterruptible; the Awakening bar drains gradually while the crow is being guided.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Crow_Charmer"
+    },
+    {
+      "name": "Festering Strikes",
+      "character": "Black Death",
+      "slot": "base",
+      "kind": "melee",
+      "blockable": true,
+      "damage": 3,
+      "damage_note": "1 per swing, 3 swings; also applies 3 injury (1 per swing)",
+      "cooldown_s": 20,
+      "range_studs": null,
+      "range_word": "melee",
+      "aim": null,
+      "air": null,
+      "hits_ragdolled": null,
+      "combo": "Injury builder; each swing can parry a melee attack and push the enemy away",
+      "when_it_whiffs": null,
+      "description": "Three forward sword slashes that each apply injury. The final hit deals its damage through a block, and each swing can parry melee attacks.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Black_Death"
+    },
+    {
+      "name": "Detach",
+      "character": "Black Death",
+      "slot": "base",
+      "kind": "projectile",
+      "blockable": true,
+      "damage": 2,
+      "damage_note": "2 damage, 3 injury (2 injury on block)",
+      "cooldown_s": 13,
+      "range_studs": 85,
+      "range_word": "long",
+      "aim": null,
+      "air": null,
+      "hits_ragdolled": null,
+      "combo": "Ranged opener: impales the target, enabling Reattach to pull them in",
+      "when_it_whiffs": "After 85 studs without a hit the user pulls it back and reattaches it",
+      "description": "Launches a detached part as a projectile that impales the first enemy hit for a time. A patch made it no longer unblockable.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Black_Death"
+    },
+    {
+      "name": "Reattach",
+      "character": "Black Death",
+      "slot": "base",
+      "kind": "pull",
+      "blockable": false,
+      "damage": 0,
+      "damage_note": "No damage, 2 injury",
+      "cooldown_s": 13,
+      "range_studs": null,
+      "range_word": "long",
+      "aim": null,
+      "air": null,
+      "hits_ragdolled": true,
+      "combo": "Follow-up to a landed Detach that drags the target to the user",
+      "when_it_whiffs": "Unavailable once 8 seconds have passed since Detach",
+      "description": "Second press after Detach impales someone: pulls the impaled target back to the user. Tagged unblockable, interruptible and bypasses ragdoll.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Black_Death"
+    },
+    {
+      "name": "Chokehold",
+      "character": "Black Death",
+      "slot": "base",
+      "kind": "grab",
+      "blockable": true,
+      "damage": 2,
+      "damage_note": "'2 for swing' with 2 injury; a punch variant deals 12 with no injury; a finisher variant is an instant kill",
+      "cooldown_s": 16,
+      "range_studs": null,
+      "range_word": "melee",
+      "aim": null,
+      "air": null,
+      "hits_ragdolled": null,
+      "combo": "Grab that holds the target and stalls their injury drain, then slashes them away",
+      "when_it_whiffs": null,
+      "description": "A grab the wiki tags as blockable: on hit the user holds the enemy by the neck while the injury drain is paused, then slashes them away. A fan post says it can no longer be used while blocking.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Black_Death"
+    },
+    {
+      "name": "Roach Swarm",
+      "character": "Black Death",
+      "slot": "base",
+      "kind": "projectile",
+      "blockable": null,
+      "damage": 9,
+      "damage_note": "9 base, +2 for every 1.5 injuries on the target, up to 17; applies no injury",
+      "cooldown_s": 17,
+      "range_studs": 35,
+      "range_word": "mid",
+      "aim": null,
+      "air": true,
+      "hits_ragdolled": null,
+      "combo": "Injury payoff and combo ender: ragdolls targets away",
+      "when_it_whiffs": "Its hitbox does not cover targets on the user's right",
+      "description": "Sends a horde of roaches 35 studs forward, tearing through everything in front and ragdolling targets away, with damage scaling on the target's injury stacks. Blockability of the ground version was not stated in the extracts.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Black_Death"
+    },
+    {
+      "name": "Roach Swarm (air variant)",
+      "character": "Black Death",
+      "slot": "base",
+      "kind": "rush",
+      "blockable": null,
+      "damage": null,
+      "damage_note": null,
+      "cooldown_s": 17,
+      "range_studs": 40,
+      "range_word": "mid",
+      "aim": null,
+      "air": true,
+      "hits_ragdolled": null,
+      "combo": "Gap closer the wiki calls safe, with no endlag: it either hits block or forces a dash",
+      "when_it_whiffs": "No endlag per the wiki tip",
+      "description": "Used while airborne: after a slightly longer windup the user rides the roach wave about 40 studs in a straight line, knocking down anyone in the path with a shorter ragdoll. Blockability flip-flopped across patches (made blockable, then unblockable, then blockable again in the latest log found, while the stat block still says unblockable), so it is left null.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Black_Death"
+    },
+    {
+      "name": "Roach Swarm (special variant)",
+      "character": "Black Death",
+      "slot": "base",
+      "kind": "aoe_self",
+      "blockable": null,
+      "damage": 6,
+      "damage_note": "Reduced from 10 to 6 by a patch; changed several times",
+      "cooldown_s": 17,
+      "range_studs": null,
+      "range_word": "short",
+      "aim": null,
+      "air": true,
+      "hits_ragdolled": null,
+      "combo": "Launches caught targets upward for an air follow-up; cannot be countered",
+      "when_it_whiffs": "A small gap directly in front of the user lets targets avoid it",
+      "description": "Pressing the special during Roach Swarm's windup makes the swarm twirl in the air: it becomes uncounterable and launches targets upward at the cost of shorter range and a longer windup. Used in the air it suspends the user.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Black_Death"
+    },
+    {
+      "name": "Earthen Insect Trance",
+      "character": "Black Death",
+      "slot": "special",
+      "kind": "summon",
+      "blockable": null,
+      "damage": 4,
+      "damage_note": "4 damage and 1 injury, but only to an enemy who hits the insects",
+      "cooldown_s": 15,
+      "range_studs": 100,
+      "range_word": "long",
+      "aim": "cursor",
+      "air": null,
+      "hits_ragdolled": null,
+      "combo": "Passive pressure: punishes the opponent for swinging and can interrupt grab moves",
+      "when_it_whiffs": "Ends if the user is ragdolled; cooldown starts only after the insects are gone",
+      "description": "Summons two flying insects carrying blinding sacs that trail the user for 15 s; pressing the special again while aiming at an enemy within 100 studs sends them to hover around that target. They only damage when an enemy hits them, bursting to blind that player's screen for 3 s; the move applies no stun.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Black_Death"
+    },
+    {
+      "name": "Parthenogenesis",
+      "character": "Black Death",
+      "slot": "awakening",
+      "kind": "summon",
+      "blockable": null,
+      "damage": null,
+      "damage_note": null,
+      "cooldown_s": null,
+      "range_studs": null,
+      "range_word": null,
+      "aim": null,
+      "air": null,
+      "hits_ragdolled": null,
+      "combo": null,
+      "when_it_whiffs": null,
+      "description": "Awakening that spawns clones which copy the user's attacks (Sportskeeda). Patch notes cap clones at 40 max HP and 8 at once, make it unusable while stunned, and have it heal the user by 25 HP.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Black_Death"
+    },
+    {
+      "name": "Blind Rage",
+      "character": "Sky Bender",
+      "slot": "base",
+      "kind": "grab",
+      "blockable": false,
+      "damage": 9,
+      "damage_note": "5 for the grab, 4 for the toss. An undated forum balance note lists 3 + 4 with an 18 s cooldown instead",
+      "cooldown_s": 15,
+      "range_studs": null,
+      "range_word": "short",
+      "aim": null,
+      "air": null,
+      "hits_ragdolled": false,
+      "combo": "Mid-combo carry: wiki route is 3 M1s -> Blind Rage -> 3 M1s -> Turbulence -> Thin Ice Breaker -> 4 M1s",
+      "when_it_whiffs": "If the target evades out of the grab above 25 studs of altitude they automatically counterattack the user",
+      "description": "The user surges forward into a quick grab; on success they choke the target and fly 125 studs with them before tossing them away. Tagged unblockable and interruptible, and it cannot hit ragdolled players; the Temper version is only semi-blockable.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Sky_Bender"
+    },
+    {
+      "name": "Sky Distortion",
+      "character": "Sky Bender",
+      "slot": "base",
+      "kind": "melee",
+      "blockable": null,
+      "damage": 10,
+      "damage_note": "Reduced from 12 to 10 in V1.83",
+      "cooldown_s": 12,
+      "range_studs": null,
+      "range_word": "short",
+      "aim": null,
+      "air": null,
+      "hits_ragdolled": null,
+      "combo": "Launcher that doubles as projectile defence",
+      "when_it_whiffs": null,
+      "description": "Spins the sky in front of the user to launch enemies and redirect deflectable projectiles, with about 0.7 s of i-frames against bullets only. In Temper it is thrown forward as a projectile that pulls the target back (rowikis). A forum note lists a 14 s cooldown; the wiki page says 12 s. Blockability not stated.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Sky_Bender"
+    },
+    {
+      "name": "Thin Ice Breaker",
+      "character": "Sky Bender",
+      "slot": "base",
+      "kind": "grab",
+      "blockable": false,
+      "damage": 14,
+      "damage_note": "7 for the grab, 7 for the shatter (raised from 5 per hit in V1.83, which also enlarged the hitbox)",
+      "cooldown_s": 15,
+      "range_studs": null,
+      "range_word": "melee",
+      "aim": null,
+      "air": null,
+      "hits_ragdolled": false,
+      "combo": "Launches the target high enough for a small air combo",
+      "when_it_whiffs": null,
+      "description": "Close-range strike that stuns and grabs a single opponent while the user shatters the distortion. Tagged unblockable and interruptible with melee i-frames; the initial grab cannot hit a ragdolled target (only the later part bypasses ragdoll).",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Sky_Bender"
+    },
+    {
+      "name": "Turbulence",
+      "character": "Sky Bender",
+      "slot": "base",
+      "kind": "pull",
+      "blockable": null,
+      "damage": 10,
+      "damage_note": "Unblockable only during the first 18 studs of travel; blockable after that",
+      "cooldown_s": 15,
+      "range_studs": 60,
+      "range_word": "long",
+      "aim": "facing",
+      "air": true,
+      "hits_ragdolled": null,
+      "combo": "Ranged starter: lifts the enemy and launches them toward the user, and sets up a small air combo",
+      "when_it_whiffs": null,
+      "description": "Sends a wave 60 studs that lifts any enemy in its way and throws them toward the user. It follows the user's orientation the whole time, so it can be steered by turning.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Sky_Bender"
+    },
+    {
+      "name": "Turbulence (air variant)",
+      "character": "Sky Bender",
+      "slot": "base",
+      "kind": "rush",
+      "blockable": null,
+      "damage": 14,
+      "damage_note": "5 for the kick, 9 for the distortion. At 25 studs of height or more it becomes a stronger kick with no distortion for 8",
+      "cooldown_s": 15,
+      "range_studs": null,
+      "range_word": "mid",
+      "aim": null,
+      "air": true,
+      "hits_ragdolled": null,
+      "combo": "Air approach that bounces the enemy off the ground for a follow-up",
+      "when_it_whiffs": null,
+      "description": "Used while airborne or holding jump: the user kicks upward, then flies horizontally and fires a distortion into the ground that bounces enemies it hits. The distortion cannot be countered, but the kicks can be countered by melee counters.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Sky_Bender"
+    },
+    {
+      "name": "Turbulence (Sky Veil variant)",
+      "character": "Sky Bender",
+      "slot": "base",
+      "kind": "counter",
+      "blockable": null,
+      "damage": null,
+      "damage_note": null,
+      "cooldown_s": 15,
+      "range_studs": null,
+      "range_word": "melee",
+      "aim": null,
+      "air": null,
+      "hits_ragdolled": null,
+      "combo": "Counter out of invisibility",
+      "when_it_whiffs": "Counter window is 0.75 s and using it ends the invisibility",
+      "description": "Using Turbulence while invisible from Sky Veil cancels the invisibility and reveals the user upside down; if a melee attack hits during the 0.75 s window, the user sends a distortion back at the attacker.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Sky_Bender"
+    },
+    {
+      "name": "Sky Veil",
+      "character": "Sky Bender",
+      "slot": "special",
+      "kind": "buff",
+      "blockable": null,
+      "damage": 0,
+      "damage_note": null,
+      "cooldown_s": 8,
+      "range_studs": null,
+      "range_word": null,
+      "aim": null,
+      "air": null,
+      "hits_ragdolled": null,
+      "combo": "Repositioning and mix-up tool; converts into the Turbulence counter",
+      "when_it_whiffs": null,
+      "description": "Turns the user invisible for about 2 seconds, cancellable early with the special or a skill. While invisible the user can only walk, at increased speed. No damage and no awakening cost.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Sky_Bender"
+    },
+    {
+      "name": "Temper",
+      "character": "Sky Bender",
+      "slot": "awakening",
+      "kind": "buff",
+      "blockable": null,
+      "damage": null,
+      "damage_note": null,
+      "cooldown_s": null,
+      "range_studs": null,
+      "range_word": null,
+      "aim": null,
+      "air": null,
+      "hits_ragdolled": null,
+      "combo": "Enables the long 58-75 damage routes by cutting cooldowns to 3 s",
+      "when_it_whiffs": null,
+      "description": "Passive on the Awakening bar that fills four times faster than a normal awakening and is activated with the Awakening button; the bar drains after 15 s without dealing damage. While active all cooldowns are shortened to 3 s; rowikis adds that firing the awakening shockwave ends the state.",
+      "source": "https://jujutsu-shenanigans.fandom.com/wiki/Sky_Bender"
+    }
+  ]
+}

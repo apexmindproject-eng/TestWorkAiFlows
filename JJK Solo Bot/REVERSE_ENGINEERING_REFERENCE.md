@@ -1,6 +1,6 @@
 # Client Script Dump — Reverse-Engineering Reference (Client/Server Boundary)
 
-*Covers game versions 1.82 (script dump, §1–§16) and 1.85 (place file, §17 and Appendix C).*
+*Covers game versions 1.82 (script dump, §1–§16) and 1.85 (place file, §17 and Appendix C). §18 is public-source research on move behaviour, second-hand and marked as such.*
 
 Source: `ScriptDump.zip` (573 decompiled Lua files) plus supplement `missing_deps.zip` (155 files, of which **13 are new scripts**; the other 142 are re-dumps of files already in the first archive — deduped by content), extracted 2026-09-08 from the client of one Roblox fighting game (JJK-style "Shenanigans" clone; version string `1.82 — THE NOTHING UPDATE`; dev group 16357742; test place 9164905432). Everything below is derived only from this client dump. Anything the server owns (damage, cooldown numbers, unlock rules, hit validation, mode rules) is marked **n/a (server)** with whatever indirect evidence exists.
 
@@ -3747,6 +3747,563 @@ From `UpdateLogController.Updates`, in the order shown in game.
 - Whether Road Rage and House use the last point streamed or the first, and what they do when the caster's client sends nothing.
 - What enables the `Characters` topbar icon, given the readable code creates it disabled.
 - `Chara`: an `UltNames` entry with nothing else behind it.
+
+---
+
+## 18. Public-source research (wiki and guides), Nov 2026
+
+*This section is not from the game files. It is what the public wiki and guides say about how moves behave, gathered on 2026-11-09 to tell the bot what each move is for.*
+
+**How far to trust it.** Every page fetch was refused by the research session's network settings, so every fact below was read from web-search extracts of the cited page, not from the page. The search tool reported most wiki pages as about 100 days old, and the sources call the Halloween update V1.84 where the place file says 1.85. Where sources disagree both values are kept. Blanks mean the source did not say. The bot treats all of it as a starting belief and corrects it from its own casts (see `TACTICS.md`, v87); the raw entries with full descriptions and source URLs are in `research/group1.json` to `group5.json`.
+
+What it adds to §1 to §17: the server-side facts the client dump cannot show. Whether a move can be blocked, whether it reaches a body on the ground, counter windows, the four-hit basic string and its three endings, the evasive meter, dash distances.
+
+### 18.1 Mechanics
+
+
+#### Basic attacks (M1)
+
+| Fact | Source |
+|---|---|
+| Holding or repeating M1 chains up to four hits, a 4-hit string dealing 14 damage in total (3 + 3 + 4 + 4). | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| After the 4-hit M1 string finishes, M1 goes on a downtime of 2 seconds. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| A landed M1 stuns the target for about 0.75 s and pulls the attacker about 1 stud towards the target. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| A blocked M1 carries double the endlag for the attacker. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| The fourth M1 is the hit that ragdolls, and which variant comes out depends on the attacker's vertical movement at that moment. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Fourth M1 with no vertical speed (neutral): knocks the enemy backwards and has the shortest ragdoll of the M1 variants. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Uppercut: fourth M1 while moving upward (jumping). It is an uptilt that knocks the enemy into the air and has the longest ragdoll duration of all M1 variants because of the target's airtime. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Downslam: fourth M1 while falling after a jump. It is unblockable and bypasses ragdoll (it can hit a ragdolled target). | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Uppercuts and downslams refill the VICTIM's ragdoll-cancel meter when they land on a target that is ragdolled or just waking up; one extract of the page gave the amount as +20% (downslam on a ragdolled target, or uppercut / neutral fourth M1 on wakeup). A second extract of the same page did not show the 20% figure. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Sources disagree on M1 damage: the games.gg beginner guide says the first two hits deal 3 and the last two deal 2 (10 total), while the Fandom wiki says 3 + 3 + 4 + 4 (14 total). | https://games.gg/roblox/guides/jujutsu-shenanigans-beginners-guide/ |
+| games.gg describes the inputs as: jump before the fourth hit for a ground slam, hold jump during the combo for an uppercut. | https://games.gg/roblox/guides/jujutsu-shenanigans-beginners-guide/ |
+| Uppercut-surfing tech: holding jump during an M1 chain and delaying the fourth input lets you jump on the opponent's head while uppercutting, gaining height and lengthening the opponent's ragdoll time. (The search extract said one tech on this page is marked outdated without saying which.) | https://jujutsu-shenanigans.fandom.com/wiki/Techs |
+| No source found states a general 'M1 cancels into skills at time X' rule. What the wiki does state: a side/back dash can be used during the startup of abilities or M1s at the cost of a slight delay in their windup. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Skills are routinely used between M1s in wiki combo listings, e.g. Sky Bender: '3 M1s + Blind Rage + 3 M1s + Turbulence + Thin Ice Breaker + 4 M1s' for 75 damage. The pattern is to stop at 3 M1s (before the ragdolling fourth hit), use a skill, and only finish with the full 4. | https://jujutsu-shenanigans.fandom.com/wiki/Sky_Bender |
+| Character-specific 'M1 reset' techs exist and are timing-tight: Vessel must use a move within a few frames after the first M1; Locust Guy gets a full reset from one M1 followed immediately by Clever (four M1s instead of three); True Cannon resets with an uncharged Granite Blast during the string. (Each is on that character's own wiki page: /wiki/Vessel, /wiki/Locust_Guy, /wiki/True_Cannon.) | https://jujutsu-shenanigans.fandom.com/wiki/Vessel |
+
+#### Blocking
+
+| Fact | Source |
+|---|---|
+| Block is the main defensive option: it nullifies the damage and/or stun of incoming attacks in exchange for slower movement and the inability to attack or dash while blocking. On PC it is held with F (rebindable). | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Blocking only works within a 170-degree arc in front of the blocker; some attacks are tagged as blockable from all sides. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Block is not blanket immunity: some attacks deal reduced damage on block, some are entirely unblockable, some can only be 'perfect-blocked' by blocking before impact, and some get stronger when blocked. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| The downslam (fourth M1 while falling) is unblockable; the neutral and uppercut fourth hits are not described as unblockable. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Blocking an M1 doubles the attacker's endlag, and a blocked front-dash punch also gets additional endlag, so a successful block hands the blocker the next action. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Attacks from behind bypass block: listed techs are the wrap-around (front dash past the defender while flicking the camera 180 degrees so the hit lands from behind) and side dash + M1. | https://jujutsu-shenanigans.fandom.com/wiki/Techs |
+| NamuWiki agrees: F blocks normal attacks and some skills coming from the front, attacks from behind cannot be blocked, and some skills/basic attacks can be defended from all 360 degrees. | https://en.namu.wiki/w/Jujutsu%20Shenanigans |
+| The wiki tags each move individually: UNBLOCKABLE, BLOCKABLE, SEMI BLOCKABLE, BLOCKABLE FROM ALL SIDES, plus INTERRUPTIBLE / UNINTERRUPTIBLE. Blockability is per move, not per move type. | https://jujutsu-shenanigans.fandom.com/wiki/Vessel |
+| Sources disagree on grabs: the gamesving beginner guide says some abilities break guard and 'grabs completely ignore blocking', but the Fandom wiki tags Black Death's Chokehold as a BLOCKABLE grab. Treat grab blockability as per-move. | https://gamesving.com/guides/jujutsu-shenanigans-beginner-guide/ |
+| No general block-durability meter and no general guard-break stun duration was found. Block breaks are described only on individual moves (e.g. Defense Attorney's Justice Served leaves a blocking target 'block broken on the floor for a few seconds', which the page calls visual only). | https://jujutsu-shenanigans.fandom.com/wiki/Defense_Attorney |
+| Some moves punish blocking specifically: Perfection's Homerun bypasses guard and removes the blocker's ragdoll cancel; Club Mode's last 2 hits bypass block entirely. | https://jujutsu-shenanigans.fandom.com/wiki/Perfection |
+| No universal parry was found. 'Perfect block' in the wiki means blocking before impact, required for certain attacks. Separately, 'counters' are a class of ability: the user enters a brief stance and, if hit during it, evades or blocks and strikes back while disabling the attacker's ragdoll cancel. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| No source found states a delay between releasing block and acting. The only stated restriction is that you cannot attack or dash WHILE blocking. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Guide advice: do not rely on block alone; mix it with side dashes and movement so you are harder to read. | https://gamesving.com/guides/jujutsu-shenanigans-beginner-guide/ |
+| Guide advice: blocking too early lets the opponent wait out the guard; react to the swing instead. (Attribution within the jujutsushenanigans.org / gamesving extracts was not precise.) | https://jujutsushenanigans.org/ |
+
+#### Ragdoll cancel (evasive)
+
+| Fact | Source |
+|---|---|
+| Ragdoll cancel (the 'evasive') is a side dash performed while ragdolled: the user quick-steps and gets up from ragdoll while gaining about a second of i-frames. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| It is gated by a meter that refills from both dealing and taking damage. Above 50 HP the bar fully charges after sustaining about 77 damage or dealing 200 damage; at 50 HP or below it charges faster. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| One extract of the page gave low-HP fill figures of 62.5 damage taken or 100 damage dealt (damage dealt counting double at 50 HP or below). The extract attached them to the Awakening bar, but 100 is exactly half of the ragdoll-cancel figure of 200, so they most plausibly belong to the ragdoll-cancel bar. Unresolved. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| History: the meter was added in the V1.51-V1.60 range so players manage ragdoll cancels; it is instantly restored after every kill and gained by being damaged or damaging enemies. A later update tuned gain per damage and made it slowly regenerate out of combat or when healing with a soda. | https://jujutsu-shenanigans.fandom.com/wiki/Update_Log/V1.60_to_V1.51 |
+| The 'Evade 50' value shown on characters was not explained by any source found. The only 50 the wiki ties to the evasive is the 50 HP threshold below which the ragdoll-cancel bar charges faster. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| True ragdoll cannot be evaded, but its timer starts counting down immediately on hit. A regular ragdoll only starts counting down once the player touches a surface (so being juggled in the air prolongs it). | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| After getting up from ragdoll the player stands immediately and has about 0.5 s of immunity to melee stun. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Things that remove the option: counters (disable ragdoll cancel on the player who hit them), and specific moves such as Restless Gambler's Overwhelming Luck (until its last hit), Perfection's Homerun on a blocking target, Lucky Coward's Trip on a moving target, and grabs like Perfection's Heart Piercer (no escape until the move ends). | https://jujutsu-shenanigans.fandom.com/wiki/Perfection |
+| Move tags that matter after a knockdown: BYPASSES RAGDOLL means the move can hit a target lying in grounded ragdoll; CANNOT BYPASS GROUNDED RAGDOLL means it whiffs on one; TRUE RAGDOLL marks an unevadable ragdoll. Meanings are read from usage; the wiki has no single glossary in the extracts. | https://jujutsu-shenanigans.fandom.com/wiki/Head_of_the_Hei |
+| The op.gg guide agrees in outline: watch the evasive bar; true ragdolls and moves that disable evasives cannot be escaped; dealing or taking damage refills the resource and a kill refills it fully. | https://op.gg/roblox/wiki/jujutsu-shenanigans/guides |
+| Sources describe the input differently: the wiki says side dash while ragdolled; the op.gg game listing says 'Q - dash (use in stun to escape)'; games.gg says press Q while holding M1 toward the enemy after being hit, and that missing the window means eating the full combo. | https://games.gg/roblox/guides/jujutsu-shenanigans-beginners-guide/ |
+| Landing certain moves is punishable by the victim's ragdoll cancel (Vessel's Divergent Fist and Aerial Cursed Strikes), so the wiki advises using them only after baiting the evasive out first. | https://jujutsu-shenanigans.fandom.com/wiki/Vessel |
+| games.gg: dashing toward the opponent during their windup or endlag turns the cancel into a punish. | https://games.gg/roblox/guides/jujutsu-shenanigans-beginners-guide/ |
+
+#### Dashes
+
+| Fact | Source |
+|---|---|
+| Front dash (dash while moving forward or standing still): the user slides forward about 20 studs while winding up a jab, then punches. Cooldown 6 s. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| The front-dash punch deals 4 blockable melee damage, cannot bypass grounded ragdoll, and has additional endlag when blocked. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| The front-dash punch normally stuns, but it ragdolls any enemy it meets before the dash has travelled half its full distance (i.e. at point-blank). | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Side or back dash: a quick-step that slides about 17.5 studs in the direction the player was walking. Cooldown 2 s. Its trajectory can be steered by turning mid-dash. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Front side dash (anti-run): if the front dash goes on cooldown while chasing a target, a 'front' side dash is allocated and can repeat while the regular front dash is on cooldown. It is unavailable if the running target turns to face back, or if the pursuer faces away. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| No i-frames are stated for ordinary dashes. The only stated dash invulnerability is the roughly 1 s of i-frames on a ragdoll cancel. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Default keys per the op.gg game listing: M1 melee combo, 1-4 skills, Q dash, F block, R special, W+W sprint (automatically avoids obstacles), G awaken. | https://op.gg/roblox/games/3508322461 |
+| Guide advice: a forward dash is a good way to pressure and close the gap before starting a combo. | https://gamesving.com/guides/jujutsu-shenanigans-beginner-guide/ |
+
+#### Combos
+
+| Fact | Source |
+|---|---|
+| A combo is a sequence where each hit connects before the defender can block, dash away or ragdoll cancel. If the opponent can interrupt, it is a string with an escape window, not a guaranteed combo. | https://jujutsushenanigans.org/combos/ |
+| 'True combo' as defined by sabertoothgames: zero gap between hits, i.e. the hitstun from the previous hit is longer than the startup of the next attack. (The search tool flagged another article on this site as generic, so weight it lightly.) | https://sabertoothgames.com/how-to-chain-combos-per-character-in-jujutsu-shenanigans/ |
+| Since a landed M1 stuns for about 0.75 s, the next hit of a true string has to start inside that window. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Universal beginner opener per jujutsushenanigans.org: three M1 hits into a downslam, then one skill; check that it works for your character, because follow-ups vary by moveset and opponent state. | https://jujutsushenanigans.org/combos/ |
+| sabertoothgames: downslam resets are generally true if you act immediately during the ragdoll animation. | https://sabertoothgames.com/how-to-chain-combos-per-character-in-jujutsu-shenanigans/ |
+| Typical wiki combo shape: 3 M1s -> skill -> 3 M1s -> skill -> skill -> 4 M1s (Sky Bender, 75 damage). Listed Sky Bender Temper combos fall in the 58-75 damage range. | https://jujutsu-shenanigans.fandom.com/wiki/Sky_Bender |
+| gamesving describes the basic pattern as M1, then dash, then skill, then a follow-up attack, and warns that throwing abilities from long range gives the opponent plenty of time to escape. | https://gamesving.com/guides/jujutsu-shenanigans-beginner-guide/ |
+| What ends a combo, pieced together from the wiki: the fourth M1 ragdolls and knocks the target away and puts M1 on a 2 s downtime; the defender's ragdoll cancel (about 1 s of i-frames); follow-ups tagged CANNOT BYPASS GROUNDED RAGDOLL whiffing on a floored target; and the roughly 0.5 s melee-stun immunity on wakeup. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Walls help extend: pushing a ragdolled enemy into a wall reduces knockback so a combo can continue without spending a dash (stated for Aspiring Mangaka's Shut Up! after an uppercut). | https://jujutsu-shenanigans.fandom.com/wiki/Aspiring_Mangaka |
+| itemlevel's Nanami guide notes that longer strings rely on reads and pressure rather than being true combos. | https://itemlevel.net/jujutsu-shenanigans-nanami-guide-salaryman/ |
+
+#### Awakening
+
+| Fact | Source |
+|---|---|
+| The Awakening bar sits above the skill boxes and only fills as damage is dealt; it loses all progress when switching characters. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| It takes about 286 damage dealt in total (2000/7) to fill; the user briefly flashes white when the bar reaches maximum. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| One extract says that at 50 HP or below damage taken also feeds the bar and damage dealt counts double, and that a kill or landing the anti-team burst fills it to maximum. The V1.60 log says the same 'restored after every kill' rule about the ragdoll-cancel bar, so which bar these lines describe was not fully clear from the extracts. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Awakening for a complete character: a brief invulnerable sequence with some healing, then an awakening moveset that lasts about a minute. Some characters must meet requirements first, and 'Base-only' characters have no awakening. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| Halloween patch: hitting dead players no longer grants awakening. | https://games.gg/roblox/guides/halloween-candy-shop-rewards-patch-notes/ |
+| Sources disagree on fill sources: beginner guides say awakening builds from landing M1s, using your technique and surviving exchanges, while the wiki says the bar only fills as damage is dealt. | https://gamesving.com/guides/jujutsu-shenanigans-beginner-guide/ |
+| Guide advice on timing: do not cast the moment it is ready; wait until the opponent cannot interrupt the 1.25 s windup. 'An uppercut after an evasive' is called the most reliable setup. (The extract tied the 1.25 s figure to the domain windup, and did not say which of the jujutsushenanigans.org / gamesving pages it came from.) | https://jujutsushenanigans.org/ |
+| Character-specific bars differ. Sky Bender's Temper is a passive on the Awakening bar that fills four times faster, activates with the Awakening button, drains after 15 s without dealing damage, and shortens all active cooldowns to 3 s. | https://jujutsu-shenanigans.fandom.com/wiki/Sky_Bender |
+
+#### Domains
+
+| Fact | Source |
+|---|---|
+| A domain is a move category that expands after a short hand-sign windup; those caught inside are frozen in a neutral stage while on-screen text explains that domain's rules. | https://jujutsu-shenanigans.fandom.com/wiki/Domain_Expansion |
+| A domain clash happens when two or more players cast their domain expansions simultaneously; a caster who loses the clash is refunded 75% of the Awakening bar. | https://jujutsu-shenanigans.fandom.com/wiki/Domain_Expansion |
+| A clash meter appears above each participant's bar and after 10 seconds the player with more progress on it wins. (The extract tied this wording to the True Love Beam clash on the mechanics page.) | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+| bloxodes: during a clash sure-hit pressure is disabled, landing hits fills the clash bar, and the winner keeps their domain while the losing domains are cancelled. | https://bloxodes.com/articles/jujutsu-shenanigans-domains-explained |
+| A domain can be stopped at startup: any attack during the 1.25 s windup (a single M1, a projectile or any stun) cancels it. bloxodes agrees that interrupting the startup is cleaner than dealing with the domain afterwards. (Which jujutsushenanigans.org page carried the 1.25 s figure was not precise in the extract.) | https://jujutsushenanigans.org/how-to-invade-domains/ |
+| Inside slash-style domains blocking is recommended; Time Cell Moon Palace punishes movement and attacks, so blocking is the safer choice there too. | https://bloxodes.com/wiki/jujutsu-shenanigans/domains |
+
+#### Combat tag and respawn
+
+| Fact | Source |
+|---|---|
+| Halloween update patch notes: hitting a player now triggers combat tag, and hitting dead players no longer grants awakening. So the attacker is tagged too, not only the player who was hit. | https://games.gg/roblox/guides/halloween-candy-shop-rewards-patch-notes/ |
+| Halloween update: players no longer respawn automatically. Automatic respawn is disabled by default and a 'Respawns' general setting can turn it back on (a Damage Counter setting was added in the same patch). | https://jujutsu-shenanigans.fandom.com/wiki/Update_Log |
+| Version label: the sources found call the Halloween update V1.84, not V1.85. The wiki's version list has a V1.85 entry whose contents were not shown in the extracts. | https://games.gg/roblox/guides/halloween-candy-shop-rewards-patch-notes/ |
+| An earlier update introduced combat tag as a 15-second lock after being hit during which the player cannot switch or reset characters. | https://jujutsu-shenanigans.fandom.com/wiki/Update_Log |
+| The Halloween event ran from 23 October 2026 to 23 November 2026 22:00 UTC per the game's Roblox event listing as reported by games.gg. | https://games.gg/roblox/guides/halloween-candy-shop-rewards-patch-notes/ |
+
+#### Neutral play
+
+| Fact | Source |
+|---|---|
+| Most fights are decided by movement, positioning and knowing when to use skills rather than by fast ability use. | https://gamesving.com/guides/jujutsu-shenanigans-beginner-guide/ |
+| The core exchange: get close without taking a punish, confirm hits, then block or dash out before the opponent turns the combo around. Most kits rely on opening hits, avoiding endlag and using the right move variant. | https://bloxodes.com/articles/roblox-anime-games-skill-combat |
+| Do not throw abilities from long range: raw skills at distance give the opponent plenty of time to escape. Skills are meant to be confirmed off M1s. | https://gamesving.com/guides/jujutsu-shenanigans-beginner-guide/ |
+| Missed moves carry endlag that is punishable (e.g. Crow Charmer's Impetus Updraft has 'major endlag' on a miss; Aspiring Mangaka's page notes punishable endlag on all its moves but one). | https://jujutsu-shenanigans.fandom.com/wiki/Crow_Charmer |
+| Feints exist to bait defensive options: Vessel's special cancels an M1 or skill windup with no endlag and keeps the move off cooldown, and the wiki says it is mainly used to bait enemies into blocking or using a counter. | https://jujutsu-shenanigans.fandom.com/wiki/Vessel |
+| If your attack is blocked, expect the opponent's full combo in return (stated in itemlevel's Vessel guide; consistent with the wiki's doubled endlag on blocked M1s). | https://itemlevel.net/jujutsu-shenanigans-yuji-itadori-vessel-guide-showcase/ |
+| Bait the opponent's ragdoll cancel before committing your best move; several wiki techs are prefaced with 'need to waste their evasive before'. | https://jujutsu-shenanigans.fandom.com/f/p/4400000000000044707 |
+| Button-mashing loses; games.gg recommends using training modes before PvP, and jujutsushenanigans.org recommends practising one extension at a time until it lands ten times in a row. | https://games.gg/roblox/guides/jujutsu-shenanigans-beginners-guide/ |
+| Uppercut and downslam on a floored or waking opponent hand them ragdoll-cancel meter, so repeatedly re-launching the same target feeds their escape. | https://jujutsu-shenanigans.fandom.com/wiki/Controls_%26_Mechanics |
+
+### 18.2 How this lines up with the game files
+
+| Research says | Game files say (§ of this reference) |
+|---|---|
+| The fourth basic hit is a downslam when falling and an uppercut when rising | `ToolController` sends the direction itself: `"Down"` if `Humanoid.FloorMaterial == Air` and not swimming, else `"Up"` if `Humanoid.Jump`, else nothing. For Hanami the order is reversed (§17.3) |
+| Ragdoll cancel is a side dash while ragdolled, gated by a meter | `MovementController.DashRequest` fires `MovementService.Dash(dir, true)` in any direction when `Info.Knockback` exists, or the character has `Burst` and `Info` does not, or `Info.ForceEsc.Value`. The meter is the character attribute `Evade`, 0 to 50 (§3) |
+| Dash cooldowns: front 6 s, side and back 2 s | `DashRequest` enforces 2 s client-side for side and back dashes; the front dash goes through the moveset service as `Chase` |
+| You cannot attack or dash while blocking | `DashRequest` returns early on `Info.Block`, `Info.Stun` and `Ragdoll > 0` |
+| Cooldowns | `Moveset/<move>` attributes `ReadyAt` and `LastUse` are set by the server (§5); the bot now logs the difference next to the listed value |
+
+### 18.3 Move catalogue
+
+Family is the researcher's reading where the source did not state it. "Block" is the wiki tag; semi-blockable moves are listed as blockable because the opening hit is what a guard stops. "Ground" is whether the move reaches a body lying in ragdoll.
+
+#### Gojo
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Lapse Blue | base | pull | blockable | hits | 12.5 total (5 pull + 7.5 kick) | 13 | 35 | no opponent under the cursor within 35 studs, or the target is blocking |
+| Reversal Red | base | projectile | blockable | ? | 12.5 (6.25 if blocked) | 20 | 40 | short windup and interruptible; orb stops at 40 studs; half damage into a block |
+| Rapid Punches | base | melee | unblockable | misses | 17.25 total | 15 | ? | the opening kick must connect on a nearby enemy; cannot hit a grounded ragdolled target |
+| Twofold Kick | base | melee | blockable | hits | 10 total (6 first kick + 4 second) | 18 | ? | first kick blocked or out of melee range |
+| Limitless | special | mobility | unblockable | hits | 0 (Limitless Air kick 8; Face Grater follow-up 10.2 over 3 h | 15 | ? | needs an enemy under the cursor; interruptible |
+| Lapse Blue MAX | awakening | pull | unblockable | hits | about 44 total (2.2 per tick x 20 ticks) | 17 | ? | interruptible; pulled enemies can ragdoll-cancel away as soon as they are pulled |
+| Reversal Red MAX | awakening | projectile | unblockable | ? | 30 down to 7 by distance (Fandom); about 5-34.4 +10 (NamuWik | 10 | 100 | interruptible; damage falls off with distance |
+| Hollow Purple | awakening | projectile | unblockable | hits | 70 | 40 | ? | about 3 s charge before release; the hitbox does not cover the gap directly in front of the user |
+| Infinite Void | awakening | domain | unblockable | hits | 0 | 120 | ? | interruptible while casting; the stun does not interrupt actions started before the sure-hit began |
+
+#### Itadori
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Cursed Strikes | base | rush | blockable | misses | 17.5 ground / 14 air (NamuWiki); 14 (Fandom) | 18 | ? | blocked from any side; cannot hit a ragdolled target |
+| Crushing Blow | base | grab | unblockable | hits | 12 total (6 per slam x2); 3 for the miss shockwave; NamuWiki | 15 | ? | a miss gives only a 3-damage shockwave with no stun; interruptible |
+| Divergent Fist | base | melee | blockable | ? | 10 (5 per hit x2); Black Flash 10, or 20 on interrupting an  | 18 | ? | tagged 'partly bypasses ragdoll', so part of it misses downed targets; windup can be blocked |
+| Manji Kick | base | counter | unblockable | hits | 8.5 | 20 | ? | does nothing unless the user is hit by a melee or bullet attack inside the 0.6 s window |
+| Combat Instincts | special | other | ? | ? | 0 (throwable variant 15) | 2 | ? | only does something during an M1 or skill windup |
+| Cleave | special | melee | ? | misses | 40% of target's current HP (minimum 10) | 12 | ? | cannot hit a grounded ragdolled target |
+| Dismantle | awakening | projectile | blockable | ? | 17.5 total (1.75 per tick); 10 on block; NamuWiki: air varia | 13 | 30 | target beyond 30 studs; much weaker into a block |
+| Open | awakening | projectile | ? | ? | 30 | 40 | ? |  |
+| Rush | awakening | rush | ? | ? | 25 total (5 impact + 15 kick + 5 slam) | 15 | ? |  |
+| Malevolent Shrine | awakening | domain | blockable | ? | 2 per slash, 156 over 78 slashes (0.5 per slash on block) | 120 | ? | targets who hold block take a quarter damage |
+
+#### Hakari
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Reserve Balls | base | projectile | blockable | hits | 7.5 (NamuWiki); 13.5 total with the Shutter Doors variant | 12 | 65 | blockable; ball disappears after 65 studs |
+| Shutter Doors | base | melee | blockable | misses | 8; miss variant 6 total over three bounces | 15 | ? | base hit cannot reach a ragdolled target; on a miss it becomes a 7 s lingering trap that does hit ragdolled targets |
+| Rough Energy | base | melee | unblockable | hits | 12.5 ground; 8 air; 16 from above jump height | 14 | ? | slow windup and interruptible; the normal air version can be blocked |
+| Fever Breaker | base | melee | blockable | misses | 15 total (5 kick + 10 dropkick); Fever Crush 20 (8 doors + 1 | 23 | ? | blockable; cannot hit a grounded ragdolled target |
+| Door Guard | special | counter | ? | ? | 5 against melee, 0 against bullets | 16 | ? | needs the opponent to attack into it; only melee attackers take damage |
+| Rhythm | special | buff | ? | ? | 0 | 8 | ? | if the dance is interrupted no buff is gained |
+| Lucky Volley | awakening | melee | blockable | hits | 28.7 total (2.3 x 9 barrage + 8 final hit) | 10 | ? | barrage hits can be blocked; interruptible |
+| Lucky Rushdown | awakening | rush | unblockable | hits | 24 total (14 grab + 10 throw) | 15 | ? | runs in a straight line and catches only what it runs into; interruptible |
+| Overwhelming Luck | awakening | rush | ? | ? | 40 total | 20 | ? | charge-up before the rush |
+| Energy Surge | awakening | rush | unblockable | hits | 20 total (10 per hit) | 25 | ? |  |
+
+#### Megumi
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Rabbit Escape | base | summon | blockable | hits | 14 (0.7 per rabbit) | 18 | 40 | no enemy within 40 studs; being hit or stunned during the hand sign stops the rabbits from spawning |
+| Nue | base | summon | unblockable | hits | 16 | 20 | ? | cannot be summoned while Rabbit Escape is swarming a grounded target; interruptible |
+| Toad | base | pull | blockable | hits | 0 (Well's Unknown Abyss variant 12) | 15 | 75 | no opponent under the aim within 75 studs; blockable |
+| Divine Dog: Totality | base | summon | blockable | hits | 18 total, 6 per attack (three attacks) | 20 | 50 | no enemy within 50 studs of the dog; dog is lost if the user gets ragdolled |
+| Lurking Shadow | special | mobility | ? | ? | 0 | 10 | ? |  |
+| Max Elephant | awakening | summon | unblockable | hits | 35 | 25 | ? | interruptible |
+| Great Serpent | awakening | grab | unblockable | hits | 29 plus poison 2.9 per second for 10 s | 25 | ? | interruptible |
+| Shadow Swarm | awakening | grab | unblockable | hits | 18 total | 15 | ? | interruptible; the domain-invasion variant costs the user 4 HP per second |
+| Mahoraga | awakening | summon | unblockable | hits | 0 | 120 | 60 | no opponent within 60 studs; fails if the user is interrupted during the 3 s ritual |
+| Divine Pummel | form | grab | unblockable | ? | 15 total (3 grab + 4 per slam + 4 punch) | 12 | ? | interruptible; may not hit ragdolled targets on the current patch |
+| Ground Pitch | form | projectile | unblockable | hits | 25 (5 grab + 20 debris) | 20 | ? | cancelled if nothing is picked up near the user |
+| Earthquake | form | aoe_self | blockable | hits | 12.5 tap; 25 held (half melee, half bullet) | 15 | ? | tap version can be blocked; interruptible while charging |
+| Takedown | form | rush | unblockable | hits | 12.5 | 7 if landed, 15 if missed | 70 | no opponent within 70 studs; a miss doubles the cooldown |
+| Adaptation | form | counter | ? | ? | 0 (heals 15 HP) | 5 if missed, 2 if landed, 15 on special  | ? | needs to be hit inside the 0.4 s window |
+| World Slash | form | projectile | unblockable | hits | 40 | 30 | ? | long windup, interruptible |
+| Adaptation Wheel | special | stance | ? | ? | 0 | ? | ? |  |
+
+#### Mahito
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Stockpile | base | melee | blockable | ? | 12 (6 per swing); air variant 10 | 12 | ? | first swing can be blocked and does not hit ragdolled targets (tagged 'partly bypasses ragdoll') |
+| Soul Fire | base | projectile | blockable | hits | 12 total (4 per bullet) | 12 | ? | blockable; interruptible |
+| Focus Strike | base | melee | blockable | misses | 10; Black Flash variant 12 | 15 | ? | base hit is blockable and cannot hit a grounded ragdolled target |
+| Body Repel | base | projectile | unblockable | hits | 14 | 20 | 70 | travels only where the user is facing; interruptible |
+| Self Transfiguration | special | ? | ? | ? | ? | ? | ? |  |
+| Idle Transfiguration | awakening | ? | ? | ? | ? | ? | ? |  |
+| Body Disfigure | awakening | ? | ? | ? | ? | ? | ? |  |
+| Spike Wrath | awakening | ? | ? | ? | ? | ? | ? |  |
+| Embodiment of Self Perfection | awakening | ? | ? | ? | ? | ? | ? |  |
+| Widespread Strikes | form | ? | ? | ? | ? | ? | ? |  |
+| Face Blitz | form | ? | ? | ? | ? | ? | ? |  |
+| Crushing Rushdown | form | ? | ? | ? | ? | ? | ? |  |
+| Head Splitter | form | ? | ? | ? | ? | ? | ? |  |
+
+#### Choso
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Piercing Blood | base | beam | blockable | ? | 12 | 15 | 30 | base beam can be blocked and only reaches about 30 studs |
+| Piercing Blood (charged, uses an orb) | base | beam | unblockable | ? | 20 | 15 | 60 | needs a Convergence orb and a hold of at least 1.35 s; without an orb it stays the base beam |
+| Flowing Red Scale | base | rush | blockable | hits | 13 (3 per rush hit, 4 on the last); 17 with a Convergence or | 12 | ? | the short forward dash has to connect; blockable from all sides |
+| Flowing Red Scale (air) | base | melee | unblockable | ? | 6 | 12 | ? | must be airborne and on top of the target |
+| Flowing Red Scale (air, with orb: blood mine) | base | trap | blockable | hits | 10 (explosion) | 12 | 10 | mine is static, so the target has to be within its 10-stud radius when detonated; also hurts the user |
+| Supernova (no orbs: counter) | base | counter | ? | ? | 14 (7 per hit) | 15 | ? | needs the opponent to hit the user with a melee attack inside the 0.6 s counter window |
+| Supernova (with orbs: thrown blood bomb) | base | projectile | ? | ? | 8 | 4 | ? | getting stunned makes the orb dissipate; cannot be used when four orbs are already active |
+| Blood Edge | base | melee | ? | ? | 11 (5 grab, 6 slam) | 13 | ? |  |
+| Convergence | special | buff | ? | ? | ? | 20 | ? | cannot be used while at least one orb remains |
+| Convergence (awakening: homing orb after Wing King) | special | projectile | ? | ? | ? | ? | 75 | needs orbs left after Wing King and a target within 75 studs |
+| Slicing Exorcism | awakening | beam | unblockable | ? | 17.5 | 13 | 66 | uses the available Convergence orbs, so it is weak or unusable without them; camera is locked while firing |
+| Wing King | awakening | rush | ? | ? | 43.75 (28.75 flurry, 15 pull and slam) per bloxodes | 16 | ? | the long-range arm extension can be blocked |
+| Blood Rain | awakening | aoe_self | blockable | ? | 2 per tick, 0.5 per tick on block | 35 | 35 | only reaches 35 studs from the user; blocking cuts it to chip damage |
+| Plasma Wave | awakening | beam | unblockable | ? | 104 (~7.42 per tick) per Fandom; 95 per bloxodes (more recen | 45 | 120 | long spin-up before the cone fires; the last tick does not always hit |
+| Duty as a Brother (awakening) | form | other | ? | ? | ? | ? | ? |  |
+
+#### Todo
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Swift Kick | base | melee | blockable | ? | 15 (9 kick, 1 grab, 5 toss) | 15 | ? | the opening kick can be blocked; feinting it ends the kick's stun early |
+| Brute Force | base | melee | unblockable | ? | 17.5 (6 if only the wind gust hits) | 17 | ? | if the target is not close enough only the weaker shockwave hits (less damage and knockback) |
+| Pebble Throw | base | projectile | blockable | hits | 4 | 12 | ? | cannot hit ragdolled players within 20 studs of the user; blockable |
+| Elbow Drop | base | melee | unblockable | misses | 12 (5 uppercut, 7 slam) | 16 | ? | the opening uppercut is a close-range hit; a community post says it does not hit ragdolled targets |
+| Boogie Woogie | special | other | ? | ? | ? | 6 | 60 | needs a target within 60 studs; a target further than 35 studs (45 after a later +10 stud patch) can block the swap |
+| Idol's Debut | awakening | melee | unblockable | ? | 30 (15 per hit) | 17 | ? | the cutscene only triggers if the first punch launches an enemy |
+| Climax Jumping | awakening | rush | unblockable | ? | 42.4 (1 lunge, 27.4 barrage at 1.2 per hit, 15 uptilt) | 22 | ? | the opening lunge has to connect |
+| Dreams | awakening | melee | ? | ? | 21 (7 per hit) | 10 | ? | three forward punches, so the target has to stay in front through the knockback |
+| Brothers | awakening | counter | ? | ? | 80 on a successful counter; 70 if nothing is countered (game | 45 | ? | needs the opponent to throw a melee attack during the 1.1 s counter window |
+| False Memories (awakening) | form | buff | ? | ? | ? | ? | ? |  |
+
+#### Hiromi
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Extended Swings | base | melee | blockable | misses | 15 (2 per swing x3, 9 slam) | 15 | ? | swings cannot hit grounded ragdolled targets; first hits can be blocked and countered |
+| Justice Served | base | melee | ? | ? | 12 | 18 | ? | needs ground to slam on; has a wind-up (25% faster if the user was unarmed before using it) |
+| Judgement's Reach | base | melee | ? | ? | 7 | 13 | ? |  |
+| Pressing Charges | base | melee | ? | ? | 7.5 (4 kick, 3.5 swing); the swing does 14.5 as a finisher o | 16 | ? | the kick's stun is never long enough to guarantee both hits connect |
+| No Escape | special | projectile | blockable | hits | 3 | 5 | 50 | a gavel that hits nothing flies 50 studs and returns after 0.75 s |
+| Domain Amplification | special | other | ? | ? | ? | 8 | ? | only about half a second of i-frames; cannot stop all damage or stun from multi-hit attacks |
+| Execution | awakening | rush | ? | ? | 25 (10 lunge, 15 toss); executes a target that already has 2 | 12 | ? | the forward lunge has to catch the target |
+| Final Judgement | awakening | rush | ? | ? | 10 for the lunge's swing, 300 for the stab; games.gg: 300 if | 21 | ? | hard to land (the wiki says so directly); failing the QTE drops it to minor damage |
+| Verdict | awakening | rush | blockable | ? | 5 + 5; 300 on execution (one wiki line says reduced to 50; a | 18 | ? | if blocked the target dodges and no stack is applied |
+| Triple Sentence | awakening | projectile | ? | ? | 8 per throw; 310 on execution | 12 | ? | hard to land (the wiki says so directly); each extra throw adds 6 s of cooldown |
+| Grapple | awakening | pull | blockable | hits | 11 | 13 | ? | target has to be airborne; blockable |
+| Deadly Sentencing (domain) / Death Penalty | form | domain | ? | ? | ? | ? | ? | the awakened moves need the Death Penalty outcome |
+
+#### Yuta
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Severing Path | base | rush | ? | ? | 10.9 (4 sweep, 2.3 per swing) | 15 | ? | the forward slide has to reach the target |
+| Resolute Slash | base | melee | unblockable | misses | ? | 15 | ? | cannot hit ragdolled targets |
+| Veilstep | base | mobility | ? | ? | ? | ? | ? | does no damage; it is a back-roll away from the target |
+| Second Wind | base | grab | ? | ? | 10 (2 grab, 8 slam) | 16 | ? | the dash grab has to catch the target (no cooldown if the first use fails) |
+| Outburst | base | counter | ? | ? | sword swing 2 or 4 (the patch note is self-contradictory) | ? | ? | the parry only happens if the user is hit within 0.25 s of using it; otherwise it is a plain swing |
+| Revolve | base | other | ? | ? | ? | ? | ? |  |
+| Rika | special | summon | ? | ? | ? | ? | ? | Rika cannot go further than 100 studs from the user |
+| Rika Downslam | base | summon | unblockable | ? | 12 (8 on contact, 4 on the second impact); 10 against airbor | 13 | ? |  |
+| Rika Launch | base | summon | ? | ? | none | 10 | ? |  |
+| Rika Slam | awakening | grab | ? | ? | 12 (1 grab, 2 per slam, 3 last slam) | 13 | ? | the target can evade the grab early |
+| Rika Haymaker | base | summon | unblockable | ? | 12; 18 if blocked | 10 | ? |  |
+| Rika Grab | base | grab | ? | hits | ? | ? | ? | only worked on a ragdolled target |
+| Rika Throw | awakening | summon | ? | ? | 8 to 18 to the target; 0.5 to 22 to the user on a miss | 13 | ? | missing damages the user instead (0.5 to 22) |
+| Rika Smash | base | summon | ? | ? | 10; 8 against airborne targets | 10 | ? |  |
+| True Love Beam | awakening | beam | ? | ? | 117 per an older games.gg guide (reduced in V1.75) | ? | ? |  |
+| Authentic Mutual Love | awakening | domain | ? | ? | ? | ? | ? |  |
+| Elbow Rush | awakening | melee | ? | ? | 15 | ? | ? |  |
+| Copy | awakening | other | ? | ? | ? | ? | ? |  |
+| Energy Ripple | awakening | aoe_self | ? | ? | 19 | 18 | 27 | only reaches 27 studs around the user |
+
+#### Mechamaru
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Ultra Spin | base | melee | blockable | ? | 13.5 (9.5 drill, 4 slam) | 15 | ? | blockable on the current wiki page |
+| Boost On | base | grab | unblockable | ? | 10 (4 grab, 6 blast) | 16 | ? | the grab has to connect |
+| Ultra Cannon | base | projectile | blockable | ? | 10 | 17 | ? | blockable from all sides |
+| Ultimate Cannon (Ultra Cannon held 1.3 s) | base | beam | unblockable | hits | 16.15 (0.95 per tick, 17 ticks) | 17 | ? | 1.3 s hold before anything comes out; interruptible |
+| Heat Emission | base | aoe_self | unblockable | ? | 13; 9 for the use-twice variant | 16 | ? | the use-twice variant is blockable from all sides |
+| Offload | special | summon | ? | ? | ? | 10 | ? | switches itself off after 15 seconds if no move is used |
+| Energy Output | special | buff | ? | ? | ? | 0 | ? | resets to level 1 after any move, or if pressed at level 5 |
+| Miracle Cannon | awakening | projectile | ? | ? | 20; 35 for the charged sphere | 8 | ? | the big sphere needs Energy Output level 2 or higher |
+| Pigeon Viola | awakening | projectile | ? | ? | 15, up to 35 (5 per projectile) | 8 | 250 | needs a target within 250 studs |
+| Absolute Destruction | awakening | melee | ? | ? | 4 per stomp, 5 leap, 20 slam | 8 | ? |  |
+| Technique Charge | awakening | other | ? | ? | 20 for the charge, +1 per Energy Output level; 5 for the sim | 8 | ? |  |
+| Absolute (awakening) | form | other | ? | ? | ? | ? | ? |  |
+
+#### Naoya
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| M1 string (Projectionism / Frame Freeze passive) | m1 | melee | ? | hits | 8 total (2 per hit x4) | ? | ? |  |
+| Projection Breaker | base | melee | blockable | hits | 9 | 18 | ? | blockable (a forum tip says a fast reaction can block it); the backdash puts him 15 studs away before the kick, and a miss or block puts Projection on the user |
+| Bleedout | base | melee | unblockable | hits | 5 stab + 3 per Bleed stack (x3) + 1.3 per Hemorrhage tick (3 | 20 | ? | interruptible; a forum comment says it has to follow an M1 or the target is i-framed (unverified) |
+| Decisive Strike | base | rush | blockable | ? | 6 jab + 1 slap + 0.5 per blow (x14) | 18 | ? | interruptible; stages 1-2 can be blocked; windup looks like Projection Sorcery and Cursory Impact |
+| Decisive Strike follow-up (heavy swing, press 1 after stage 3) | base | melee | unblockable | hits | 12 (36 if enemy interrupted, 24 if enemy ragdolled) | ? | ? | only available after Decisive Strike stage 3; wiki says missing it 'grants the user a frame' (the user gets framed) |
+| Cursory Impact | base | rush | unblockable | ? | 7.5 slap + 5.5 kick (framed target: 19.5 slap + 5 toss) | 16 | ? | interruptible; windup resembles Projection Sorcery and Decisive Strike; a miss puts Projection on the user |
+| Projection Sorcery | special | mobility | ? | ? | 0 (punch variant: 9, numbers unverified) | 18 | 50 | second teleport needs a target in sight; can be interrupted |
+| Vengeance (awakening activation) | form | melee | ? | ? | ? | ? | ? | slow windup; any melee hit during the activation reverses it onto the user |
+| Top Speed | awakening | rush | unblockable | ? | 5 base, +1.5 per Acceleration, up to 15 | 14 | ? | interruptible; weak (5 damage) without Acceleration stacks |
+| Flash Freezing | awakening | beam | ? | ? | 7 per frame (15 frames) | 18 | ? | line in front of the user only |
+| Tendril Grab | awakening | aoe_self | ? | ? | 0 | 10 | 25 | no enemy within 25 studs |
+| Time Cell Moon Palace | awakening | domain | ? | hits | 1 per tick (per action) | 60 | ? | interruptible on cast; enemies who stand still or block take little or nothing |
+| Acceleration | special | aoe_self | blockable | ? | 7 (1 per spin) | 9 | ? | no speed gain if blocked; cannot finish a kill |
+
+#### Nanami
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| M1 string | m1 | melee | ? | ? | ? | ? | ? |  |
+| Ratio Point | special | other | ? | ? | 0 | 5 | 70 | no target within 70 studs; mistimed second press gives no weak point; weak point expires after 4.5s |
+| Cleaving Whirlwind | base | rush | blockable | ? | 12 | 16 | 25 | blockable and interruptible; straight 25-stud charge |
+| Severance Kick | base | melee | blockable | ? | 12 kick, 15 from throwables | 14 | ? | damage can be blocked (knockback still applies) |
+| Blunt Cut | base | rush | blockable | hits | 9 (14 if held); Ratio: 13 (18 if held) | 16 | 34 | blockable without a Ratio mark; interruptible during the charge |
+| Stabilize | base | melee | unblockable | misses | 6 (10 on interruption) | 12 | ? | interruptible; cannot hit grounded ragdolled targets; melee range only |
+| Overtime (awakening activation) | form | buff | ? | ? | 0 | ? | ? |  |
+| Ratio Breaker I | awakening | melee | ? | hits | 10, 5 per hit (10 to either with Ratio, up to 20) | 19 | ? | without a Ratio mark on the target the chain ends and resets to stage I |
+| Ratio Breaker II | awakening | melee | unblockable | ? | 7 (14 with Ratio) | 19 | ? | the sequence resets to stage I after a use that fails to hit a Ratio-marked target |
+| Ratio Breaker III | awakening | aoe_self | unblockable | ? | 10 (20 with Ratio) | 19 | ? | interruptible during the hop/windup |
+| Ratio Breaker IV | awakening | rush | unblockable | ? | 35 Black Flash (105 with Ratio) | 19 | 60 | fourth stage of the sequence, which resets to stage I after a use that fails to hit a Ratio-marked target |
+| Sharpen | awakening | rush | unblockable | hits | 15 (23 with Ratio) | 20 | 45 |  |
+| Interrogate | awakening | grab | unblockable | ? | 4 grab + 15 punch | 20 | ? |  |
+| Collapse | awakening | aoe_self | unblockable | ? | 5 slam + 7 impact (15 with Ratio); recast: 40 per debris, ma | 22 | ? | debris only falls where it was left; enemies have up to 8s to leave the area |
+
+#### Hanami
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| M1 string | m1 | melee | ? | ? | 14 total over 4 hits (as stated under Unwrap) | ? | ? |  |
+| Lasso (passive front dash) | base | pull | ? | ? | 4 | 10 | ? |  |
+| Plant Guidance | special | aoe_point | ? | ? | 0 | 12 | 65 | spot is fixed once placed (enemy must be at the mark); follow-up used on the ground and idle gives the normal move instead |
+| Root Swarm | base | beam | unblockable | ? | 10 roots + 6 spike bounce | 15 | 50 | ground line only; older patch notes say it was blockable at close range |
+| Surging Thorns | base | other | blockable | misses | 11 total: 3 per branch (x2) + 5 thorns (possibly reduced by  | 16 | 35 | interruptible; thorn damage blockable from any side; does nothing to ragdolled targets |
+| Bud Shot | base | projectile | blockable | hits | 8 total (4 per bud x2) | 15 | 70 | blockable; pushes close targets away instead of pulling |
+| Defense Response | base | rush | unblockable | misses | 12 (air/special variant: 14 = 8 emergence + 6 bounce) | 15 | ? | interruptible; cannot hit ragdolled targets |
+| Unwrap (awakening activation) | form | buff | ? | ? | 30 total (6 per spike bounce x5) | ? | ? |  |
+| Energy Absorb / Flower Beam | awakening | beam | ? | ? | ? | 20 | ? |  |
+| Cursed Buds | awakening | summon | blockable | ? | 33.5 total: 8 summon + 1.7 per bud (x15) | 16 | ? | buds are blockable unless empowered |
+| Shining Sea of Growing Branches | awakening | domain | ? | ? | 4 per interruption | 120 | ? | interruptible; enemies who only run, side dash or block take nothing |
+| Flower Field | awakening | other | ? | ? | 12 emergence + 7 (or 6) per bounce; 6 on interruption | 16 | ? |  |
+| Root Rampage | awakening | beam | ? | ? | 5 per hit | 16 | ? | easily interrupted during the ~7s channel |
+| Thorn Rampage (Root Rampage air variant) | awakening | projectile | unblockable | ? | 25 | 16 | ? | dodged by a last-second dash |
+
+#### Ryu
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| M1 string (Cursed Energy Discharge / Overheat passive) | m1 | melee | ? | ? | ? | ? | ? | final-hit ray is lost at 90%+ Overheat |
+| Granite Blast | base | beam | blockable | ? | 5.5 (held: 12, 6 at further range; dash variant: 4) | 0.5 | 78.5 | tap version is blockable and stops at the first target; wiki says Cursed Energy Discharge attacks are disabled at 100% Overheat |
+| Unsatisfied | base | melee | blockable | hits | 18 total: 3 per punch (x3) + 3 back clash + 6 toss (12 on ra | 20 | ? | blockable (extra endlag when blocked) and interruptible |
+| Second Helping | base | melee | unblockable | hits | 12 | 15 | ? | interruptible; reduced hitbox; i-frames start late |
+| Appetizer | base | beam | blockable | ? | 16 total: 4 per blast (x2) + 8 final ray | 18 | ? | blockable and interruptible; wiki says Cursed Energy Discharge attacks are disabled at 100% Overheat |
+| Restyle | special | buff | ? | ? | 0 | 17 | ? | vulnerable during the animation, much more so in the full-Overheat comb variant |
+| Every Last Drop (awakening activation) | form | other | ? | ? | ? | ? | ? | needs Overheat at 80-99% beforehand to enter the awakening state |
+| "What are you after?" | awakening | melee | unblockable | hits | 10 slam + 20 lunge + 5 toss (5 self-damage on launch) | 18 | ? |  |
+| "I had no idea..." | awakening | grab | ? | ? | 3 grab + 2 per punch (x7) + 3 push (self-damage 2 + 1 per pu | 15 | ? |  |
+| "This is what dessert is like!" | awakening | melee | ? | ? | 7 kick + 3 swing + 5 per hit (x4) + 6 push (self-damage 2 pe | 20 | ? |  |
+| "You weren't invited." | awakening | other | ? | ? | 20 (40 if held to full charge) | 20 | ? |  |
+
+#### Reggie
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| M1 string | m1 | melee | ? | ? | ? | ? | ? |  |
+| Discard | special | other | ? | ? | 0 | 25 | ? | not an attack; 25s cooldown (minus 5s per final M1 or uppercut) |
+| Con Artistry (awakening activation) | form | buff | ? | ? | 0 | ? | ? |  |
+| Coupon | base | buff | ? | ? | 0 | 5 | ? |  |
+| Extra Coupon | base | buff | ? | ? | 0 | 8 | ? |  |
+| Gushing Wound | base | projectile | unblockable | misses | 9 knife + 3 Bleed stack | 12 | ? | no ragdoll if blocked; cannot hit ragdolled targets |
+| Homerun | base | melee | unblockable | misses | 10 (15 from throwables) | 14 | ? | noticeable startup; cannot hit ragdolled targets |
+| Littering | base | trap | blockable | hits | 8 | 15 | ? | needs the second press and an enemy near the receipts; blockable from any side |
+| Pole Vault | base | melee | unblockable | hits | 5 (patch note: 7) | 14 | ? | interruptible |
+| Piano Drop | base | aoe_point | unblockable | hits | 14 (red seal: 19 at centre) | 13 | ? | interruptible; small 7x7 landing area |
+| Garage Sale | base | projectile | blockable | hits | 12 (1.2 per item); red seal 17 | 16 | ? | blockable; interruptible during windup |
+| Blunt Trauma | base | melee | blockable | hits | 15 total: 3 per swing + 6 last hit | 14 | ? | first swing must connect; blockable and interruptible |
+| Drone Strike | base | summon | unblockable | hits | 12 | 10 | ? | needs the second press to detonate |
+| Fleche | base | rush | blockable | misses | 8 | 14 | ? | blockable and interruptible; straight-line dash; cannot hit ragdolled targets |
+| Speed Crash | base | rush | unblockable | hits | 12 explosion (red seal: 14) | 16 | ? | hitting a wall or obstacle damages the user |
+| Road Rage | awakening | projectile | ? | ? | 36 total (12 per car, 6 per hit) | 15 | ? |  |
+| 132-Square-Foot Two-Story House | awakening | other | ? | ? | 125 total (35 initial hit + 90 second impact) | 16 | ? |  |
+| Big Moves | awakening | projectile | ? | ? | 55 total (30 crash + 12.5 per explosion) | 16 | ? | a target standing in the gap between the two trucks is not hit by the crash |
+| Mayhem | awakening | aoe_self | ? | ? | 24 | 16 | ? |  |
+
+#### Toji
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Hidden Inventory | special | stance | ? | ? | ? | 5 | ? | being hit or stunned mid-swap cancels it (the special then stays off cooldown and can be retried) |
+| Flourish | base | melee | unblockable | ? | 5 | 15 | ? | punishable endlag on miss; cannot kill |
+| The Wrath | base | rush | ? | ? | 7 (Gaming Route; not confirmed from the wiki) | ? | ? | only available during Flourish's slowdown; if the first swing misses the other two do not come out |
+| The Greed | base | melee | unblockable | ? | 11 total (3 kick, 1 per slash x5, 3 last hit) | 15 | ? | only available during Flourish's slowdown; the slashes only follow if the kick lands; interruptible |
+| The Pride | base | grab | ? | ? | 9 (Gaming Route; not confirmed from the wiki) | ? | ? | only available during Flourish's slowdown; the target can escape the stun before the chain connects |
+| Debilitate | base | melee | blockable | hits | 13 total (4 kick/sweep, 4.5 per slash) | 13 | ? | blockable and interruptible; the full slash sequence only happens on a standing opponent |
+| Transcend | base | rush | unblockable | hits | 12 | 14 | ? | needs a second press or the user just stands up; punishable endlag on miss; interruptible |
+| Ascend | base | mobility | ? | ? | ? | ? | ? | deals no damage by itself; not available while airborne |
+| Rupture | base | rush | ? | ? | 14 total (9 lunge, 2.5 swing, 2.5 stab); timesaver.gg: 14 on | 15 | ? | listed as semi-blockable; failing the timed second press makes the opponent block and push the user away |
+| Paradise | base | rush | blockable | ? | 9 (lunge only) | 15 | ? | blockable |
+| Reincarnation | base | other | blockable | ? | 9 (lunge, as listed on the wiki) | 15 | ? | blockable and interruptible |
+| Lasso | base | pull | unblockable | hits | 12 total (4 pull, 8 kick) | 16 | 24 | the chain is twirled for a moment before it is thrown; target must be within 24 studs |
+| Whiplash | base | melee | blockable | ? | 5 (bullet damage) | 15 | ? | blockable |
+| Twirling Strike | base | rush | unblockable | ? | 8 | 15 | ? | only available in the 1.5 s spin window after Whiplash; goes wherever the user is aiming |
+| Puppet of Carnage | awakening | buff | ? | ? | ? | ? | ? | has no attacks to land |
+| M1 (basic attack) notes | m1 | melee | ? | ? | ? | ? | ? |  |
+
+#### Locust
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Crushing Jaws | base | melee | ? | ? | 16 total (4 per bite, 4 slam, 3 throw to other targets) | 17 on the character page; the V1.70-V1.6 | ? | semi-blockable: only the first bite can be blocked; if the first bite misses, the rest of the windup is 40% slower |
+| Clever | base | rush | blockable | ? | about 14.2 total (1.1 per hit, 1 on the last); an older guid | 15 (cut from 17 in V1.70); an older guid | ? | blockable and interruptible; if the barrage is blocked even briefly the user is locked in place |
+| Wing Throw | base | grab | blockable | hits | 8 total (3 grab, 5 throw) | 15 | ? | blockable and interruptible; the arm is wound back first; a blocked grab does not move the user |
+| Black Mucus | base | projectile | unblockable | hits | 8 (bullet damage) | 17 | 60 | the head is wound back before the spit; interruptible; travels straight forward |
+| Fluttering Pounce | special | mobility | ? | ? | none (no direct damage) | 16 on the character page; the V1.70-V1.6 | 25 | interruptible; it is movement only and does not hit by itself |
+| Fluttering Pounce (air combo) | special | rush | ? | hits | none (no direct damage) | 16 | 80 | needs an airborne, ragdolled enemy within 80 studs; the combo ends after a second without action or if the enemy gets ragdolled |
+| Directed Poison | awakening | projectile | unblockable | hits | sting 0; poison 90 total at 9 per second for 10 s (other gui | ? | ? | a miss refunds half of the awakening bar (V1.70) |
+
+#### Yuki
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Garuda Rebound | base | projectile | blockable | ? | 5 | 14 | ? | blockable from all sides; interruptible |
+| Garuda Rebound (second kick) | base | projectile | unblockable | ? | 7 (12.5 to the user if it is parried back) | 20 | ? | a perfect block sends Garuda back at the user (who can parry it back again) |
+| Garuda Rebound (mass variant) | base | projectile | unblockable | ? | 24 | 20 | ? | needs 100% mass; a perfect block parries it back; gives no awakening progress |
+| Rising Rage | base | melee | blockable | ? | 14 total (7 per hit) | 15 | ? | blockable and interruptible; the first kick cannot hit a ragdolled target (the second can) |
+| Rising Rage (mass variant, one charge) | base | melee | ? | ? | 16 | 15 | ? | needs 30% mass |
+| Rising Rage (mass variant, two charges) | base | melee | ? | ? | 24 | 15 | ? | needs 60% mass in total; listed as semi-blockable (the last knee is the unblockable part) |
+| Mass Breaker | base | rush | unblockable | ? | 15 | 15 | ? | has a charge-up before the lunge; interruptible |
+| Mass Breaker (mass variant) | base | aoe_self | ? | ? | 12 | 15 | ? | needs 30% mass; replaces the lunge, so it has no forward reach |
+| Garuda Stab | base | melee | unblockable | misses | 14 total across two hits | 14 | ? | the kick only follows if the stab connects; does not bypass ragdoll; interruptible |
+| Garuda Stab (mass variant) | base | pull | unblockable | ? | 21 total (stab plus two whip hits) | 20 | ? | needs 50% mass; interruptible; a forum post says this variant is now blockable |
+| Mass Buildup | special | buff | ? | ? | ? | 16 on the wiki; one guide says 15 | ? | holding it immobilises the user (per a guide) |
+| Unrestricted Density | awakening | aoe_self | ? | ? | about 1600 total, about 28.5 per tick, falling off with dist | ? | ? | the latch counts as a melee attack, so counters trigger on it; the grab alone spends the whole awakening bar even if the black hole never forms; interruptible |
+
+#### Charles
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Despair | base | melee | ? | ? | 16.1 total (15 from thrusts, 1.1 last hit); an older patch n | 16 | ? | slows down if it misses or is blocked by an unmarked target (V1.69 removed the slowdown when a marked enemy blocks) |
+| Shut Up! | base | melee | blockable | ? | 7 total (3 stab, 4 kick) | 16 | ? | blockable; a later patch made it no longer evadable |
+| Shut Up! (air) | base | aoe_point | unblockable | ? | 12 | 16 | ? | ends automatically if the user does not reach the ground in time |
+| Eye Catching | base | counter | ? | ? | 9 | 14, or none if the counter lands | ? | needs the opponent to hit with a melee or bullet attack inside the 0.75 s window; explosion and swarm attacks are not countered (they are only blocked, if blockable) |
+| Sacrilege | base | rush | unblockable | hits | 12 total (6 thrust, 6 kick) | 16 | 20 | missing the dash leaves 0.85 s of endlag (was 0.75 s, earlier 1 s); the hitbox can sometimes miss ragdolled or uppercutted targets |
+| Clairvoyance | special | buff | ? | ? | ? | 25 | 35 | the cursor must be over an opponent within 35 studs |
+| Clairvoyance: Prediction | special | other | ? | misses | ? | 4 (a forum post says each use costs 2% a | ? | only works on a marked target that is not ragdolled and not using a skill |
+
+#### Haruta
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Ambush | base | melee | unblockable | ? | 12 | 15, shared with Ankle Cutter | ? | a perfect block makes the enemy dodge the blade |
+| Backstab | base | melee | unblockable | misses | 8 | 12, shared with High Time | ? | interruptible; cannot hit an opponent ragdolled on the ground; the long stun needs the hit to come from behind |
+| Trip | base | melee | ? | hits | 7 kick + 4 fall | 14 (not spent if it kills or hits a corp | ? | against an already ragdolled enemy it only adds knockback and deals no fall damage |
+| Cheap Shot | base | projectile | blockable | ? | 7 | 15 (not shared with Dirty Play) | 60 | if it is blocked the blade just stops in place instead of tracking |
+| Ankle Cutter | base | projectile | blockable | hits | 10 | 15, shared with Ambush | ? | blockable from all sides; interruptible |
+| High Time | base | aoe_point | blockable | ? | 12 | 12, shared with Backstab (none on a dead | ? | blockable from all sides; it happens at the blade's position, so enemies must be near the blade |
+| Dirty Play | base | projectile | blockable | hits | 8 (bullet damage) | 15 (not shared with Cheap Shot) | ? | cannot be used while stunned or ragdolled; only hits targets on the blade's path back |
+| Helping Hand | special | summon | ? | ? | ? | ? | ? |  |
+
+#### Crow Charmer
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Impetus Updraft | base | melee | blockable | hits | 11 | 16 | ? | Major endlag on a miss; a forum post claims a blocked swing stuns the user for 2 s (unverified) |
+| Circling | base | melee | blockable | ? | 14 | 18 | ? | If a swing is blocked the user stays in place |
+| Gliding Flight | base | melee | ? | hits | ? | ? | ? |  |
+| Murmurate | base | projectile | blockable | ? | 9 | 16 | ? |  |
+| Bird Control | base | mobility | blockable | ? | ? | 18 | 35 | No cooldown if feinted; cancelling the flight with Spatial Transference keeps it off cooldown |
+| Flock | special | other | ? | ? | 5 | 10 | ? |  |
+| Spatial Transference | special | other | ? | ? | ? | ? | ? |  |
+| Free Fall | base | melee | ? | ? | ? | ? | ? |  |
+| Dive Bomb | base | other | blockable | ? | ? | ? | ? |  |
+| Bird Strike | awakening | projectile | unblockable | ? | ? | ? | ? |  |
+
+#### Black Death
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Festering Strikes | base | melee | blockable | ? | 3 | 20 | ? |  |
+| Detach | base | projectile | blockable | ? | 2 | 13 | 85 | After 85 studs without a hit the user pulls it back and reattaches it |
+| Reattach | base | pull | unblockable | hits | 0 | 13 | ? | Unavailable once 8 seconds have passed since Detach |
+| Chokehold | base | grab | blockable | ? | 2 | 16 | ? |  |
+| Roach Swarm | base | projectile | ? | ? | 9 | 17 | 35 | Its hitbox does not cover targets on the user's right |
+| Roach Swarm (air variant) | base | rush | ? | ? | ? | 17 | 40 | No endlag per the wiki tip |
+| Roach Swarm (special variant) | base | aoe_self | ? | ? | 6 | 17 | ? | A small gap directly in front of the user lets targets avoid it |
+| Earthen Insect Trance | special | summon | ? | ? | 4 | 15 | 100 | Ends if the user is ragdolled; cooldown starts only after the insects are gone |
+| Parthenogenesis | awakening | summon | ? | ? | ? | ? | ? |  |
+
+#### Sky Bender
+
+| Move | Slot | Family | Block | Ground | Damage | Cooldown | Reach | When it misses |
+|---|---|---|---|---|---|---|---|---|
+| Blind Rage | base | grab | unblockable | misses | 9 | 15 | ? | If the target evades out of the grab above 25 studs of altitude they automatically counterattack the user |
+| Sky Distortion | base | melee | ? | ? | 10 | 12 | ? |  |
+| Thin Ice Breaker | base | grab | unblockable | misses | 14 | 15 | ? |  |
+| Turbulence | base | pull | ? | ? | 10 | 15 | 60 |  |
+| Turbulence (air variant) | base | rush | ? | ? | 14 | 15 | ? |  |
+| Turbulence (Sky Veil variant) | base | counter | ? | ? | ? | 15 | ? | Counter window is 0.75 s and using it ends the invisibility |
+| Sky Veil | special | buff | ? | ? | 0 | 8 | ? |  |
+| Temper | awakening | buff | ? | ? | ? | ? | ? |  |
+
+### 18.4 What the research could not find
+
+- Nine of Mahito's moves, Yuta's current Rika moves, most awakening moves of Ryu, Reggie and Mechamaru.
+- Reach in studs for most moves, and how most moves are aimed.
+- A general rule for cancelling a basic attack into a skill, block durability, a delay on acting after a block, ragdoll durations, dash invulnerability.
+- What the "Evade 50" figure means beyond the 0 to 50 meter in the files.
 
 ---
 

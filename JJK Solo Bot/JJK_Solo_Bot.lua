@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v86"
+local BUILD_TAG = "JJK-SOLO-v87"
 
 local NL = string.char(10)
 
@@ -904,7 +904,8 @@ local Config = {
     -- Tactics) and its own counters in the LIFE END line, so its effect can
     -- be read out of a log rather than guessed.
     TacCombo = true,            -- chain a skill the moment a hit is confirmed
-    TacComboStep = 2,           -- ... once our own string has reached this hit
+    TacComboStep = 4,           -- ... once CurrentM1 says the fourth swing is next (three are out)
+    TacComboPatience = 1.6,     -- ... or the target has been held this long without the string advancing
     TacComboGap = 0.25,         -- seconds between two chained casts
     TacDiscipline = true,       -- in melee, keep skills for a confirmed hit
     TacNeutralGap = 4.0,        -- ... but still throw one unconfirmed this often
@@ -936,6 +937,34 @@ local Config = {
     -- block that short absorbs nothing and still interrupts the attack.
     TacBlockKeep = true,        -- once raised, a block stays up at least TacBlockMin
     TacBlockMin = 0.3,
+    -- Knowledge (v87). In the v86 log no move with twelve tries landed half
+    -- the time: counters were thrown at people who were not attacking,
+    -- blockable moves into raised guards, everything at bodies on the
+    -- ground. Each move now has a family and researched facts (MoveFacts),
+    -- and every cast is booked by what the target was doing when it was
+    -- thrown, so the estimate corrects itself.
+    Know = true,                -- gate and weigh every cast by its chance to land on the target as it is
+    KnowMinP = 0.2,             -- below this chance a cast is withheld
+    KnowSureP = 0.45,           -- at or above this, a move is used on purpose against a guard / a body on the ground
+    KnowPriorWeight = 4,        -- how many casts the starting belief is worth
+    KnowSeedCap = 8,            -- how many casts the pre-v87 career totals are worth
+    KnowProbe = true,           -- ask open questions (never researched, hardly tried) a few times a life
+    KnowProbePerLife = 3,
+    KnowProbeTries = 3,
+    KnowProbeGap = 8,
+    KnowCounter = true,         -- counters are thrown into a swing, and only into a swing
+    KnowCounterReach = 10,
+    KnowM1Hold = true,          -- no basic attacks into a raised guard or at a body on the ground
+    KnowFlankWindow = 0.9,      -- ... except for this long after a side dash (a guard covers the front only)
+    KnowPullMin = 12,
+    KnowReachSlack = 3,
+    KnowLateVerify = 1.3,       -- seconds before judging a cast refused, for moves seen to start their cooldown late
+    -- The fourth basic hit: "down" (falling: unblockable, reaches the ground),
+    -- "up" (rising: launches, longest time down), "flat", "off", or "auto",
+    -- which tries each and keeps what pays (damage dealt minus taken after).
+    TacFinisher = "auto",
+    TacFinisherTrials = 4,
+    TacFinisherWindow = 4,
     WatchdogIdle = 10,
     ChangeSpamGuard = 2.5,
     SpawnCombatWindow = 14,
@@ -2087,31 +2116,34 @@ local CharInfo = {
 
 
 local SpecialRules = {
-    Gojo        = { name = "Limitless",            kind = "offense", min = 0,  max = 30 },
-    Itadori     = { name = "Combat Instincts",     kind = "offense", min = 0,  max = 18 },
-    Hakari      = { name = "Rhythm",               kind = "utility", min = 0,  max = 999 },
-    Megumi      = { name = "Lurking Shadow",       kind = "offense", min = 0,  max = 35 },
+    -- v87, from research: most specials do no damage. A teleport closes a
+    -- gap, a feint does nothing thrown raw, a counter belongs to the guard,
+    -- a charge or a restyle wants the enemy at a distance (safe = studs).
+    Gojo        = { name = "Limitless",            kind = "offense", min = 14, max = 45 },
+    Itadori     = { name = "Combat Instincts",     kind = "avoid",   min = 0,  max = 18 },
+    Hakari      = { name = "Door Guard",           kind = "counter", min = 0,  max = 10 },
+    Megumi      = { name = "Lurking Shadow",       kind = "avoid",   min = 0,  max = 35 },
     Mahoraga    = { name = "Adaptation Wheel",     kind = "utility", min = 0,  max = 999 },
     Mahito      = { name = "Self Transfiguration", kind = "avoid",   min = 0,  max = 999 },
-    Choso       = { name = "Convergence",          kind = "offense", min = 10, max = 60 },
+    Choso       = { name = "Convergence",          kind = "utility", min = 0,  max = 999, safe = 14 },
     Todo        = { name = "Boogie Woogie",        kind = "avoid",   min = 0,  max = 0 },
-    Locust      = { name = "Fluttering Pounce",    kind = "offense", min = 0,  max = 25 },
+    Locust      = { name = "Fluttering Pounce",    kind = "offense", min = 14, max = 28 },
     Hiromi      = { name = "No Escape",            kind = "offense", min = 0,  max = 30 },
-    Yuki        = { name = "Mass Buildup",         kind = "utility", min = 0,  max = 999 },
+    Yuki        = { name = "Mass Buildup",         kind = "utility", min = 0,  max = 999, safe = 20 },
     Heian       = { name = "Incantation",          kind = "utility", min = 0,  max = 999 },
     Yuta        = { name = "Rika",                 kind = "offense", min = 0,  max = 40 },
-    Charles     = { name = "Clairvoyance",         kind = "utility", min = 0,  max = 999 },
+    Charles     = { name = "Clairvoyance",         kind = "utility", min = 0,  max = 999, reach = 35 },
     Mechamaru   = { name = "Energy Output",        kind = "utility", min = 0,  max = 999 },
-    Naoya       = { name = "Projection Sorcery",   kind = "offense", min = 0,  max = 35 },
-    Nanami      = { name = "Ratio Point",          kind = "utility", min = 0,  max = 999 },
+    Naoya       = { name = "Projection Sorcery",   kind = "offense", min = 14, max = 45 },
+    Nanami      = { name = "Ratio Point",          kind = "utility", min = 0,  max = 999, reach = 70 },
     Goku        = { name = "Instant Transmission", kind = "offense", min = 15, max = 120 },
     Haruta      = { name = "Helping Hand",         kind = "utility", min = 0,  max = 999 },
     MeiMei      = { name = "Flock",                kind = "offense", min = 0,  max = 50 },
 
 
     Hanami      = { name = "Plant Guidance",       kind = "utility", min = 0,  max = 999 },
-    Ryu         = { name = "Restyle",              kind = "utility", min = 0,  max = 999 },
-    Kurourushi  = { name = "Earthen Insect Trance",kind = "offense", min = 0,  max = 30 },
+    Ryu         = { name = "Restyle",              kind = "utility", min = 0,  max = 999, safe = 18 },
+    Kurourushi  = { name = "Earthen Insect Trance",kind = "utility", min = 0,  max = 999, reach = 100 },
     Reggie      = { name = "Discard",              kind = "avoid",   min = 0,  max = 0 },
     Uro         = { name = "Sky Veil",             kind = "avoid",   min = 0,  max = 0 },
     -- Hidden Inventory swaps the weapon stance (SSK / ISOH / COATM). The
@@ -2341,6 +2373,7 @@ MEM = {
     enemyOpens = {},
     enemyTrust = {},
     tactics = {},
+    facts = {},
 
 
     map = nil,
@@ -2468,6 +2501,7 @@ function memLoad()
         if type(data.enemyOpens) == "table" then MEM.enemyOpens = data.enemyOpens end
         if type(data.enemyTrust) == "table" then MEM.enemyTrust = data.enemyTrust end
         if type(data.tactics) == "table" then MEM.tactics = data.tactics end
+        if type(data.facts) == "table" then MEM.facts = data.facts end
         if type(MEM.stats) ~= "table" then MEM.stats = { clean = 0, dirty = 0 } end
 
         if data.version == 3 then
@@ -2727,6 +2761,7 @@ function memSave(force, why)
             enemyOpens = MEM.enemyOpens,
             enemyTrust = MEM.enemyTrust,
             tactics = MEM.tactics,
+            facts = MEM.facts,
             savedAt = os.time(),
         }
         memRound(payload)
@@ -2969,6 +3004,10 @@ function memLifeStart()
     Life.tacLead, Life.tacGated, Life.m1Swings, Life.m1Hits, Life.m1Dmg = 0, 0, 0, 0, 0
     Life.moveN, Life.moveBack, Life.tacDamped, Life.flipBy = 0, 0, 0, {}
     Life.tacBlockKept = 0
+    Life.know, Life.knowWhy, Life.fin = {}, {}, {}
+    Life.knowHeld, Life.knowProbes, Life.knowCounter, Life.knowBreak, Life.knowGround, Life.m1HeldSec = 0, 0, 0, 0, 0, 0
+    Bot.FinMode, Bot.FinPending, Bot.KnowProbePending = nil, nil, nil
+    Life.lateStamp = 0
     Bot.RefusedN = {}
     Life.dmg = 0
     Life.taken = 0
@@ -3315,7 +3354,8 @@ function memLifeEnd()
         (st.clean or 0) - (Life.stC0 or 0), (st.shared or 0) - (Life.stS0 or 0), (st.dirty or 0) - (Life.stD0 or 0),
         Life.stunnedSelf or 0, tostring(Bot.CamProbe))
     tail = tail .. " | discounted " .. tostring(Life.discounted or "no")
-    tail = tail .. tacLifeSummary()
+    knowLifeReport()
+    tail = tail .. tacLifeSummary() .. knowLifeSummary()
     debug(string.format(
         "LIFE END: %.0f dmg in %.0fs (%.1f dmg/s, %d moves, %.0f%% engaged, %d blocks, %.0fs stunned) | %s | stunned by: %s | ff: %d held (holds %d/%d, freed %d, sidesteps %d), %.0f dmg + %d stuns in ally lanes | refused %d (rolled back %d), burst %d/%d, kite %.0fs, retreat %.0fs, revs %d, shared %.0f, fps %.0f (worst %.0f ms) | avg %.0f best %.0f over %d lives | samples %d clean / %d shared / %d dirty | fair %.0f | react %d judged / %d crowd / %d retests",
         Life.dmg, dur, Life.dmg / math.max(1, dur), Life.moves,
@@ -3570,12 +3610,22 @@ function memRecordUse(moveName, t, dist)
         prevMoveAt = lastMoveAt,
         ctx = (Bot.CastCtx and (tick() - (Bot.CastCtxAt or 0)) < 0.15) and Bot.CastCtx or "neutral",
     })
+    knowStamp(pending[#pending], t)
 
     lastMove, lastMoveAt = moveName, tick()
     Life.moves = Life.moves + 1
 end
 
 
+
+-- Every cast in flight is watched frame by frame: when the first damage
+-- lands, what the target is left doing, how far the move carried us.
+function knowScan(now)
+    for i = 1, #pending do
+        local p = pending[i]
+        knowWatch(p, now - p.at)
+    end
+end
 
 function memLastMoveRaw()
     return lastMove, lastMoveAt
@@ -3652,6 +3702,7 @@ function memResolve()
                 dmg = math.min(dmg, Config.MemCreditCap)
                 local hit = dmg > 0.5
                 tacBook(p.ctx or "neutral", hit, dmg)
+                if p.ctx == "counter" then knowBook(p, hp1) end
 
 
 
@@ -3676,6 +3727,7 @@ function memResolve()
                     local rec = p.key and MEM.opponents[p.key]
                     if rec then bumpMove(rec.moves, p.move, hit, dmg, w) end
                     bumpMove(MEM.global.moves, p.move, hit, dmg, w)
+                    knowBook(p, hp1)
 
 
 
@@ -3947,6 +3999,10 @@ end
 
 function memIsDud(moveName, maxDpt)
     if not Config.Memory or not moveName then return false end
+    do
+        local kf = type(MoveFacts) == "table" and MoveFacts[(string.gsub(moveName, "[^%w]", ""))] or nil
+        if kf and kf.nd then return false end
+    end
     local dpt, tries, hit = memMoveStats(moveName, nil)
     if not dpt or tries < Config.DudMinTries then return false end
 
@@ -6661,7 +6717,13 @@ function tacLeadTime(moveName, dist)
         if okK and key then g = FriendlyGeom[key] end
     end
     local ranged = (rule.max or 0) >= 25
-    local cast = (g and g.cast) or (ranged and 0.35 or 0.15)
+    -- measured beats assumed: once the machine has timed this move itself,
+    -- its own wind-up and travel speed are used
+    local mean, windup, speed = knowTiming(moveName)
+    if windup and speed then
+        return math.clamp(windup + (dist or 0) / speed, 0, Config.TacLeadMax or 0.7)
+    end
+    local cast = (g and g.cast) or ((mean and not ranged) and math.clamp(mean, 0.1, 0.6)) or (ranged and 0.35 or 0.15)
     local travel = 0
     if ranged and (dist or 0) > 8 then
         travel = (dist or 0) / (rule.speed or Config.TacLeadSpeed or 140)
@@ -6687,11 +6749,13 @@ end
 function tacM1Tick()
     local me = getChar()
     if not me then return end
+    tacFinisherBook()
     if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
     local r = MEM.tactics.m1
     if not r then r = { n = 0, h = 0, d = 0 }; MEM.tactics.m1 = r end
     local step = me:GetAttribute("CurrentM1")
     if step ~= Tac.m1Step then
+        tacFinisherStep(Tac.m1Step, step)
         if type(step) == "number" and Bot.M1Active then
             Life.m1Swings = (Life.m1Swings or 0) + 1
             r.n = r.n + 1
@@ -6783,6 +6847,724 @@ function tacDampDir(dir, now)
 end
 
 
+-- ============================================================================
+--  KNOWLEDGE (v87) -- what each move is, and whether it can land right now
+--
+--  The v86 log: no move with twelve or more tries landed half the time.
+--  Counters were thrown at people who were not attacking (0 of 12), grabs
+--  and rushes into raised guards, everything at bodies on the ground. The
+--  range table says how far a move reaches; nothing said what it is for.
+--
+--  Three sources, in order of trust:
+--    MEM.facts   measured by this machine on every cast it makes
+--    MoveFacts   researched per move (wiki and guides, second-hand)
+--    family      what kind of move it is, as a starting belief
+--
+--  A cast is thrown only if the estimated chance to land on the target as
+--  it is right now (free, blocking, stunned, on the ground, mid-swing, in
+--  the air) clears KnowMinP. Each of those is a Beta belief: the research
+--  is the prior, worth KnowPriorWeight casts, and every cast the machine
+--  makes is evidence on top of it.
+-- ============================================================================
+-- [move key] = { k = family, ub = gets through a block, rag = hits a body on the ground,
+--   cd = cooldown, dmg = damage, r = reach in studs, c = place in a string,
+--   nd = deals no damage of its own (judged by what it does to the target), cw = counter window }
+-- Second-hand: read from search extracts of the wiki and guides, not from the pages. The
+-- machine checks every line against its own casts and says so in the log when one is wrong.
+MoveFacts = {
+    Chokehold = { k = "grab", ub = false, cd = 16, dmg = 2 },  -- A grab the wiki tags as blockable: on hit the user holds the enemy by the neck while the injury drain is paused, then 
+    Detach = { k = "projectile", ub = false, cd = 13, dmg = 2, r = 85, c = "starter" },  -- After 85 studs without a hit the user pulls it back and reattaches it
+    FesteringStrikes = { k = "melee", ub = false, cd = 20, dmg = 3 },  -- Three forward sword slashes that each apply injury. The final hit deals its damage through a block, and each swing can
+    RoachSwarm = { k = "projectile", cd = 17, dmg = 9, r = 35, c = "ender" },  -- Its hitbox does not cover targets on the user's right
+    Despair = { k = "melee", cd = 16, dmg = 16.1, c = "ender" },  -- slows down if it misses or is blocked by an unmarked target (V1.69 removed the slowdown when a marked enemy blocks)
+    EyeCatching = { k = "counter", cw = 0.75, cd = 14, dmg = 9 },  -- needs the opponent to hit with a melee or bullet attack inside the 0.75 s window; explosion and swarm attacks are not 
+    Sacrilege = { k = "rush", ub = true, rag = true, cd = 16, dmg = 12, r = 20 },  -- missing the dash leaves 0.85 s of endlag (was 0.75 s, earlier 1 s); the hitbox can sometimes miss ragdolled or uppercu
+    ShutUp = { k = "melee", ub = false, cd = 16, dmg = 7 },  -- blockable; a later patch made it no longer evadable
+    BloodEdge = { k = "melee", cd = 13, dmg = 11, c = "ender" },  -- Semi-blockable (part of the move can be blocked; the wiki does not say which part). The user stabs with the left blood
+    BloodRain = { k = "aoe_self", ub = false, cd = 35, dmg = 2, r = 35 },  -- only reaches 35 studs from the user; blocking cuts it to chip damage
+    FlowingRedScale = { k = "rush", ub = false, rag = true, cd = 12, dmg = 13 },  -- the short forward dash has to connect; blockable from all sides
+    PiercingBlood = { k = "beam", ub = false, cd = 15, dmg = 12, r = 30 },  -- base beam can be blocked and only reaches about 30 studs
+    PlasmaWave = { k = "beam", ub = true, cd = 45, dmg = 104, r = 120 },  -- long spin-up before the cone fires; the last tick does not always hit
+    SlicingExorcism = { k = "beam", ub = true, cd = 13, dmg = 17.5, r = 66, c = "ender" },  -- uses the available Convergence orbs, so it is weak or unusable without them; camera is locked while firing
+    Supernova = { k = "counter", cw = 0.6, cd = 15, dmg = 14 },  -- needs the opponent to hit the user with a melee attack inside the 0.6 s counter window
+    WingKing = { k = "rush", cd = 16, dmg = 43.75 },  -- the long-range arm extension can be blocked
+    BirdControl = { k = "mobility", ub = false, cd = 18, r = 35 },  -- No cooldown if feinted; cancelling the flight with Spatial Transference keeps it off cooldown
+    Circling = { k = "melee", ub = false, cd = 18, dmg = 14 },  -- If a swing is blocked the user stays in place
+    GlidingFlight = { k = "melee", rag = true, c = "ender" },  -- No longer in the kit: V1.77 replaced Gliding Flight with Murmurate and kept only its 'Free Fall' part with a lower hei
+    ImpetusUpdraft = { k = "melee", ub = false, rag = true, cd = 16, dmg = 11, c = "starter" },  -- Major endlag on a miss; a forum post claims a blocked swing stuns the user for 2 s (unverified)
+    Murmurate = { k = "projectile", ub = false, cd = 16, dmg = 9, c = "starter" },  -- Throws the axe so it spins around the user and returns, launching any enemy in its path upward. The user can keep walk
+    HollowPurple = { k = "projectile", ub = true, rag = true, cd = 40, dmg = 70, c = "ender" },  -- about 3 s charge before release; the hitbox does not cover the gap directly in front of the user
+    InfiniteVoid = { k = "domain", ub = true, rag = true, cd = 120 },  -- interruptible while casting; the stun does not interrupt actions started before the sure-hit began
+    LapseBlue = { k = "pull", ub = false, rag = true, cd = 13, dmg = 12.5, r = 35, c = "starter" },  -- no opponent under the cursor within 35 studs, or the target is blocking
+    LapseBlueMAX = { k = "pull", ub = true, rag = true, cd = 17, dmg = 44 },  -- interruptible; pulled enemies can ragdoll-cancel away as soon as they are pulled
+    RapidPunches = { k = "melee", ub = true, rag = false, cd = 15, dmg = 17.25, c = "extender" },  -- the opening kick must connect on a nearby enemy; cannot hit a grounded ragdolled target
+    ReversalRed = { k = "projectile", ub = false, cd = 20, dmg = 12.5, r = 40, c = "ender" },  -- short windup and interruptible; orb stops at 40 studs; half damage into a block
+    ReversalRedMAX = { k = "projectile", ub = true, cd = 10, dmg = 30, r = 100 },  -- interruptible; damage falls off with distance
+    TwofoldKick = { k = "melee", ub = false, rag = true, cd = 18, dmg = 10, c = "starter" },  -- first kick blocked or out of melee range
+    EnergySurge = { k = "rush", ub = true, rag = true, cd = 25, dmg = 20, c = "starter" },  -- A dash into a heavy punch that launches the target upward, followed by a kick. The first hit can send several people f
+    FeverBreaker = { k = "melee", ub = false, rag = false, cd = 23, dmg = 15, c = "ender" },  -- blockable; cannot hit a grounded ragdolled target
+    LuckyRushdown = { k = "rush", ub = true, rag = true, cd = 15, dmg = 24 },  -- runs in a straight line and catches only what it runs into; interruptible
+    LuckyVolley = { k = "melee", ub = false, rag = true, cd = 10, dmg = 28.7, c = "extender" },  -- barrage hits can be blocked; interruptible
+    OverwhelmingLuck = { k = "rush", cd = 20, dmg = 40 },  -- charge-up before the rush
+    ReserveBalls = { k = "projectile", ub = false, rag = true, cd = 12, dmg = 7.5, r = 65, c = "starter" },  -- blockable; ball disappears after 65 studs
+    RoughEnergy = { k = "melee", ub = true, rag = true, cd = 14, dmg = 12.5, c = "starter" },  -- slow windup and interruptible; the normal air version can be blocked
+    ShutterDoors = { k = "melee", ub = false, rag = false, cd = 15, dmg = 8 },  -- base hit cannot reach a ragdolled target; on a miss it becomes a 7 s lingering trap that does hit ragdolled targets
+    BudShot = { k = "projectile", ub = false, rag = true, cd = 15, dmg = 8, r = 70 },  -- blockable; pushes close targets away instead of pulling
+    CursedBuds = { k = "summon", ub = false, cd = 16, dmg = 33.5 },  -- buds are blockable unless empowered
+    DefenseResponse = { k = "rush", ub = true, rag = false, cd = 15, dmg = 12 },  -- interruptible; cannot hit ragdolled targets
+    FlowerField = { k = "other", cd = 16, dmg = 12 },  -- A spike emerges and then bounces between targets: per patch notes it can bounce between 2 different targets before dis
+    RootRampage = { k = "beam", cd = 16, dmg = 5 },  -- easily interrupted during the ~7s channel
+    RootSwarm = { k = "beam", ub = true, cd = 15, dmg = 10, r = 50 },  -- ground line only; older patch notes say it was blockable at close range
+    ShiningSeaofGrowingBranches = { k = "domain", cd = 120, dmg = 4 },  -- interruptible; enemies who only run, side dash or block take nothing
+    SurgingThorns = { k = "other", ub = false, rag = false, cd = 16, dmg = 11, r = 35 },  -- interruptible; thorn damage blockable from any side; does nothing to ragdolled targets
+    Ambush = { k = "melee", ub = true, cd = 15, dmg = 12, c = "ender" },  -- a perfect block makes the enemy dodge the blade
+    AnkleCutter = { k = "projectile", ub = false, rag = true, cd = 15, dmg = 10 },  -- blockable from all sides; interruptible
+    Backstab = { k = "melee", ub = true, rag = false, cd = 12, dmg = 8 },  -- interruptible; cannot hit an opponent ragdolled on the ground; the long stun needs the hit to come from behind
+    CheapShot = { k = "projectile", ub = false, cd = 15, dmg = 7, r = 60 },  -- if it is blocked the blade just stops in place instead of tracking
+    DirtyPlay = { k = "projectile", ub = false, rag = true, cd = 15, dmg = 8 },  -- cannot be used while stunned or ragdolled; only hits targets on the blade's path back
+    HighTime = { k = "aoe_point", ub = false, cd = 12, dmg = 12, c = "starter" },  -- blockable from all sides; it happens at the blade's position, so enemies must be near the blade
+    Trip = { k = "melee", rag = true, cd = 14, dmg = 7 },  -- against an already ragdolled enemy it only adds knockback and deals no fall damage
+    Execution = { k = "rush", cd = 12, dmg = 25 },  -- the forward lunge has to catch the target
+    ExtendedSwings = { k = "melee", ub = false, rag = false, cd = 15, dmg = 15, c = "ender" },  -- swings cannot hit grounded ragdolled targets; first hits can be blocked and countered
+    FinalJudgement = { k = "rush", cd = 21, dmg = 10 },  -- hard to land (the wiki says so directly); failing the QTE drops it to minor damage
+    Grapple = { k = "pull", ub = false, rag = true, cd = 13, dmg = 11 },  -- target has to be airborne; blockable
+    JudgementsReach = { k = "melee", cd = 13, dmg = 7 },  -- A reaching hit with pushback. Blocking does not stop the pushback (base blockability otherwise not clearly stated); th
+    JusticeServed = { k = "melee", cd = 18, dmg = 12 },  -- needs ground to slam on; has a wind-up (25% faster if the user was unarmed before using it)
+    PressingCharges = { k = "melee", cd = 16, dmg = 7.5 },  -- the kick's stun is never long enough to guarantee both hits connect
+    TripleSentence = { k = "projectile", cd = 12, dmg = 8 },  -- hard to land (the wiki says so directly); each extra throw adds 6 s of cooldown
+    Verdict = { k = "rush", ub = false, cd = 18, dmg = 5 },  -- if blocked the target dodges and no stack is applied
+    Cleave = { k = "melee", rag = false, cd = 12, dmg = 40 },  -- cannot hit a grounded ragdolled target
+    CrushingBlow = { k = "grab", ub = true, rag = true, cd = 15, dmg = 12, c = "extender" },  -- a miss gives only a 3-damage shockwave with no stun; interruptible
+    CursedStrikes = { k = "rush", ub = false, rag = false, cd = 18, dmg = 17.5, c = "extender" },  -- blocked from any side; cannot hit a ragdolled target
+    Dismantle = { k = "projectile", ub = false, cd = 13, dmg = 17.5, r = 30 },  -- target beyond 30 studs; much weaker into a block
+    DivergentFist = { k = "melee", ub = false, cd = 18, dmg = 10 },  -- tagged 'partly bypasses ragdoll', so part of it misses downed targets; windup can be blocked
+    MalevolentShrine = { k = "domain", ub = false, cd = 120, dmg = 2 },  -- targets who hold block take a quarter damage
+    ManjiKick = { k = "counter", ub = true, rag = true, cw = 0.6, cd = 20, dmg = 8.5 },  -- does nothing unless the user is hit by a melee or bullet attack inside the 0.6 s window
+    Open = { k = "projectile", cd = 40, dmg = 30, c = "starter" },  -- The user gains total i-frames, then fires a flame arrow; on impact it creates a fire pillar that lifts whoever is in r
+    Rush = { k = "rush", cd = 15, dmg = 25, c = "extender" },  -- A distance-covering charge: an impact hit, a kick, then a slam. Community notes say it can be extended off of. Its blo
+    BlackMucus = { k = "projectile", ub = true, rag = true, cd = 17, dmg = 8, r = 60 },  -- the head is wound back before the spit; interruptible; travels straight forward
+    Clever = { k = "rush", ub = false, cd = 15, dmg = 14.2, c = "extender" },  -- blockable and interruptible; if the barrage is blocked even briefly the user is locked in place
+    CrushingJaws = { k = "melee", cd = 17, dmg = 16 },  -- semi-blockable: only the first bite can be blocked; if the first bite misses, the rest of the windup is 40% slower
+    WingThrow = { k = "grab", ub = false, rag = true, cd = 15, dmg = 8 },  -- blockable and interruptible; the arm is wound back first; a blocked grab does not move the user
+    BodyRepel = { k = "projectile", ub = true, rag = true, cd = 20, dmg = 14, r = 70 },  -- travels only where the user is facing; interruptible
+    FocusStrike = { k = "melee", ub = false, rag = false, cd = 15, dmg = 10, c = "ender" },  -- base hit is blockable and cannot hit a grounded ragdolled target
+    SoulFire = { k = "projectile", ub = false, rag = true, cd = 12, dmg = 12 },  -- blockable; interruptible
+    Stockpile = { k = "melee", ub = false, cd = 12, dmg = 12 },  -- first swing can be blocked and does not hit ragdolled targets (tagged 'partly bypasses ragdoll')
+    AbsoluteDestruction = { k = "melee", cd = 8, dmg = 4 },  -- The giant mech stomps, leaps and slams. Costs 1 month, up to 5 months (+1 month per extra Energy Output level). No ran
+    BoostOn = { k = "grab", ub = true, cd = 16, dmg = 10 },  -- the grab has to connect
+    HeatEmission = { k = "aoe_self", ub = true, cd = 16, dmg = 13, c = "ender" },  -- the use-twice variant is blockable from all sides
+    MiracleCannon = { k = "projectile", cd = 8, dmg = 20 },  -- the big sphere needs Energy Output level 2 or higher
+    PigeonViola = { k = "projectile", cd = 8, dmg = 15, r = 250 },  -- needs a target within 250 studs
+    TechniqueCharge = { k = "other", cd = 8, dmg = 20 },  -- Awakening move with a charge hit and a simple-domain component. The wiki's cost table (up to 1 year 10 months) came th
+    UltraCannon = { k = "projectile", ub = false, cd = 17, dmg = 10 },  -- blockable from all sides
+    UltraSpin = { k = "melee", ub = false, cd = 15, dmg = 13.5 },  -- blockable on the current wiki page
+    Adaptation = { k = "counter", cw = 0.4, cd = 5 },  -- needs to be hit inside the 0.4 s window
+    DivineDogTotality = { k = "summon", ub = false, rag = true, cd = 20, dmg = 18, r = 50 },  -- no enemy within 50 studs of the dog; dog is lost if the user gets ragdolled
+    DivinePummel = { k = "grab", ub = true, cd = 12, dmg = 15, c = "starter" },  -- interruptible; may not hit ragdolled targets on the current patch
+    Earthquake = { k = "aoe_self", ub = false, rag = true, cd = 15, dmg = 12.5, c = "starter" },  -- tap version can be blocked; interruptible while charging
+    GreatSerpent = { k = "grab", ub = true, rag = true, cd = 25, dmg = 29 },  -- interruptible
+    GroundPitch = { k = "projectile", ub = true, rag = true, cd = 20, dmg = 25 },  -- cancelled if nothing is picked up near the user
+    Mahoraga = { k = "buff", ub = true, rag = true, cd = 120, r = 60 },  -- no opponent within 60 studs; fails if the user is interrupted during the 3 s ritual
+    MaxElephant = { k = "summon", ub = true, rag = true, cd = 25, dmg = 35 },  -- interruptible
+    Nue = { k = "summon", ub = true, rag = true, cd = 20, dmg = 16 },  -- cannot be summoned while Rabbit Escape is swarming a grounded target; interruptible
+    RabbitEscape = { k = "summon", ub = false, rag = true, cd = 18, dmg = 14, r = 40 },  -- no enemy within 40 studs; being hit or stunned during the hand sign stops the rabbits from spawning
+    ShadowSwarm = { k = "grab", ub = true, rag = true, cd = 15, dmg = 18 },  -- interruptible; the domain-invasion variant costs the user 4 HP per second
+    Takedown = { k = "rush", ub = true, rag = true, cd = 7, dmg = 12.5, r = 70, c = "starter" },  -- no opponent within 70 studs; a miss doubles the cooldown
+    Toad = { k = "pull", ub = false, rag = true, nd = true, cd = 15, r = 75, c = "starter" },  -- no opponent under the aim within 75 studs; blockable
+    WorldSlash = { k = "projectile", ub = true, rag = true, cd = 30, dmg = 40, c = "ender" },  -- long windup, interruptible
+    BluntCut = { k = "rush", ub = false, rag = true, cd = 16, dmg = 9, r = 34 },  -- blockable without a Ratio mark; interruptible during the charge
+    CleavingWhirlwind = { k = "rush", ub = false, cd = 16, dmg = 12, r = 25, c = "ender" },  -- blockable and interruptible; straight 25-stud charge
+    Collapse = { k = "aoe_self", ub = true, cd = 22, dmg = 5 },  -- debris only falls where it was left; enemies have up to 8s to leave the area
+    Interrogate = { k = "grab", ub = true, cd = 20, dmg = 4 },  -- Nanami catches the target and drives a punch into their gut. The windup and the rest of the move have i-frames and awa
+    RatioBreaker = { k = "melee", rag = true, cd = 19, dmg = 10 },  -- without a Ratio mark on the target the chain ends and resets to stage I
+    SeveranceKick = { k = "melee", ub = false, cd = 14, dmg = 12, c = "extender" },  -- damage can be blocked (knockback still applies)
+    Sharpen = { k = "rush", ub = true, rag = true, cd = 20, dmg = 15, r = 45, c = "starter" },  -- Nanami slides 45 studs forward and slices upward, launching the target. Has melee i-frames (added in a patch); cooldow
+    Stabilize = { k = "melee", ub = true, rag = false, cd = 12, dmg = 6, c = "starter" },  -- interruptible; cannot hit grounded ragdolled targets; melee range only
+    Bleedout = { k = "melee", ub = true, rag = true, cd = 20, dmg = 5, c = "extender" },  -- interruptible; a forum comment says it has to follow an M1 or the target is i-framed (unverified)
+    CursoryImpact = { k = "rush", ub = true, cd = 16, dmg = 7.5, c = "ender" },  -- interruptible; windup resembles Projection Sorcery and Decisive Strike; a miss puts Projection on the user
+    DecisiveStrike = { k = "rush", ub = false, cd = 18, dmg = 6, c = "extender" },  -- interruptible; stages 1-2 can be blocked; windup looks like Projection Sorcery and Cursory Impact
+    FlashFreezing = { k = "beam", cd = 18, dmg = 7 },  -- line in front of the user only
+    ProjectionBreaker = { k = "melee", ub = false, rag = true, cd = 18, dmg = 9, c = "ender" },  -- blockable (a forum tip says a fast reaction can block it); the backdash puts him 15 studs away before the kick, and a 
+    TendrilGrab = { k = "aoe_self", nd = true, cd = 10, r = 25 },  -- no enemy within 25 studs
+    TimeCellMoonPalace = { k = "domain", rag = true, cd = 60, dmg = 1 },  -- interruptible on cast; enemies who stand still or block take little or nothing
+    TopSpeed = { k = "rush", ub = true, cd = 14, dmg = 5 },  -- interruptible; weak (5 damage) without Acceleration stacks
+    ["132SquareFootTwoStoryHouse"] = { k = "other", cd = 16, dmg = 125, c = "ender" },  -- Reggie's biggest awakening move: 35 on the initial hit and 90 on a second impact, for 10% of the awakening bar. Its fi
+    BluntTrauma = { k = "melee", ub = false, rag = true, cd = 14, dmg = 15 },  -- first swing must connect; blockable and interruptible
+    Coupon = { k = "buff", cd = 5 },  -- Using Coupon and then another move applies a red seal that empowers that move (up to 3 moves can be sealed, since Coup
+    DroneStrike = { k = "summon", ub = true, rag = true, cd = 10, dmg = 12 },  -- needs the second press to detonate
+    Fleche = { k = "rush", ub = false, rag = false, cd = 14, dmg = 8 },  -- blockable and interruptible; straight-line dash; cannot hit ragdolled targets
+    GarageSale = { k = "projectile", ub = false, rag = true, cd = 16, dmg = 12 },  -- blockable; interruptible during windup
+    GushingWound = { k = "projectile", ub = true, rag = false, cd = 12, dmg = 9, c = "starter" },  -- no ragdoll if blocked; cannot hit ragdolled targets
+    Homerun = { k = "melee", ub = true, rag = false, cd = 14, dmg = 10, c = "starter" },  -- noticeable startup; cannot hit ragdolled targets
+    Littering = { k = "trap", ub = false, rag = true, cd = 15, dmg = 8 },  -- needs the second press and an enemy near the receipts; blockable from any side
+    PianoDrop = { k = "aoe_point", ub = true, rag = true, cd = 13, dmg = 14 },  -- interruptible; small 7x7 landing area
+    PoleVault = { k = "melee", ub = true, rag = true, cd = 14, dmg = 5 },  -- interruptible
+    RoadRage = { k = "projectile", cd = 15, dmg = 36 },  -- Three conjured cars drive toward a targeted area; each car stops working after it has crashed into two targets. Costs 
+    Appetizer = { k = "beam", ub = false, cd = 18, dmg = 16, c = "ender" },  -- blockable and interruptible; wiki says Cursed Energy Discharge attacks are disabled at 100% Overheat
+    GraniteBlast = { k = "beam", ub = false, cd = 0.5, dmg = 5.5, r = 78.5 },  -- tap version is blockable and stops at the first target; wiki says Cursed Energy Discharge attacks are disabled at 100%
+    SecondHelping = { k = "melee", ub = true, rag = true, cd = 15, dmg = 12, c = "extender" },  -- interruptible; reduced hitbox; i-frames start late
+    Unsatisfied = { k = "melee", ub = false, rag = true, cd = 20, dmg = 18 },  -- blockable (extra endlag when blocked) and interruptible
+    BlindRage = { k = "grab", ub = true, rag = false, cd = 15, dmg = 9 },  -- If the target evades out of the grab above 25 studs of altitude they automatically counterattack the user
+    SkyDistortion = { k = "melee", cd = 12, dmg = 10, c = "starter" },  -- Spins the sky in front of the user to launch enemies and redirect deflectable projectiles, with about 0.7 s of i-frame
+    ThinIceBreaker = { k = "grab", ub = true, rag = false, cd = 15, dmg = 14, c = "starter" },  -- Close-range strike that stuns and grabs a single opponent while the user shatters the distortion. Tagged unblockable a
+    Turbulence = { k = "pull", cd = 15, dmg = 10, r = 60, c = "starter" },  -- Sends a wave 60 studs that lifts any enemy in its way and throws them toward the user. It follows the user's orientati
+    Brothers = { k = "counter", cw = 1.1, cd = 45, dmg = 80 },  -- needs the opponent to throw a melee attack during the 1.1 s counter window
+    BruteForce = { k = "melee", ub = true, cd = 17, dmg = 17.5 },  -- if the target is not close enough only the weaker shockwave hits (less damage and knockback)
+    ClimaxJumping = { k = "rush", ub = true, cd = 22, dmg = 42.4, c = "starter" },  -- the opening lunge has to connect
+    Dreams = { k = "melee", cd = 10, dmg = 21 },  -- three forward punches, so the target has to stay in front through the knockback
+    ElbowDrop = { k = "melee", ub = true, rag = false, cd = 16, dmg = 12, c = "starter" },  -- the opening uppercut is a close-range hit; a community post says it does not hit ragdolled targets
+    IdolsDebut = { k = "melee", ub = true, cd = 17, dmg = 30, c = "starter" },  -- the cutscene only triggers if the first punch launches an enemy
+    PebbleThrow = { k = "projectile", ub = false, rag = true, cd = 12, dmg = 4 },  -- cannot hit ragdolled players within 20 studs of the user; blockable
+    SwiftKick = { k = "melee", ub = false, cd = 15, dmg = 15 },  -- the opening kick can be blocked; feinting it ends the kick's stun early
+    Ascend = { k = "mobility" },  -- deals no damage by itself; not available while airborne
+    Debilitate = { k = "melee", ub = false, rag = true, cd = 13, dmg = 13, c = "starter" },  -- blockable and interruptible; the full slash sequence only happens on a standing opponent
+    Flourish = { k = "melee", ub = true, cd = 15, dmg = 5, c = "starter" },  -- punishable endlag on miss; cannot kill
+    Lasso = { k = "pull", ub = true, rag = true, cd = 16, dmg = 12, r = 24 },  -- the chain is twirled for a moment before it is thrown; target must be within 24 studs
+    Paradise = { k = "rush", ub = false, cd = 15, dmg = 9 },  -- blockable
+    Reincarnation = { k = "other", ub = false, cd = 15, dmg = 9 },  -- blockable and interruptible
+    Rupture = { k = "rush", cd = 15, dmg = 14, c = "starter" },  -- listed as semi-blockable; failing the timed second press makes the opponent block and push the user away
+    TheGreed = { k = "melee", ub = true, cd = 15, dmg = 11, c = "starter" },  -- only available during Flourish's slowdown; the slashes only follow if the kick lands; interruptible
+    ThePride = { k = "grab", dmg = 9 },  -- only available during Flourish's slowdown; the target can escape the stun before the chain connects
+    TheWrath = { k = "rush", dmg = 7, c = "ender" },  -- only available during Flourish's slowdown; if the first swing misses the other two do not come out
+    Transcend = { k = "rush", ub = true, rag = true, cd = 14, dmg = 12, c = "ender" },  -- needs a second press or the user just stands up; punishable endlag on miss; interruptible
+    TwirlingStrike = { k = "rush", ub = true, cd = 15, dmg = 8 },  -- only available in the 1.5 s spin window after Whiplash; goes wherever the user is aiming
+    Whiplash = { k = "melee", ub = false, cd = 15, dmg = 5 },  -- blockable
+    GarudaRebound = { k = "projectile", ub = false, cd = 14, dmg = 5 },  -- blockable from all sides; interruptible
+    GarudaStab = { k = "melee", ub = true, rag = false, cd = 14, dmg = 14, c = "starter" },  -- the kick only follows if the stab connects; does not bypass ragdoll; interruptible
+    MassBreaker = { k = "rush", ub = true, cd = 15, dmg = 15, c = "ender" },  -- has a charge-up before the lunge; interruptible
+    RisingRage = { k = "melee", ub = false, cd = 15, dmg = 14, c = "starter" },  -- blockable and interruptible; the first kick cannot hit a ragdolled target (the second can)
+    AuthenticMutualLove = { k = "domain" },  -- Cursed Partners' domain. games.gg says it lasts 45 seconds. No damage, cooldown or range figures were found.
+    Copy = { k = "other" },  -- Awakening move (Copy Wheel) that uses techniques the user has copied; Cursed Speech is the default variant. Copying a 
+    ElbowRush = { k = "melee", dmg = 15 },  -- Awakening melee attack. Damage was cut to 11 in V1.76 and restored to 15 in V1.77. No cooldown or description was foun
+    EnergyRipple = { k = "aoe_self", cd = 18, dmg = 19, r = 27 },  -- only reaches 27 studs around the user
+    Outburst = { k = "counter", cw = 0.25, dmg = 2 },  -- the parry only happens if the user is hit within 0.25 s of using it; otherwise it is a plain swing
+    ResoluteSlash = { k = "melee", ub = true, rag = false, cd = 15, c = "ender" },  -- cannot hit ragdolled targets
+    Revolve = { k = "other" },  -- Removed as a base move in V1.76 (replaced, together with Veilstep, by Outburst and Second Wind). An earlier patch lowe
+    RikaDownslam = { k = "summon", ub = true, cd = 13, dmg = 12 },  -- Rika move, made unblockable in a patch. Shares the Rika base-move cooldown.
+    RikaGrab = { k = "grab", rag = true },  -- only worked on a ragdolled target
+    RikaHaymaker = { k = "summon", ub = true, cd = 10, dmg = 12 },  -- Rika punch that bypasses block and deals 6 extra damage to a blocking target. The update log says it was made awakenin
+    RikaLaunch = { k = "buff", cd = 10 },  -- Rika move that deals no damage. Cooldown is 10 s, or 6 s if it feints. What it launches was not in the text retrieved.
+    RikaSlam = { k = "grab", cd = 13, dmg = 12 },  -- the target can evade the grab early
+    RikaSmash = { k = "summon", cd = 10, dmg = 10 },  -- Rika's fist grows as it is raised above the target, then slams down and makes them bounce upward. A patch lowered its 
+    RikaThrow = { k = "summon", cd = 13, dmg = 8 },  -- missing damages the user instead (0.5 to 22)
+    SecondWind = { k = "grab", cd = 16, dmg = 10 },  -- the dash grab has to catch the target (no cooldown if the first use fails)
+    SeveringPath = { k = "rush", cd = 15, dmg = 10.9, c = "starter" },  -- the forward slide has to reach the target
+    TrueLoveBeam = { k = "beam", dmg = 117 },  -- Awakening beam. In V1.76 it was moved into Rika's moveset and Energy Ripple took its place in the user's own awakening
+    Veilstep = { k = "mobility" },  -- does no damage; it is a back-roll away from the target
+}
+
+Know = {
+    STATES = { "free", "block", "stun", "rag", "swing", "air" },
+    -- chance to land by family and by what the target is doing: starting
+    -- beliefs, not rules. Twelve measured casts outweigh one of these 3:1.
+    PRIOR = {
+        melee      = { free = 0.35, block = 0.08, stun = 0.85, rag = 0.10, swing = 0.35, air = 0.20 },
+        rush       = { free = 0.40, block = 0.10, stun = 0.85, rag = 0.10, swing = 0.38, air = 0.22 },
+        projectile = { free = 0.30, block = 0.08, stun = 0.75, rag = 0.12, swing = 0.42, air = 0.22 },
+        beam       = { free = 0.35, block = 0.10, stun = 0.80, rag = 0.20, swing = 0.45, air = 0.28 },
+        aoe_self   = { free = 0.35, block = 0.15, stun = 0.85, rag = 0.35, swing = 0.45, air = 0.20 },
+        aoe_point  = { free = 0.25, block = 0.12, stun = 0.75, rag = 0.35, swing = 0.38, air = 0.15 },
+        grab       = { free = 0.38, block = 0.45, stun = 0.80, rag = 0.08, swing = 0.25, air = 0.12 },
+        counter    = { free = 0.03, block = 0.02, stun = 0.01, rag = 0.01, swing = 0.60, air = 0.03 },
+        pull       = { free = 0.35, block = 0.15, stun = 0.75, rag = 0.12, swing = 0.40, air = 0.30 },
+        summon     = { free = 0.30, block = 0.10, stun = 0.70, rag = 0.25, swing = 0.40, air = 0.20 },
+        other      = { free = 0.30, block = 0.10, stun = 0.75, rag = 0.15, swing = 0.35, air = 0.20 },
+    },
+    -- families that are not thrown at somebody to hurt them
+    PASSIVE = { buff = true, stance = true, mobility = true, domain = true },
+    heldAt = {},
+}
+Know.PRIOR.trap = Know.PRIOR.aoe_point
+
+-- What family a move belongs to, the researched line for it, and who says so.
+function knowKind(name, rule)
+    local key = senseMoveKey(name)
+    local f = MoveFacts[key]
+    if f and f.k then return f.k, f, "researched" end
+    rule = rule or MoveRules[name] or DefaultRule
+    if rule.summon then return "summon", f, "table" end
+    if rule.selfBuff then return "buff", f, "table" end
+    if rule.escape then return "mobility", f, "table" end
+    if rule.trap then return "trap", f, "table" end
+    local d = type(DangerByService) == "table" and DangerByService[key] or nil
+    if d == "aoe" then return "aoe_self", f, "game files" end
+    if d then return d, f, "game files" end
+    -- nothing written down anywhere: go by what the machine has seen it do
+    local o = type(MEM.facts) == "table" and MEM.facts[name] or nil
+    if o and (o.mvN or 0) >= 4 and (o.mv or 0) / o.mvN >= 10 then return "rush", f, "observed" end
+    local reach = rule.max or 40
+    if reach >= 40 then return "projectile", f, "range" end
+    if reach <= 14 then return "melee", f, "range" end
+    return "rush", f, "range"
+end
+
+function knowBlocking(t)
+    local i = getInfo(t)
+    if i then
+        if i:FindFirstChild("Block") or i:FindFirstChild("Blocking") then return true end
+        if i:GetAttribute("Block") or i:GetAttribute("Blocking") then return true end
+    end
+    if Config.Sense and type(senseBlocking) == "function" and senseBlocking(t) then return true end
+    return false
+end
+
+-- What the target is doing, in the one word the beliefs are keyed by.
+function knowState(t)
+    if not t then return "free" end
+    -- asked once per candidate move per frame: answer from the last look
+    local now = tick()
+    if Know.stT == t and (now - (Know.stAt or 0)) < 0.05 then return Know.stV end
+    local v = knowStateRaw(t)
+    Know.stT, Know.stAt, Know.stV = t, now, v
+    return v
+end
+
+function knowStateRaw(t)
+    if isRagdolled(t) then return "rag" end
+    if isStunned(t) then return "stun" end
+    if knowBlocking(t) then return "block" end
+    local th, h = getHRP(t), getHRP()
+    if th and h then
+        local v = tacVelocity(t)
+        if (th.Position.Y - h.Position.Y) > 6 or math.abs(v.Y) > 14 then return "air" end
+    end
+    if isInSkill(t) or (type(senseMeleeSwing) == "function" and senseMeleeSwing(t)) then return "swing" end
+    return "free"
+end
+
+-- The career totals from before v87 say how often a move landed but not on
+-- whom. Nearly all of those casts were thrown raw, so they go in as evidence
+-- about a free target, capped so new measurements soon outweigh them.
+function knowSeed()
+    Know.seeded = true
+    if type(MEM.facts) ~= "table" then MEM.facts = {} end
+    local g = MEM.global and MEM.global.moves
+    if type(g) ~= "table" then return end
+    for name, m in pairs(g) do
+        if type(name) == "string" and type(m) == "table" and not name:find("^SPECIAL:")
+           and (m.tries or 0) >= 4 and MEM.facts[name] == nil then
+            local w = math.min(m.tries, Config.KnowSeedCap or 8)
+            MEM.facts[name] = { n = 0, seeded = true,
+                s = { free = { n = w, h = math.clamp((m.hits or 0) / m.tries, 0, 1) * w } } }
+        end
+    end
+end
+
+-- Chance that `name` lands on a target in `state`. Returns the chance, how
+-- many real casts stand behind it, and whether research settles the matter.
+function knowChance(name, state, kind, f)
+    if not Know.seeded then knowSeed() end
+    if not kind then kind, f = knowKind(name) end
+    local prior = (Know.PRIOR[kind] or Know.PRIOR.other)[state] or 0.3
+    local w = Config.KnowPriorWeight or 4
+    local settled = false
+    if f then
+        if state == "block" and f.ub ~= nil then
+            prior, w, settled = (f.ub and 0.62 or 0.04), w + 3, true
+        elseif state == "rag" and f.rag ~= nil then
+            prior, w, settled = (f.rag and 0.62 or 0.04), w + 3, true
+        end
+    end
+    if kind == "counter" then settled = true end
+    local o = type(MEM.facts) == "table" and MEM.facts[name] or nil
+    local c = o and type(o.s) == "table" and o.s[state] or nil
+    local n, h = c and c.n or 0, c and c.h or 0
+    return (prior * w + h) / (w + n), n, settled
+end
+
+-- Measured wind-up and, for anything that flies, measured speed. Every
+-- clean hit gives one (distance, delay) pair; the least-squares line through
+-- them is delay = windup + distance / speed. Six hits spread over a dozen
+-- studs are needed before the slope is believed; until then the mean stands.
+function knowTiming(name)
+    local o = type(MEM.facts) == "table" and MEM.facts[name] or nil
+    if not o or (o.rn or 0) < 3 then return nil end
+    local n, sd, st, sdd, sdt = o.rn, o.rd or 0, o.rt or 0, o.rdd or 0, o.rdt or 0
+    local mean = st / n
+    local var = sdd / n - (sd / n) ^ 2
+    if n >= 6 and var >= 16 then
+        local b = (n * sdt - sd * st) / (n * sdd - sd * sd)
+        local a = (st - b * sd) / n
+        if b > 0.0015 and b < 0.05 and a >= 0 and a < 1.5 then
+            return mean, a, 1 / b
+        end
+    end
+    return mean, nil, nil
+end
+
+-- May this move be thrown at this target now? Returns ok, the chance, why not.
+function knowAllows(entry, t, d2d, ctx)
+    if not Config.Know or not entry or not t then return true, 1, nil end
+    local rule = entry.rule or DefaultRule
+    local kind, f = knowKind(entry.name, rule)
+    if Know.PASSIVE[kind] then return true, 1, nil end
+    local now = tick()
+    -- a counter does nothing unless somebody is hitting us: it is thrown by
+    -- the guard (knowTryCounter), never picked as an attack
+    if kind == "counter" then return false, 0, "counter with nobody swinging" end
+    local state = knowState(t)
+    local p, n, settled = knowChance(entry.name, state, kind, f)
+    if p < (Config.KnowMinP or 0.2) then
+        -- an open question (nothing researched, hardly tried) may be asked a
+        -- few times a life: that is how the answer gets into the memory
+        if Config.KnowProbe and not settled and n < (Config.KnowProbeTries or 3)
+           and (Life.knowProbes or 0) < (Config.KnowProbePerLife or 3)
+           and (now - (Bot.KnowProbeAt or 0)) > (Config.KnowProbeGap or 8) then
+            Bot.KnowProbePending = { name = entry.name, state = state }
+            return true, p, nil
+        end
+        return false, p, string.format("%.0f%% to land on a %s target", p * 100, state)
+    end
+    -- something that deals nothing and only drags the target in is pointless
+    -- once the target is already at arm's length
+    if f and f.nd and kind == "pull" and (d2d or 99) < (Config.KnowPullMin or 12) then
+        return false, p, "pull with the target already here"
+    end
+    -- a move that goes off around us, or at arm's length, after a wind-up:
+    -- will the target still be inside it when it does?
+    if (kind == "aoe_self" or kind == "melee" or kind == "grab") and state ~= "stun" and state ~= "rag" then
+        local _, hi = moveRange(entry)
+        local mean, windup = knowTiming(entry.name)
+        local wait = windup or mean or 0.25
+        local pp, h = tacPredict(t, wait), getHRP()
+        if pp and h and hi then
+            local dd = Vector3.new(pp.X - h.Position.X, 0, pp.Z - h.Position.Z).Magnitude
+            if dd > hi + (Config.KnowReachSlack or 3) and dd > (d2d or 0) then
+                return false, p, string.format("leaving: %.0f studs off when it lands (reach %.0f)", dd, hi)
+            end
+        end
+    end
+    return true, p, nil
+end
+
+-- Called by every chooser. Keeps the count of what was withheld and why.
+function knowGate(entry, t, d2d, ctx)
+    local ok, p, why = knowAllows(entry, t, d2d, ctx)
+    if not ok then
+        local now = tick()
+        if now - (Know.heldAt[entry.name] or 0) > 1.5 then
+            Know.heldAt[entry.name] = now
+            Life.knowHeld = (Life.knowHeld or 0) + 1
+            if type(Life.knowWhy) ~= "table" then Life.knowWhy = {} end
+            local st = (why and why:match("on a (%a+) target")) or (why and why:match("^(%a+)")) or "?"
+            Life.knowWhy[st] = (Life.knowWhy[st] or 0) + 1
+            debugEvery("know:" .. tostring(entry.name), 8, "held: " .. tostring(entry.name) .. " - " .. tostring(why))
+        end
+    end
+    return ok, p
+end
+
+-- How much to favour a move for the state the target is in.
+function knowWeight(entry, t)
+    if not Config.Know or not entry or not t then return 1 end
+    local kind, f = knowKind(entry.name, entry.rule)
+    if Know.PASSIVE[kind] then return 1 end
+    local p = knowChance(entry.name, knowState(t), kind, f)
+    return math.clamp(p / 0.35, 0.3, 2.4)
+end
+
+-- Does this move leave the target standing (the string goes on) or put it
+-- on the ground (the string is over)? What was seen first, then research.
+function knowRole(name)
+    local f = MoveFacts[senseMoveKey(name)]
+    local o = type(MEM.facts) == "table" and MEM.facts[name] or nil
+    if o and (o.hn or 0) >= 4 then
+        if (o.rg or 0) / o.hn >= 0.6 then return "ender" end
+        if (o.st or 0) / o.hn >= 0.6 then return "extender" end
+    end
+    return f and f.c or nil
+end
+
+-- ------------------------------------------------------------------ probing
+-- Every cast is an experiment. memRecordUse notes what the target was doing
+-- and where everybody stood; knowWatch follows the next two seconds;
+-- knowBook writes down what happened.
+function knowStamp(p, t)
+    if not Config.Know or not p then return end
+    local h, th = getHRP(), getHRP(t)
+    p.ts = knowState(t)
+    p.myPos = h and h.Position or nil
+    p.tDist = p.dist
+    -- our own basic attack still in flight would be booked as this move's hit
+    p.dirty = ((tick() - (Tac.m1StepAt or 0)) < 0.45 and Bot.M1Active) and true or false
+    -- a counter answers whoever swung, who need not be our target
+    if p.ctx == "counter" then
+        p.ts, p.dirty = "swing", false
+        local vs = Bot.KnowCastVs
+        if vs and vs ~= t and vs.Parent then p.target, p.hp0, p.key = vs, getHP(vs), nil end
+    end
+    local probe = Bot.KnowProbePending
+    if probe and probe.name == p.move then
+        p.probe = true
+        Bot.KnowProbeAt = tick()
+        Life.knowProbes = (Life.knowProbes or 0) + 1
+        debug(string.format("probe: %s at a %s target (not known whether it lands)", tostring(p.move), tostring(p.ts)))
+    end
+    Bot.KnowProbePending = nil
+end
+
+function knowWatch(p, el)
+    local t = p.target
+    if not (t and t.Parent) or el > 2.6 or not p.ts then return end
+    local hp = getHP(t)
+    if p.dirty and not p.kBase and el >= 0.22 then p.kBase = hp end
+    local base = p.kBase or ((not p.dirty) and p.hp0) or nil
+    if not p.hitAt then
+        if hp and base and (base - hp) > 0.5 then
+            p.hitAt = el
+            local th = getHRP(t)
+            p.hitPos = th and th.Position or nil
+        end
+    elseif not p.after and (el - p.hitAt) >= 0.3 then
+        p.after = isRagdolled(t) and "rag" or (isStunned(t) and "stun" or "none")
+        local th = getHRP(t)
+        if th and p.hitPos then p.knock = (th.Position - p.hitPos).Magnitude end
+    end
+    -- a move that deals nothing is judged by what it does to the target
+    if not p.fx and el > 0.15 and el < 1.6 and p.ts ~= "stun" and p.ts ~= "rag"
+       and (isStunned(t) or isRagdolled(t)) then
+        p.fx = el
+    end
+    if el <= 0.9 and p.myPos then
+        local h = getHRP()
+        if h then
+            local dd = Vector3.new(h.Position.X - p.myPos.X, 0, h.Position.Z - p.myPos.Z).Magnitude
+            if dd > (p.moved or 0) then p.moved = dd end
+        end
+    end
+end
+
+function knowBook(p, hp1)
+    if not Config.Know or not p or not p.move or not p.ts or p.kDone then return end
+    p.kDone = true
+    if not Know.seeded then knowSeed() end
+    if type(MEM.facts) ~= "table" then MEM.facts = {} end
+    local o = MEM.facts[p.move]
+    if not o then o = { n = 0, s = {} }; MEM.facts[p.move] = o end
+    if type(o.s) ~= "table" then o.s = {} end
+    local f = MoveFacts[senseMoveKey(p.move)]
+    local base = p.kBase or p.hp0
+    local dmg = (base or 0) - (hp1 or 0)
+    local hit = (p.hitAt ~= nil and dmg > 0.5) or ((f and f.nd and p.fx ~= nil) and true or false)
+    local st = p.ts
+    local c = o.s[st]
+    if not c then c = { n = 0, h = 0 }; o.s[st] = c end
+    o.n = (o.n or 0) + 1
+    c.n = c.n + 1
+    if hit then
+        c.h = c.h + 1
+        o.hn = (o.hn or 0) + 1
+        if p.after == "rag" then o.rg = (o.rg or 0) + 1
+        elseif p.after == "stun" then o.st = (o.st or 0) + 1 end
+        if p.knock then o.kb = (o.kb or 0) + p.knock end
+        -- wind-up and speed: only from casts with no basic attack in flight
+        -- at a target that was not already being hit
+        if p.hitAt and not p.dirty and p.dist and st ~= "stun" and p.hitAt < 2.5 then
+            o.rn = (o.rn or 0) + 1
+            o.rd = (o.rd or 0) + p.dist
+            o.rt = (o.rt or 0) + p.hitAt
+            o.rdd = (o.rdd or 0) + p.dist * p.dist
+            o.rdt = (o.rdt or 0) + p.dist * p.hitAt
+        end
+    end
+    if p.moved then o.mv = (o.mv or 0) + p.moved; o.mvN = (o.mvN or 0) + 1 end
+    if type(Life.know) ~= "table" then Life.know = {} end
+    local l = Life.know[p.move]
+    if not l then l = { n = 0, h = 0 }; Life.know[p.move] = l end
+    l.n = l.n + 1
+    if hit then l.h = l.h + 1 end
+    if p.probe then
+        debug(string.format("probe result: %s at a %s target %s", tostring(p.move), st,
+            hit and string.format("landed (%.0f dmg, %.2f s after the cast)", dmg, p.hitAt or p.fx or 0) or "did not land"))
+    end
+    -- research that the measurements contradict is worth a line: either the
+    -- research is wrong or the game has changed
+    if f and st == "block" and f.ub == false and c.n >= 4 and c.h / c.n >= 0.6 and not c.said then
+        c.said = true
+        debug(string.format("research check: %s is listed as blockable but landed %d of %d on blocking targets", p.move, c.h, c.n))
+    elseif f and st == "block" and f.ub == true and c.n >= 5 and c.h == 0 and not c.said then
+        c.said = true
+        debug(string.format("research check: %s is listed as getting through a block but landed 0 of %d", p.move, c.n))
+    elseif f and st == "rag" and f.rag == true and c.n >= 5 and c.h == 0 and not c.said then
+        c.said = true
+        debug(string.format("research check: %s is listed as hitting a body on the ground but landed 0 of %d", p.move, c.n))
+    end
+end
+
+function knowNoteCooldown(name, cd)
+    if not Config.Know or type(cd) ~= "number" or cd < 0.3 or cd > 400 then return end
+    if type(MEM.facts) ~= "table" then MEM.facts = {} end
+    local o = MEM.facts[name]
+    if not o then o = { n = 0, s = {} }; MEM.facts[name] = o end
+    o.cd = o.cd and (o.cd * 0.7 + cd * 0.3) or cd
+end
+
+-- A cast is taken as refused when its cooldown has not started 0.4 s later.
+-- Some moves only start it when they finish (two-press and held moves), so
+-- a refused cast is looked at once more: if the cooldown moved after all,
+-- the move was never refused, and from the second time on it is given
+-- longer before it is judged. A wrongly refused cast was also rolled back
+-- out of the books, which is why such moves looked like they never landed.
+function knowVerifyDelay(name)
+    local o = type(MEM.facts) == "table" and MEM.facts[name] or nil
+    if Config.Know and o and (o.late or 0) >= 2 then return Config.KnowLateVerify or 1.3 end
+    return Config.CastVerifyDelay or 0.4
+end
+
+function knowLateStamp(name, service)
+    if not Config.Know then return end
+    if type(MEM.facts) ~= "table" then MEM.facts = {} end
+    local o = MEM.facts[name]
+    if not o then o = { n = 0, s = {} }; MEM.facts[name] = o end
+    o.late = (o.late or 0) + 1
+    Life.lateStamp = (Life.lateStamp or 0) + 1
+    if Bot.Refused then Bot.Refused[service] = 0 end
+    if Bot.RefusedN then Bot.RefusedN[service] = 0 end
+    debugEvery("late:" .. tostring(name), 4, string.format("not refused after all: %s started its cooldown late (seen %d times%s)",
+        tostring(name), o.late, o.late >= 2 and ", now given longer before it is judged" or ""))
+end
+
+-- One line per move used this life: what it is, who says so, what it did.
+function knowLifeReport()
+    if not Config.Know or type(Life.know) ~= "table" then return end
+    local names = {}
+    for name in pairs(Life.know) do table.insert(names, name) end
+    table.sort(names)
+    for _, name in ipairs(names) do
+        local l = Life.know[name]
+        local kind, f, src = knowKind(name)
+        local o = (type(MEM.facts) == "table" and MEM.facts[name]) or {}
+        local parts = {}
+        for _, st in ipairs(Know.STATES) do
+            local c = type(o.s) == "table" and o.s[st] or nil
+            if c and c.n > 0 then table.insert(parts, string.format("%s %.0f/%.0f", st, c.h, c.n)) end
+        end
+        local mean, windup, speed = knowTiming(name)
+        local extra = ""
+        if mean then extra = extra .. string.format(" | lands %.2f s after the cast", mean) end
+        if windup and speed then extra = extra .. string.format(" (wind-up %.2f s, %.0f studs/s)", windup, speed) end
+        if o.cd then
+            extra = extra .. string.format(" | cooldown %.1f s%s", o.cd, (f and f.cd) and string.format(" (listed %s)", tostring(f.cd)) or "")
+        end
+        if (o.mvN or 0) > 0 then extra = extra .. string.format(" | carries us %.0f studs", (o.mv or 0) / o.mvN) end
+        if (o.hn or 0) > 0 then
+            extra = extra .. string.format(" | after a hit: down %d, held %d of %d", o.rg or 0, o.st or 0, o.hn)
+        end
+        debug(string.format("KNOW %s: %s (%s%s%s) | this life %d/%d | career %s%s",
+            name, kind, src,
+            (f and f.ub ~= nil) and (f.ub and ", unblockable" or ", blockable") or "",
+            (f and f.rag ~= nil) and (f.rag and ", hits the ground" or ", misses the ground") or "",
+            l.h, l.n, (#parts > 0) and table.concat(parts, ", ") or "nothing booked", extra))
+    end
+end
+
+function knowLifeSummary()
+    local top, topN = "-", 0
+    for k, v in pairs(Life.knowWhy or {}) do
+        if v > topN then top, topN = k, v end
+    end
+    local fin = {}
+    for _, m in ipairs({ "down", "up", "flat" }) do
+        local r = type(Life.fin) == "table" and Life.fin[m] or nil
+        if r and r.n > 0 then table.insert(fin, string.format("%s x%d (net %+.0f)", m, r.n, r.net)) end
+    end
+    return string.format(" | knowledge: %d casts withheld (mostly %s x%d), %d probes, %d counters, %d guard-breaks, %d ground hits, M1 held off %.0fs, finishers %s, %d refusals that were not",
+        Life.knowHeld or 0, top, topN, Life.knowProbes or 0, Life.knowCounter or 0, Life.knowBreak or 0,
+        Life.knowGround or 0, Life.m1HeldSec or 0, (#fin > 0) and table.concat(fin, ", ") or "none", Life.lateStamp or 0)
+end
+
+-- ------------------------------------------------------------------ the fourth hit
+-- A basic string is four hits. The fourth puts the target down, and which
+-- fourth comes out depends on what our feet are doing: on the ground it
+-- knocks them away, rising it launches them (the longest time down),
+-- falling it slams them where they stand, cannot be blocked and reaches a
+-- body already on the ground. Which of those pays best is not something a
+-- guide can say for every moveset, so each is tried a few times and the
+-- damage dealt minus the damage taken over the next four seconds is kept.
+function tacFinisherPick(t)
+    local mode = Config.TacFinisher or "auto"
+    if mode ~= "auto" then return mode end
+    if t and knowBlocking(t) then return "down" end      -- the only fourth that beats a guard
+    local fin = type(MEM.tactics) == "table" and MEM.tactics.fin or nil
+    local best, bestV, least, leastN = "down", -math.huge, nil, math.huge
+    for _, m in ipairs({ "down", "up", "flat" }) do
+        local r = type(fin) == "table" and fin[m] or nil
+        local n = r and r.n or 0
+        if n < (Config.TacFinisherTrials or 4) and n < leastN then least, leastN = m, n end
+        if n > 0 and r.net / n > bestV then best, bestV = m, r.net / n end
+    end
+    return least or best
+end
+
+-- Called from the basic-attack loop. Returns "hold" while the swing has to
+-- wait. The game's own client sends "Down" for a swing thrown in the air and
+-- "Up" for one thrown from the ground with jump held, so the two are timed
+-- differently: for the slam we jump early and swing once airborne; for the
+-- launcher we wait until the swing is due and jump on the same frame.
+function tacFinisher()
+    local mode = Config.TacFinisher
+    if not mode or mode == "off" then return nil end
+    local me, hum, t = getChar(), getHum(), Bot.Target
+    local now = tick()
+    if not (me and hum and t) or me:GetAttribute("CurrentM1") ~= 4 then     -- 4: three are out, the fourth is next
+        if Bot.FinMode and (now - (Bot.FinAt or 0)) > 1.5 then Bot.FinMode = nil end
+        return nil
+    end
+    if not (isStunned(t) or knowBlocking(t)) or isRagdolled(t) then return nil end
+    local since = now - (Tac.m1StepAt or 0)
+    -- the chained skill gets first refusal on this moment
+    if since < (Config.TacComboDelay or 0.14) + 0.05 then return nil end
+    if not Bot.FinMode then Bot.FinMode, Bot.FinAt = tacFinisherPick(t), now end
+    local gap = Tac.m1Gap or 0.35
+    if Bot.FinMode == "up" then
+        if since < gap - 0.04 and (now - Bot.FinAt) < 0.4 then return "hold" end
+        hum.Jump = true
+        Bot.M1DirForce, Bot.M1DirForceUntil = "Up", now + 0.3
+        Bot.FinGot = "up"
+        return nil
+    elseif Bot.FinMode == "down" then
+        if hum.FloorMaterial == Enum.Material.Air then Bot.FinGot = "down" return nil end
+        -- never left the ground (the game locks the jump in some states):
+        -- swing anyway, and book it as the flat hit it will be
+        if (now - Bot.FinAt) > 0.3 then Bot.FinGot = "flat" return nil end
+        if since >= math.max(0.19, gap - 0.15) then hum.Jump = true end
+        return "hold"
+    end
+    Bot.FinGot = "flat"
+    return nil
+end
+
+-- The step counter going from 4 to 5 means the fourth hit was thrown.
+function tacFinisherStep(prev, step)
+    local now = tick()
+    if type(prev) == "number" and type(step) == "number" and step == prev + 1 and prev >= 2 then
+        local g = now - (Tac.m1StepAt or now)
+        if g > 0.1 and g < 0.9 then Tac.m1Gap = Tac.m1Gap and (Tac.m1Gap * 0.7 + g * 0.3) or g end
+    end
+    if prev == 4 and step == 5 and Bot.FinMode and (now - (Bot.FinAt or 0)) < 1.5 then
+        Bot.FinPending = { mode = Bot.FinGot or Bot.FinMode, at = now, d0 = Life.dmg or 0, t0 = Life.taken or 0 }
+    end
+    if prev == 4 then Bot.FinMode, Bot.FinGot = nil, nil end
+end
+
+function tacFinisherBook()
+    local fp = Bot.FinPending
+    if not fp or (tick() - fp.at) < (Config.TacFinisherWindow or 4) then return end
+    Bot.FinPending = nil
+    local net = ((Life.dmg or 0) - fp.d0) - ((Life.taken or 0) - fp.t0)
+    if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
+    if type(MEM.tactics.fin) ~= "table" then MEM.tactics.fin = {} end
+    if type(Life.fin) ~= "table" then Life.fin = {} end
+    for _, tbl in ipairs({ MEM.tactics.fin, Life.fin }) do
+        local r = tbl[fp.mode]
+        if not r then r = { n = 0, net = 0 }; tbl[fp.mode] = r end
+        r.n = r.n + 1
+        r.net = r.net + net
+    end
+    debugEvery("finisher", 1, string.format("finisher: %s paid %+.0f over the next %.0f s", fp.mode, net, Config.TacFinisherWindow or 4))
+end
+
+
 local function getAimPoint()
     local h = getHRP()
     local t = Bot.Target
@@ -6845,6 +7627,7 @@ local lastM1Log = 0
 local function m1Direction()
     local hum = getHum()
     if not hum then return nil end
+    if Bot.M1DirForce and tick() < (Bot.M1DirForceUntil or 0) then return Bot.M1DirForce end
 
     local c = getChar()
     local set = c and c:GetAttribute("Moveset")
@@ -6960,6 +7743,7 @@ local function tickM1(dt)
     if m1Accum < 0.025 then return end
     m1Accum = 0
 
+    if tacFinisher() == "hold" then return end
     local ok, res = pcall(fireM1Once)
     if ok then
         m1Fires = m1Fires + 1
@@ -7091,7 +7875,8 @@ local function useSkill(serviceName)
 
 
     Bot.Refused = Bot.Refused or {}
-    Bot.Refused[serviceName] = castAt - (Config.CastRefusalHold or 2.5) + (Config.CastVerifyDelay or 0.4)
+    local verifyIn = knowVerifyDelay(moveValue.Name)
+    Bot.Refused[serviceName] = castAt - (Config.CastRefusalHold or 2.5) + verifyIn
 
 
 
@@ -7100,7 +7885,7 @@ local function useSkill(serviceName)
 
 
     local before, beforeUse = moveValue:GetAttribute("ReadyAt"), moveValue:GetAttribute("LastUse")
-    task.delay(Config.CastVerifyDelay or 0.4, function()
+    task.delay(verifyIn, function()
         local ok, after, afterUse = pcall(function()
             return moveValue:GetAttribute("ReadyAt"), moveValue:GetAttribute("LastUse")
         end)
@@ -7122,6 +7907,15 @@ local function useSkill(serviceName)
             -- in a row doubles how long it is left alone, up to eight times.
             Bot.Refused[serviceName] = tick() + (math.min(2 ^ (nRef - 1), 8) - 1) * (Config.CastRefusalHold or 2.5)
             Life.refused = (Life.refused or 0) + 1
+            -- some moves start their cooldown only when they finish: look once more
+            task.delay(0.9, function()
+                local ok2, after2, afterUse2 = pcall(function()
+                    return moveValue:GetAttribute("ReadyAt"), moveValue:GetAttribute("LastUse")
+                end)
+                if ok2 and (after2 ~= before or afterUse2 ~= beforeUse) then
+                    knowLateStamp(moveValue.Name, serviceName)
+                end
+            end)
 
 
 
@@ -7136,8 +7930,11 @@ local function useSkill(serviceName)
             if Bot.UsedSkillsThisLife then Bot.UsedSkillsThisLife[serviceName] = nil end
             Bot.UsedSkillsThisFight[serviceName] = nil
             debugEvery("refused:" .. serviceName, 5, "refused: " .. moveValue.Name .. " (no stamp moved | at cast: " .. castInfo .. ")")
-        elseif Bot.RefusedN then
-            Bot.RefusedN[serviceName] = 0
+        else
+            if Bot.RefusedN then Bot.RefusedN[serviceName] = 0 end
+            if type(after) == "number" and type(afterUse) == "number" then
+                knowNoteCooldown(moveValue.Name, after - afterUse)
+            end
         end
     end)
     debug("Used: " .. moveValue.Name .. " [" .. serviceName .. "]")
@@ -11383,6 +12180,7 @@ end
 function shouldUseMove(entry, t, d2d)
     local rule = entry.rule
     if not isSkillReady(entry.service) then return false end
+    if not knowGate(entry, t, d2d, "neutral") then return false end
 
 
 
@@ -11549,9 +12347,10 @@ function useBestMove(t, intent)
                 elseif d2d <= 14 then score = 40 - r.prio
                 end
             end
+            if score > 0 and intent ~= "escape" and not knowGate(e, t, d2d, "intent") then score = -1 end
             if score > 0 then
                 score = score * memMoveWeight(e.name, t, maxDpt)
-                         * memChainWeight(e.name, maxChain)
+                         * memChainWeight(e.name, maxChain) * knowWeight(e, t)
                 if memIsDud(e.name, maxDpt) then score = score * 0.15 end
             end
             if score > bestScore then best, bestScore = e, score end
@@ -11590,7 +12389,13 @@ function tacComboExtend(t, d2d)
     local held = now - (Bot.ConfirmSince or now)
     -- let our own string get going first; a stun somebody else caused is
     -- taken after half a second regardless
-    if type(step) == "number" and step < (Config.TacComboStep or 2) and held < 0.5 then return false end
+    if type(step) == "number" and step < 2 and held < 0.5 then return false end
+    -- CurrentM1 is the number of the NEXT swing: 4 means three are out. A
+    -- string is three basic hits, then the skill, then three more; the
+    -- fourth hit puts the target down and ends it. Out of arm's reach there
+    -- is no string to wait for.
+    if type(step) == "number" and step >= 2 and step < (Config.TacComboStep or 4)
+       and d2d <= (Config.M1Range or 8) + 2 and held < (Config.TacComboPatience or 1.6) then return false end
     -- a third of the chained casts were refused, most of them thrown the
     -- instant our second hit began: let that swing finish landing first
     if type(step) == "number" and (now - (Tac.m1StepAt or 0)) < (Config.TacComboDelay or 0.14) then return false end
@@ -11602,16 +12407,19 @@ function tacComboExtend(t, d2d)
     local best, bestScore = nil, 0
     for _, e in ipairs(usable) do
         local r = e.rule
-        if not (r.selfBuff or r.summon or r.escape or r.trap)
+        if not (r.selfBuff or r.escape or r.trap) and (not r.summon or knowKind(e.name, r) == "summon")
            and isSkillReady(e.service) and dy <= verticalTolerance(r)
            and not memIsHardDud(e.name)
            and not (Bot.Refused and (now - (Bot.Refused[e.service] or 0)) < (Config.CastRefusalHold or 2.5)) then
             local lo, hi = moveRange(e)
-            if d2d >= lo and d2d <= hi then
+            if d2d >= lo and d2d <= hi and knowGate(e, t, d2d, "confirm") then
                 local base = (hi <= 16) and 10 or ((hi <= 30) and 7 or 4)
                 if r.cc then base = base + 3 end
                 if r.heavy then base = base + ((thp < 45) and 4 or 1) end
+                local role = knowRole(e.name)
+                -- what keeps the target standing goes first; what floors it goes last
                 local score = base * memMoveWeight(e.name, t, maxDpt) * memChainWeight(e.name, maxChain)
+                              * knowWeight(e, t) * ((role == "extender") and 1.3 or ((role == "ender") and 0.8 or 1))
                 if score > bestScore then best, bestScore = e, score end
             end
         end
@@ -11688,6 +12496,107 @@ function tacIncoming()
     return true
 end
 
+-- ------------------------------------------------------------------ knowledge, acting on it
+-- A counter is the answer to a swing that has already started.
+function knowTryCounter(dv, now, pre)
+    if not Config.Know or not Config.KnowCounter or not dv then return false end
+    if now - (Bot.LastSkill or 0) < 0.35 or now < (Bot.KnowCounterRest or 0) then return false end
+    if inOwnMove() or isStunned() or isRagdolled() then return false end
+    -- a block that is already up stays up: nothing can be thrown from behind
+    -- it, and dropping it to throw a counter leaves a gap with neither
+    if Bot.BlockActive then return false end
+    local h, dh = getHRP(), getHRP(dv)
+    if not (h and dh) then return false end
+    local dist = getDist2D(h.Position, dh.Position) or 99
+    if dist > (Config.KnowCounterReach or 10) then return false end
+    for _, e in ipairs(getUsableMoves()) do
+        local kind, f = knowKind(e.name, e.rule)
+        -- on a prediction (nobody swinging yet) only a long window is worth it
+        if kind == "counter" and isSkillReady(e.service)
+           and (not pre or ((f and f.cw) or 0.5) >= 0.6)
+           and not (Bot.Refused and (now - (Bot.Refused[e.service] or 0)) < (Config.CastRefusalHold or 2.5))
+           and knowChance(e.name, "swing", kind, f) >= (Config.KnowMinP or 0.2) then
+            Bot.CastCtx, Bot.CastCtxAt, Bot.KnowCastVs = "counter", now, dv
+            if useSkill(e.service) then
+                Bot.KnowCounterUntil = now + math.max((f and f.cw) or 0.6, 0.4)
+                Bot.KnowCounterRest = now + 2.0
+                Life.knowCounter = (Life.knowCounter or 0) + 1
+                debugEvery("counter", 1, string.format("counter: %s into %s's swing at %.0f studs", e.name, dv.Name, dist))
+                return true
+            end
+        end
+    end
+    -- some movesets keep their counter on the special key
+    local rule = getSpecialRule()
+    if rule and rule.kind == "counter" and not pre and isSpecialReady() then
+        if useSpecial() then
+            Bot.KnowCounterUntil = now + 0.6
+            Bot.KnowCounterRest = now + 2.0
+            Life.knowCounter = (Life.knowCounter or 0) + 1
+            debugEvery("counter", 1, string.format("counter: %s into %s's swing at %.0f studs", tostring(rule.name), dv.Name, dist))
+            return true
+        end
+    end
+    return false
+end
+
+-- The one thing that is certain to land on a target in `state`: used for a
+-- raised guard ("block") and for a body on the ground ("rag").
+function knowTryState(t, d2d, state, ctx)
+    if not Config.Know or not t or not d2d then return false end
+    local now = tick()
+    if now - (Bot.LastSkill or 0) < (Config.TacComboGap or 0.25) + 0.1 or inOwnMove() then return false end
+    if isStunned() or isRagdolled() then return false end
+    local usable = getUsableMoves()
+    local maxDpt = memMaxDpt(usable, t)
+    local dy = math.abs(Bot.DistY or 0)
+    local best, bestScore = nil, 0
+    for _, e in ipairs(usable) do
+        local r = e.rule
+        local kind, f = knowKind(e.name, r)
+        if not Know.PASSIVE[kind] and kind ~= "counter" and not (r.selfBuff or r.escape)
+           and not (f and f.nd)
+           and isSkillReady(e.service) and dy <= verticalTolerance(r)
+           and not (Bot.Refused and (now - (Bot.Refused[e.service] or 0)) < (Config.CastRefusalHold or 2.5)) then
+            local lo, hi = moveRange(e)
+            local p = knowChance(e.name, state, kind, f)
+            if d2d >= lo and d2d <= hi and p >= (Config.KnowSureP or 0.45) then
+                local score = p * ((f and f.dmg) or 10) * math.max(0.3, memMoveWeight(e.name, t, maxDpt))
+                if score > bestScore then best, bestScore = e, score end
+            end
+        end
+    end
+    if not best then return false end
+    Bot.CastCtx, Bot.CastCtxAt = ctx, now
+    if useSkill(best.service) then
+        if state == "block" then Life.knowBreak = (Life.knowBreak or 0) + 1
+        else Life.knowGround = (Life.knowGround or 0) + 1 end
+        debugEvery("know:" .. ctx, 1.5, string.format("%s: %s at %.0f studs", state == "block" and "through the guard" or "ground hit", best.name, d2d))
+        return true
+    end
+    return false
+end
+
+-- A basic attack cannot reach a body on the ground, and one thrown into a
+-- raised guard costs double the recovery and hands over the turn. Either
+-- way the swing is better kept. After a side dash it is let go for a moment:
+-- a guard covers only the front.
+function knowM1Wasted(t, state, dt)
+    if not Config.Know or not Config.KnowM1Hold or not t then return false end
+    local wasted = false
+    if state == "rag" then
+        wasted = true
+    elseif state == "block" then
+        wasted = (tick() - (Bot.LastDodge or 0)) > (Config.KnowFlankWindow or 0.9)
+        -- three swings already out: the falling fourth goes through
+        local me = getChar()
+        if wasted and me and me:GetAttribute("CurrentM1") == 4 and Config.TacFinisher ~= "off" then wasted = false end
+    end
+    if wasted then Life.m1HeldSec = (Life.m1HeldSec or 0) + (dt or 0.016) end
+    return wasted
+end
+
+
 function trySpecial(t, d2d)
     if not Config.UseSpecial then return false end
     if inOwnMove() then return false end
@@ -11698,6 +12607,9 @@ function trySpecial(t, d2d)
 
     local rule = getSpecialRule()
     if not rule or rule.kind == "avoid" then return false end
+    if rule.kind == "counter" then return false end       -- thrown by the guard, into a swing
+    if rule.safe and (d2d or 0) < rule.safe then return false end
+    if rule.reach and (d2d or 999) > rule.reach then return false end
 
     local key = "SPECIAL:" .. tostring(rule.name)
     local paroled = false
@@ -11777,6 +12689,7 @@ function tryUseSkill(t, d)
             if not rule.cc and not rule.escape and not rule.summon and not rule.selfBuff
                and d2d >= (rule.min or 0) and d2d <= (rule.max or 0)
                and isSkillReady(entry.service) and memIsHardDud(entry.name)
+               and knowGate(entry, t, d2d, "parole")
                and memDudParole(entry.name, false) and useSkill(entry.service) then
                 memDudParole(entry.name, true)
                 Bot.LastSkill = now
@@ -11824,6 +12737,7 @@ function tryUseSkill(t, d)
             if isSkillReady(entry.service) and not rule.summon and not rule.selfBuff
                and not rule.escape and memRangeEdgeProbe(entry.name, d2d)
                and not memIsHardDud(entry.name) and not rule.cc
+               and knowGate(entry, t, d2d, "probe")
                and d2d <= (rule.max or 40) + 15 then
                 table.insert(probes, entry)
             end
@@ -11901,7 +12815,7 @@ function tryUseSkill(t, d)
         c.score = (10 - c.e.rule.prio)
                   * memMoveWeight(c.e.name, t, maxDpt)
                   * memChainWeight(c.e.name, maxChain)
-                  * setupBonus
+                  * setupBonus * knowWeight(c.e, t)
     end
     table.sort(cands, function(a, b) return a.score > b.score end)
 
@@ -13733,7 +14647,8 @@ local function executeState()
             -- attacker is not made to wait.
             if Config.TacBlockKeep and not swapped
                and (tick() - (Bot.BlockSince or 0)) < (Config.TacBlockMin or 0.3)
-               and Bot.State ~= "REACT" and Bot.State ~= "CCED" and Bot.State ~= "DEAD" then
+               and not (Bot.State == "REACT" and (Bot.Reacting == "dodge" or Bot.Reacting == "grabbed"))
+               and Bot.State ~= "CCED" and Bot.State ~= "DEAD" then
                 if not Bot.BlockKeptSaid then
                     Bot.BlockKeptSaid = true
                     Life.tacBlockKept = (Life.tacBlockKept or 0) + 1
@@ -14305,6 +15220,8 @@ local function executeState()
         end
 
         if r == "block" then
+            if tick() < (Bot.KnowCounterUntil or 0) then return end
+            if Bot.ReactKind == "rush" and t and knowTryCounter(t, tick(), false) then return end
 
 
             if Bot.BlockActive then
@@ -14460,6 +15377,16 @@ local function executeState()
 
         local recoverHold = not swinging and Bot.RecoverMode == "hold" and now < (Bot.RecoverUntil or 0)
         Bot.TacPre = not swinging and now < (Bot.PreGuardUntil or 0)
+        -- a counter stance is up: do not put a block over it
+        if now < (Bot.KnowCounterUntil or 0) then
+            faceTarget(dv, true)
+            return
+        end
+        if (swinging or Bot.TacPre) and knowTryCounter(dv, now, not swinging) then
+            if swinging then Bot.LastSwingAt = now; Bot.LastSwinger = dv end
+            faceTarget(dv, true)
+            return
+        end
         if swinging then
             Bot.LastSwingAt = now
             Bot.LastSwinger = dv
@@ -14750,7 +15677,16 @@ local function executeState()
         local inMelee = d2d <= Config.M1Range + 2
         local skillGap = inMelee and Config.SkillGapClose or Config.SkillDelay
         Bot.TacConf = tacConfirmed(t)
-        if not (Bot.TacConf and tacComboExtend(t, d2d)) then
+        Bot.KnowSt = Config.Know and knowState(t) or "free"
+        if Bot.KnowSt == "rag" and knowTryState(t, d2d, "rag", "ground") then
+            -- something that reaches a body on the ground
+        elseif Bot.KnowSt == "block" and knowTryState(t, d2d, "block", "break") then
+            -- something a guard does not stop
+        elseif Bot.TacConf then
+            -- a string is landing: only the chain may cast. Falling through
+            -- to the neutral chooser threw skills after the first hit.
+            tacComboExtend(t, d2d)
+        else
             trySpecial(t, d2d)
             -- no hit to chain from: in reach of their answer, a raw cast is
             -- the thing that got punished 87% of the time. Keep the string
@@ -14767,21 +15703,13 @@ local function executeState()
 
 
         if not isInSkill() then
-            startM1()
+            if knowM1Wasted(t, Bot.KnowSt) then stopM1() else startM1() end
         end
-
-
-
-
-
-
-
-
 
         local wantsToClose = d2d > Config.CloseDashMin
         local dodgeReady = (now - (Bot.LastDodge or 0)) > Config.DodgeCooldown
 
-        if not wantsToClose and dodgeReady and math.random() < 0.5 then
+        if not wantsToClose and dodgeReady and not Bot.TacConf and Bot.KnowSt ~= "rag" and math.random() < 0.5 then
             Bot.LastDodge = now
             stopM1()
             if dash(math.random() < 0.5 and "Left" or "Right") then
@@ -15464,6 +16392,7 @@ local function startBot()
             memTrackDamage(Bot.Target, Bot.Dist2D)
             if Bot.Target then tacTrack(Bot.Target, tick()) end
             tacM1Tick()
+            knowScan(tick())
             if (Bot.FrameDmgIn or 0) > 0 then
                 Bot.LastHurtAt = tick()
                 senseNoteIncoming(Bot.FrameDmgIn)
@@ -17776,6 +18705,28 @@ do
               on = function(v) announce(v and "tactics: a block stays up at least 0.3 s" or "tactics: blocks drop the moment their reason is gone") end },
             { key = "TacMoveDamp",   label = "Steady footing",
               on = function(v) announce(v and "movement: reversals must persist before they are obeyed" or "movement: every direction change obeyed at once") end },
+            { page = "know", label = "Move knowledge" },
+        }
+        -- What each move is for (v87): researched facts, corrected by what
+        -- the machine measures on its own casts. See the KNOW lines in the log.
+        PAGES.know = {
+            { back = true },
+            { key = "Know",        label = "Know what moves do",
+              on = function(v) announce(v and "knowledge: casts are weighed by their chance to land on the target as it is" or "knowledge: off - casts go by range alone") end },
+            { key = "KnowCounter", label = "Counter into swings",
+              on = function(v) announce(v and "knowledge: counters are thrown into a swing, never raw" or "knowledge: counters are not used") end },
+            { key = "KnowM1Hold",  label = "Keep wasted swings",
+              on = function(v) announce(v and "knowledge: no basic attacks into a guard or at a body on the ground" or "knowledge: basic attacks never held") end },
+            { key = "KnowProbe",   label = "Probe the unknown",
+              on = function(v) announce(v and "knowledge: up to three test casts a life where nothing is known" or "knowledge: no test casts") end },
+            { fn = function()
+                  local order = { "auto", "down", "up", "flat", "off" }
+                  local cur = Config.TacFinisher or "auto"
+                  local nxt = order[1]
+                  for i, m in ipairs(order) do if m == cur then nxt = order[(i % #order) + 1] end end
+                  Config.TacFinisher = nxt
+                  announce("fourth hit: " .. nxt .. ((nxt == "auto") and " (tries each, keeps what pays)" or ""))
+              end, label = "Change the fourth hit" },
         }
         PAGES.marked = {
             { back = true },
@@ -18157,7 +19108,10 @@ do
             else
                 local word = stunned and "Stunned" or (STATE_WORD[st] or st)
                 if not stunned then
-                    if st == "ATTACK" and Bot.TacConf then word = "Chaining"
+                    if tick() < (Bot.KnowCounterUntil or 0) then word = "Parrying"
+                    elseif st == "ATTACK" and Bot.TacConf then word = "Chaining"
+                    elseif st == "ATTACK" and Bot.KnowSt == "block" then word = "Breaking guard"
+                    elseif st == "ATTACK" and Bot.KnowSt == "rag" then word = "Standing over"
                     elseif st == "DEFEND" and tick() < (Bot.PreGuardUntil or 0) then word = "Bracing"
                     elseif st == "PUNISH" and Bot.PunishFromBlock and (tick() - Bot.PunishFromBlock) < 1.5 then word = "Countering" end
                 end
@@ -18221,7 +19175,7 @@ do
     end
 end
 
-announce("The Eye HUD on v86 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v87 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 
