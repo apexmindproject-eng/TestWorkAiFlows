@@ -1,5 +1,8 @@
 --[[
-    JJK SOLO BOT -- the single-fighter build (JJK-SOLO-v83).
+    JJK SOLO BOT -- the single-fighter build (JJK-SOLO-v84).
+    Tracks game version 1.85 (THE HALLOWEEN UPDATE): manual respawn through
+    JoinService.Respawn, the Hired Hunter (Toji) kit, Register's awakening
+    moves and Sky Bender's Turbulence. See REVERSE_ENGINEERING_REFERENCE.md §17.
 
     One account, one fighter, no role. Everything the phone build did for the
     PC's team bridge is gone: the guard-account gate, the LAN bridge and its
@@ -76,7 +79,7 @@ do
         end
     end
 
-    say("loading the hub (JJK-SOLO-v83)")
+    say("loading the hub (JJK-SOLO-v84)")
 end
 
 
@@ -150,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v83"
+local BUILD_TAG = "JJK-SOLO-v84"
 
 local NL = string.char(10)
 
@@ -880,6 +883,17 @@ local Config = {
     CharMaxAttempts = 3,
     CharLockExpiry = 1800,
     SwitchRespawnTimeout = 4,
+
+    -- Game 1.85: the server no longer respawns a dead fighter on its own. It
+    -- sets CanRespawn on the body and waits for JoinService.Respawn, which is
+    -- what the game's Respawn button fires. AutoRespawn presses it for us,
+    -- but only while the bot is meant to be running (AutoState.wantOn).
+    AutoRespawn = true,
+    RespawnDelay = 0.4,         -- let the offer stand a moment before taking it
+    RespawnRetry = 1.0,         -- the remote is silent on failure: ask again
+    -- Game 1.85: Road Rage and House hand the caster a throwaway remote and
+    -- expect a stream of aim points. AimReply answers with the target's feet.
+    AimReply = true,
     WatchdogIdle = 10,
     ChangeSpamGuard = 2.5,
     SpawnCombatWindow = 14,
@@ -1930,6 +1944,43 @@ local MoveRules = {
     ["Elbow Rush"] = { min = 0, max = 5, prio = 5, code = 0 },
     ["Copy"] = { min = 0, max = 11, prio = 4, code = 5 },
     ["Energy Ripple"] = { min = 0, max = 27, prio = 2, code = 0, heavy = true },
+
+    -- ---- game 1.85 (THE HALLOWEEN UPDATE) ---------------------------------
+    -- `code` is copied from ToolController's argument table in the 1.85
+    -- client. Ranges are first estimates read off the client effects (the
+    -- real hitboxes are server-side); the learned ranges replace them.
+    --
+    -- Hired Hunter (Toji). Three stances on Info.Stance, two moves each:
+    -- SSK (Flourish, Debilitate), ISOH (Transcend, Rupture), COATM (Lasso,
+    -- Whiplash). The named variants are listed in case the server ever puts
+    -- them in char.Moveset under their own names.
+    ["Flourish"]        = { min = 0, max = 12, prio = 4, code = 0 },
+    ["The Wrath"]       = { min = 0, max = 12, prio = 4, code = 0 },
+    ["The Greed"]       = { min = 0, max = 12, prio = 4, code = 0 },
+    ["The Pride"]       = { min = 0, max = 12, prio = 4, code = 0 },
+    ["Debilitate"]      = { min = 0, max = 14, prio = 4, code = 6 },
+    ["Transcend"]       = { min = 0, max = 28, prio = 5, code = 1 },
+    ["Ascend"]          = { min = 0, max = 28, prio = 5, code = 1 },
+    ["Rupture"]         = { min = 0, max = 28, prio = 5, code = 0 },
+    ["Paradise"]        = { min = 0, max = 28, prio = 5, code = 0 },
+    ["Reincarnation"]   = { min = 0, max = 28, prio = 5, code = 0 },
+    ["Lasso"]           = { min = 6, max = 35, prio = 3, code = 0, cc = true },
+    ["Whiplash"]        = { min = 0, max = 27, prio = 4, code = 0 },
+    ["Twirling Strike"] = { min = 0, max = 27, prio = 4, code = 0 },
+    -- Sky Bender (Uro): the new fourth move, and the first to use code 7.
+    ["Turbulence"]      = { min = 0, max = 20, prio = 4, code = 7 },
+    -- Register (Reggie) awakening: both drop on an aimed point up to 200
+    -- studs out (see AimReply). Arson was removed from the game.
+    ["Road Rage"]                        = { min = 12, max = 120, prio = 2, code = 0, heavy = true },
+    ["132-Square-Foot Two-Story House"]  = { min = 12, max = 120, prio = 2, code = 0, heavy = true },
+    ["House"]                            = { min = 12, max = 120, prio = 2, code = 0, heavy = true },
+    -- In ToolController's table but never ruled here before.
+    ["Cleave"]             = { min = 0,  max = 30, prio = 3, code = 1 },
+    ["Murmurate"]          = { min = 0,  max = 40, prio = 3, code = 1 },
+    ["Passenger Cars"]     = { min = 0,  max = 40, prio = 3, code = 2 },
+    ["Puppet Barrage"]     = { min = 0,  max = 12, prio = 4, code = 2 },
+    ["Resolute Slash OLD"] = { min = 0,  max = 25, prio = 4, code = 2 },
+    ["Tracking Roots"]     = { min = 10, max = 60, prio = 3, code = 5 },
 }
 
 local DefaultRule = { min = 0, max = 40, prio = 9, code = 0 }
@@ -1964,7 +2015,8 @@ local CharInfo = {
     Reggie = { header = "REGISTER", r = 255, g = 255, b = 255, ult = "Con Artistry" },
     Ryu = { header = "TRUE CANNON", r = 170, g = 255, b = 255, ult = "Every Last Drop." },
     Todo = { header = "SWITCHER", r = 170, g = 255, b = 255, ult = "False Memories" },
-    Uro = { header = "SKY ASSASSIN", r = 255, g = 165, b = 165, ult = "Temper" },
+    Toji = { header = "HIRED HUNTER", r = 50, g = 50, b = 50, ult = "Puppet of Carnage" },
+    Uro = { header = "SKY BENDER", r = 255, g = 165, b = 165, ult = "Temper" },
     Yuki = { header = "STAR RAGE", r = 170, g = 170, b = 255, ult = "Unrestricted Density" },
     Yuta = { header = "CURSED PARTNERS", r = 255, g = 170, b = 255, ult = "True Love" },
 }
@@ -2019,7 +2071,18 @@ local SpecialRules = {
     Ryu         = { name = "Restyle",              kind = "utility", min = 0,  max = 999 },
     Kurourushi  = { name = "Earthen Insect Trance",kind = "offense", min = 0,  max = 30 },
     Reggie      = { name = "Discard",              kind = "avoid",   min = 0,  max = 0 },
-    Uro         = { name = "none",                 kind = "avoid",   min = 0,  max = 0 },
+    Uro         = { name = "Sky Veil",             kind = "avoid",   min = 0,  max = 0 },
+    -- Hidden Inventory swaps the weapon stance (SSK / ISOH / COATM). The
+    -- hotbar only helps while it holds a move that is ready, so swap when
+    -- nothing is, and otherwise no more than every few seconds.
+    Toji        = { name = "Hidden Inventory",     kind = "utility", min = 0,  max = 999,
+                    gate = function()
+                        local any = false
+                        for svc in pairs(getAvailableMoves()) do
+                            if isSkillReady(svc) then any = true break end
+                        end
+                        return (not any) or (tick() - (Bot.LastSpecial or 0)) > 8
+                    end },
 }
 
 
@@ -2089,6 +2152,7 @@ CharServices = {
     Reggie = true,
     Ryu = true,
     Todo = true,
+    Toji = true,
     Uro = true,
     Yuki = true,
     Yuta = true,
@@ -6464,6 +6528,11 @@ local function buildExtra(moveName)
         return { isAirborne(), i ~= nil and i:FindFirstChild("InDash") ~= nil,
                  i ~= nil and i:FindFirstChild("InRoll") ~= nil }
     end
+    if code == 7 then
+        -- 1.85 (Turbulence): airborne, or the jump key is down right now
+        local hum = getHum()
+        return isAirborne() or (hum ~= nil and hum.Jump == true)
+    end
     return false
 end
 
@@ -7187,7 +7256,16 @@ end
 
 
 DangerByService = {
-
+    -- game 1.85: Hired Hunter, Register's awakening, Sky Bender's fourth
+    Flourish =                  "rush",
+    Debilitate =                "rush",
+    Transcend =                 "rush",
+    Rupture =                   "rush",
+    Lasso =                     "pull",
+    Whiplash =                  "beam",
+    RoadRage =                  "aoe",
+    House =                     "aoe",
+    Turbulance =                "rush",
     AuthenticMutualLove =       "aoe",
     BloodRain =                 "aoe",
     BruteForce =                "aoe",
@@ -11136,6 +11214,10 @@ function trySpecial(t, d2d)
     if not t then return false end
 
     if memComboHold(key, nil, t) then return false end
+    if type(rule.gate) == "function" then
+        local okG, pass = pcall(rule.gate)
+        if okG and not pass then return false end
+    end
     if rule.kind ~= "utility" then
         local lo, hi = memLearnedRange(key)
         lo, hi = lo or rule.min, hi or rule.max
@@ -15176,7 +15258,7 @@ CharPool = {
     "Gojo", "Itadori", "Hakari", "Megumi", "Mahito", "Choso", "Todo",
     "Hiromi", "Yuta", "Mechamaru", "Naoya", "Nanami", "Hanami", "Ryu",
     "Reggie", "Locust", "Yuki", "Charles", "Haruta", "MeiMei",
-    "Kurourushi", "Uro",
+    "Kurourushi", "Uro", "Toji",
 }
 
 
@@ -16000,8 +16082,116 @@ function heapLine()
         fx and #fx:GetChildren() or 0, #Players:GetPlayers(), probe))
 end
 
+-- ---------------------------------------------------------------- respawn
+-- Game 1.85 stopped respawning the dead. ToolController shows Main.Respawn
+-- while the body carries CanRespawn and Info has no NoRes (attribute or
+-- child; a private-server setting), and both the button and the Special key
+-- fire JoinService.Respawn with no arguments. Nothing answers on failure, so
+-- the request is simply repeated until the character changes.
+function respawnOffered(c)
+    c = c or getChar()
+    if not c or not c.Parent then return false end
+    if not c:GetAttribute("CanRespawn") then return false end
+    local info = c:FindFirstChild("Info")
+    if info and (info:GetAttribute("NoRes") or info:FindFirstChild("NoRes")) then return false end
+    return true
+end
+
+function autoRespawnTick()
+    if not Config.AutoRespawn or not AutoState.wantOn then
+        AutoState.respawnSeenAt = nil
+        return
+    end
+    local c = getChar()
+    if not c or isAlive(c) or not respawnOffered(c) then
+        AutoState.respawnSeenAt = nil
+        AutoState.respawnTries = 0
+        return
+    end
+    local now = tick()
+    AutoState.respawnSeenAt = AutoState.respawnSeenAt or now
+    if now - AutoState.respawnSeenAt < (Config.RespawnDelay or 0.4) then return end
+    if now - (AutoState.respawnAt or 0) < (Config.RespawnRetry or 1.0) then return end
+    AutoState.respawnAt = now
+    AutoState.respawnTries = (AutoState.respawnTries or 0) + 1
+    local sent = fireRemote("JoinService", "Respawn")
+    if AutoState.respawnTries == 1 or AutoState.respawnTries % 10 == 0 then
+        debug(string.format("respawn: offered, asking (try %d, %s)", AutoState.respawnTries,
+            sent and "sent" or "JoinService.Respawn missing - older server?"))
+    end
+end
+
+-- -------------------------------------------------------------- aim reply
+-- Road Rage and House (Register's 1.85 awakening) do not take their aim at
+-- activation. The server sends the caster Effects("Hitbox", ...) carrying a
+-- throwaway RemoteEvent and the game client streams its mouse point into it
+-- (Road Rage: every 0.025 s while the remote lives; House: every 0.1 s until
+-- a BoolValue flips, then once more). The game's own controller still does
+-- that with wherever the camera looks; this adds the target's feet to the
+-- stream so the last word is usually ours.
+do
+    local function aimPoint()
+        local t = Bot.Target
+        local th = t and getHRP(t)
+        local p = (th and th.Position) or getAimPoint()
+        local rp = RaycastParams.new()
+        pcall(function()
+            rp.FilterType = Enum.RaycastFilterType.Exclude
+            local skip = {}
+            for _, n in ipairs({ "Characters", "Effects", "Logic" }) do
+                local f = Workspace:FindFirstChild(n)
+                if f then skip[#skip + 1] = f end
+            end
+            rp.FilterDescendantsInstances = skip
+        end)
+        local hit = Workspace:Raycast(p + Vector3.new(0, 1, 0), Vector3.new(0, -300, 0), rp)
+        return hit and hit.Position or p
+    end
+    local function isRemote(x)
+        return typeof(x) == "Instance" and (x.ClassName == "RemoteEvent" or x.ClassName == "UnreliableRemoteEvent")
+    end
+    local function stream(remote, flag, every, maxFor)
+        if not isRemote(remote) then return end
+        task.spawn(function()
+            local t0 = tick()
+            while remote.Parent and tick() - t0 < maxFor do
+                if not (Config.AimReply and Config.Enabled) then break end
+                pcall(function() remote:FireServer(aimPoint()) end)
+                if flag and flag.Value == true then break end
+                task.wait(every)
+            end
+        end)
+    end
+    local function hook(serviceName, onHitbox)
+        local svc = getService(serviceName)
+        local fx = svc and svc.Effects
+        if type(fx) ~= "table" or type(fx.Connect) ~= "function" then return false end
+        local ok = pcall(function()
+            fx:Connect(function(key, ...)
+                if key ~= "Hitbox" or not Config.AimReply then return end
+                pcall(onHitbox, ...)
+            end)
+        end)
+        return ok
+    end
+    task.delay(4, function()
+        local a = hook("RoadRageService", function(remote)
+            stream(remote, nil, 0.03, 10)
+        end)
+        local b = hook("HouseService", function(flag, remote)
+            if typeof(flag) == "Instance" and flag:IsA("BoolValue") then
+                stream(remote, flag, 0.08, 10)
+            else
+                stream(isRemote(flag) and flag or remote, nil, 0.08, 10)
+            end
+        end)
+        debug(string.format("aim reply: RoadRage %s, House %s", a and "hooked" or "absent", b and "hooked" or "absent"))
+    end)
+end
+
 task.spawn(function()
     while task.wait(0.2) do
+        pcall(autoRespawnTick)
         pcall(function()
             if AutoState.wantOn and not Config.Enabled and isAlive() then
                 if AutoState.pendingChar or AutoState.queued then
@@ -17083,6 +17273,8 @@ do
             { key = "UseBlock",    label = "Use block" },
             { key = "Sprint",      label = "Sprint",
               on = function(v) if not v then local hum = getHum(); if hum then hum.WalkSpeed = 16 end end end },
+            { key = "AutoRespawn", label = "Auto respawn",
+              on = function(v) announce(v and "auto respawn: the bot presses Respawn when it is offered" or "auto respawn off - press Respawn yourself") end },
             { fn = function()
                   local ready, since = autoCanChange()
                   if not ready then
@@ -17532,7 +17724,7 @@ do
     end
 end
 
-announce("The Eye HUD on v83 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v84 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 
