@@ -16452,16 +16452,16 @@ do
         auraTint(false)
 
         -- --------------------------------------------------------------- eye
-        local EYE = 48
+        local EYE = 96           -- the big eye: about a tenth of a phone's width
         local eyeRoot = mk("Frame", {
-            Name = "Eye", AnchorPoint = Vector2.new(0.5, 0), Size = UDim2.new(0, 96, 0, 96),
-            Position = UDim2.new(0.5, 0, 0, 4), BackgroundTransparency = 1, ZIndex = 10,
+            Name = "Eye", AnchorPoint = Vector2.new(0.5, 0), Size = UDim2.new(0, EYE * 2, 0, EYE * 2),
+            Position = UDim2.new(0.5, 0, 0, -16), BackgroundTransparency = 1, ZIndex = 10,
             Parent = gui,
         })
         -- The fire round the eye: smoke, then two sets of tongues that turn
         -- against each other and trade places, so it never repeats. Two discs
         -- stand in if the pictures cannot load.
-        local FIRE = EYE * 3.2
+        local FIRE = EYE * 2.9
         local fireA, fireB, fireSmoke, halo1, halo2, ring = nil, nil, nil, nil, nil, nil
         if loadAsset("eye_fireA") and loadAsset("eye_fireB") and loadAsset("eye_smoke") then
             local function fireLayer(nm, size, z)
@@ -16562,8 +16562,8 @@ do
                 if not want then
                     want = { (math.random() - 0.5) * 2, (math.random() - 0.5) * 1.2 }
                 end
-                lookX = math.clamp(want[1], -1, 1) * 7
-                lookY = math.clamp(want[2], -1, 1) * 4
+                lookX = math.clamp(want[1], -1, 1) * EYE * 0.15
+                lookY = math.clamp(want[2], -1, 1) * EYE * 0.08
                 tween(eyeImg, 0.28, { Position = UDim2.new(0.5, lookX, 0.5, lookY) },
                     Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
                 task.wait(h and (0.6 + math.random() * 0.9) or (1.2 + math.random() * 2.4))
@@ -16574,7 +16574,7 @@ do
                 task.wait(3 + math.random() * 5)
                 local blinks = (math.random() < 0.25) and 2 or 1
                 for _ = 1, blinks do
-                    tween(eyeImg, 0.09, { Size = UDim2.new(0, EYE, 0, 3) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+                    tween(eyeImg, 0.09, { Size = UDim2.new(0, EYE, 0, 5) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
                     task.wait(0.1)
                     tween(eyeImg, 0.14, { Size = UDim2.new(0, EYE, 0, EYE) }, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
                     task.wait(0.2)
@@ -16585,8 +16585,8 @@ do
         -- ----------------------------------------------------------- readout
         local hazeAsset = loadAsset("menu_haze")
         local readout = mk("Frame", {
-            AnchorPoint = Vector2.new(0.5, 0), Size = UDim2.new(0, 460, 0, 48),
-            Position = UDim2.new(0.5, 0, 1, 8), BackgroundTransparency = 1, ZIndex = 10,
+            AnchorPoint = Vector2.new(0.5, 0), Size = UDim2.new(0, 460, 0, 50),
+            Position = UDim2.new(0.5, 0, 1, 12), BackgroundTransparency = 1, ZIndex = 10,
             Parent = eyeRoot,
         })
         if hazeAsset then
@@ -16598,7 +16598,7 @@ do
             })
         end
         local l1 = text({ Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(0, 0, 0, 0),
-            Text = "", TextSize = 34, TextColor3 = ACCENT2, ZIndex = 11, Parent = readout })
+            Text = "", TextSize = 36, TextColor3 = ACCENT2, ZIndex = 11, Parent = readout })
 
         -- -------------------------------------------------------------- menu
         local MENU_W = 440
