@@ -16547,39 +16547,53 @@ do
             end
         end
 
-        -- Every line of the menu. `section` is a dim heading; `key` toggles a
-        -- Config flag and shows its state; `fn` runs once; `dyn` is a target.
-        local ROWS = {
-            { section = "Command" },
+        -- The menu is pages. The root is short, like a pause menu; each line
+        -- that opens a page lists its own runes. `key` toggles a Config flag
+        -- and shows its state, `fn` runs once, `dyn` is a ranked target,
+        -- `page` opens a sub-page, `back` returns to the root.
+        local PAGES = {}
+        PAGES.root = {
             { fn = toggleBot, label = function() return Config.Enabled and TP.sleep or TP.awake end, hot = true },
-            { theme = true,        label = "Dominion" },
-            { key = "EmberMode",   label = "Ember mode",
-              on = function(v) applyEmberMode(v); announce(v and "ember mode: fps capped, quality floored" or "ember mode off") end },
+            { page = "combat",   label = "Combat" },
+            { page = "marked",   label = "The Marked" },
+            { page = "map",      label = "Map" },
+            { page = "learning", label = "Learning" },
+            { page = "items",    label = "Items" },
+            { page = "settings", label = "Settings" },
             { fn = function() setMenu(false) end, label = "Resume" },
-
-            { section = "The Marked" },
-            { dyn = 1, fn = function() brand(1) end },
-            { dyn = 2, fn = function() brand(2) end },
-            { dyn = 3, fn = function() brand(3) end },
-            { fn = function() Bot.LockMode = "AUTO"; Bot.LockedName = nil; debug("[HUD] mark released") end,
-              label = "Release the mark", onlyWhen = function() return Bot.LockMode == "MANUAL" and Bot.LockedName ~= nil end },
-
-            { section = "Runes" },
+        }
+        PAGES.combat = {
+            { back = true },
             { key = "BodyLock",    label = "Body lock-on",
               on = function(v) if not v then releaseBody() end end },
             { key = "UseSkills",   label = "Use skills" },
             { key = "UseSpecial",  label = "Use special" },
             { key = "UseBlock",    label = "Use block" },
-            { key = "PlayersOnly", label = "Players only",
-              on = function() Bot.Target = nil end },
             { key = "Sprint",      label = "Sprint",
               on = function(v) if not v then local hum = getHum(); if hum then hum.WalkSpeed = 16 end end end },
+            { fn = function()
+                  local ready, since = autoCanChange()
+                  if not ready then
+                      announce(string.format("change on cooldown - %.0fs left",
+                          Config.CharChangeCooldown - since))
+                      return
+                  end
+                  autoSwitchNow()
+              end, label = "Swap character now" },
+        }
+        PAGES.marked = {
+            { back = true },
+            { dyn = 1, fn = function() brand(1) end },
+            { dyn = 2, fn = function() brand(2) end },
+            { dyn = 3, fn = function() brand(3) end },
+            { fn = function() Bot.LockMode = "AUTO"; Bot.LockedName = nil; debug("[HUD] mark released") end,
+              label = "Release the mark", onlyWhen = function() return Bot.LockMode == "MANUAL" and Bot.LockedName ~= nil end },
+            { key = "PlayersOnly", label = "Players only",
+              on = function() Bot.Target = nil end },
+        }
+        PAGES.map = {
+            { back = true },
             { key = "UsePathfinding", label = "Pathfinding" },
-            { key = "Memory",      label = "Memory",
-              on = function(v)
-                  if v then announce("memory on -> " .. MemIO.file)
-                  else memSave(true); announce("memory off (saved)") end
-              end },
             { key = "MapMemory",   label = "Map memory",
               on = function(v)
                   if v then
@@ -16587,6 +16601,14 @@ do
                       announce(string.format("map on: %d cells, %d hot, %d rich, %d routes",
                           n, counts.HOT, counts.RICH, links))
                   else announce("map off") end
+              end },
+        }
+        PAGES.learning = {
+            { back = true },
+            { key = "Memory",      label = "Memory",
+              on = function(v)
+                  if v then announce("memory on -> " .. MemIO.file)
+                  else memSave(true); announce("memory off (saved)") end
               end },
             { key = "Sense",       label = "Sense opponent moves",
               on = function(v)
@@ -16603,17 +16625,9 @@ do
               end },
             { key = "CharSwitchEveryLife", label = "New character every life",
               on = function(v) announce(v and "new character every life" or "swap every few lives") end },
-            { fn = function()
-                  local ready, since = autoCanChange()
-                  if not ready then
-                      announce(string.format("change on cooldown - %.0fs left",
-                          Config.CharChangeCooldown - since))
-                      return
-                  end
-                  autoSwitchNow()
-              end, label = "Swap character now" },
-
-            { section = "Items" },
+        }
+        PAGES.items = {
+            { back = true },
             { fn = function() itemScan(140) end,               label = "Scan nearby" },
             { fn = itemPickup,                                 label = "Pick up nearest" },
             { fn = function() announce("held: " .. itemHeld()); senseThrowHeld(Bot.Target) end,
@@ -16622,9 +16636,13 @@ do
             { fn = itemThrowM2,                                label = "Throw (M2)" },
             { fn = itemRefire,                                 label = "Re-fire throwable" },
             { fn = itemDrop,                                   label = "Drop" },
-
-            { section = "Debug" },
-            { key = "DebugTarget", label = "Target picks" },
+        }
+        PAGES.settings = {
+            { back = true },
+            { theme = true,        label = "Dominion" },
+            { key = "EmberMode",   label = "Ember mode",
+              on = function(v) applyEmberMode(v); announce(v and "ember mode: fps capped, quality floored" or "ember mode off") end },
+            { key = "DebugTarget", label = "Debug target picks" },
             { key = "DebugDash",   label = "Log everything",
               on = function(v)
                   Config.DebugMoves = v; Config.DebugM1 = v; Config.DebugTrace = v
@@ -16651,10 +16669,13 @@ do
                   debug("[HUD] closed")
               end, label = "Quit the HUD" },
         }
+        local PAGE_TITLE = { combat = "Combat", marked = "The Marked", map = "Map",
+                             learning = "Learning", items = "Items", settings = "Settings" }
 
-        local ROW_H, SEC_H = 30, 26
-        local items = {}
-        local selected = 2
+        local ROW_H = 30
+        local pageName, ROWS, items, selected = "root", nil, {}, 1
+        local showPage -- forward
+
         local function layout()
             local y = 0
             for i, def in ipairs(ROWS) do
@@ -16665,20 +16686,18 @@ do
                 it.frame.Visible = show
                 if show then
                     it.frame.Position = UDim2.new(0, 0, 0, y)
-                    y = y + (def.section and SEC_H or ROW_H)
+                    y = y + ROW_H
                 end
             end
             list.CanvasSize = UDim2.new(0, 0, 0, y + 8)
         end
 
-        for i, def in ipairs(ROWS) do
-            if def.section then
-                local f = mk("Frame", { Size = UDim2.new(1, 0, 0, SEC_H), BackgroundTransparency = 1, ZIndex = 21, Parent = list })
-                text({ Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(0, 2, 0, 4), Text = string.upper(def.section),
-                    TextSize = 11, TextColor3 = DIM, TextXAlignment = Enum.TextXAlignment.Left,
-                    TextYAlignment = Enum.TextYAlignment.Bottom, ZIndex = 22, Parent = f })
-                items[i] = { frame = f }
-            else
+        local function buildRows()
+            for _, ch in ipairs(list:GetChildren()) do
+                if ch:IsA("GuiObject") then ch:Destroy() end
+            end
+            items = {}
+            for i, def in ipairs(ROWS) do
                 local row = mk("TextButton", {
                     Size = UDim2.new(1, 0, 0, ROW_H), BackgroundTransparency = 1, Text = "",
                     AutoButtonColor = false, ZIndex = 21, Parent = list,
@@ -16697,7 +16716,7 @@ do
                     })
                     g.Parent = hl
                 end
-                local hlStroke = stroke(hl, ACCENT2, 1, 0.7)
+                stroke(hl, ACCENT2, 1, 0.7)
                 local dia = mk("Frame", {
                     AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.new(0, 8, 0, 8),
                     Position = UDim2.new(0, 2, 0.5, 0), Rotation = 45, BackgroundColor3 = ACCENT2,
@@ -16705,15 +16724,15 @@ do
                 })
                 local lbl = text({
                     Size = UDim2.new(1, -90, 1, 0), Position = UDim2.new(0, 20, 0, 0),
-                    Text = "", TextSize = 18, TextColor3 = TXT, TextXAlignment = Enum.TextXAlignment.Left,
-                    ZIndex = 22, Parent = row,
+                    Text = "", TextSize = def.back and 15 or 19, TextColor3 = def.back and DIM or TXT,
+                    TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 22, Parent = row,
                 })
                 local val = text({
                     Size = UDim2.new(0, 70, 1, 0), Position = UDim2.new(1, -78, 0, 0),
                     Text = "", TextSize = 13, TextColor3 = DIM, TextXAlignment = Enum.TextXAlignment.Right,
                     ZIndex = 22, Parent = row,
                 })
-                items[i] = { frame = row, hl = hl, hlStroke = hlStroke, dia = dia, lbl = lbl, val = val }
+                items[i] = { frame = row, hl = hl, dia = dia, lbl = lbl, val = val }
 
                 local last = 0
                 row.MouseButton1Click:Connect(function()
@@ -16721,8 +16740,10 @@ do
                     last = os.clock()
                     selected = i
                     pcall(function()
+                        if def.back then showPage("root") return end
+                        if def.page then showPage(def.page) return end
                         if def.theme then
-                            Theme.reopenMenu = true
+                            Theme.reopenMenu = pageName
                             task.defer(function() pcall(Theme.cycle) end)
                             return
                         end
@@ -16748,15 +16769,21 @@ do
             local manual = (Bot.LockMode == "MANUAL") and Bot.LockedName ~= nil
             for i, def in ipairs(ROWS) do
                 local it = items[i]
-                if not def.section then
+                if it then
                     local isSel = (i == selected)
                     it.hl.Visible = isSel
                     it.dia.Visible = isSel
-                    it.lbl.TextColor3 = isSel and ACCENT2 or (def.hot and ACCENT or TXT)
+                    it.lbl.TextColor3 = isSel and ACCENT2 or (def.back and DIM or (def.hot and ACCENT or TXT))
                     it.lbl.TextStrokeTransparency = isSel and 0.3 or 0.55
                     local label = def.label
                     if type(label) == "function" then label = label() end
-                    if def.dyn then
+                    if def.back then
+                        label = "‹  Back"
+                        it.val.Text = ""
+                    elseif def.page then
+                        it.val.Text = "›"
+                        it.val.TextColor3 = DIM
+                    elseif def.dyn then
                         local d = (Bot.Scores or {})[def.dyn]
                         if d then
                             local nm = nameOf(d.char, d.name)
@@ -16784,8 +16811,23 @@ do
             layout()
         end
 
+        showPage = function(name)
+            if not PAGES[name] then name = "root" end
+            pageName = name
+            ROWS = PAGES[name]
+            selected = (name == "root") and 1 or 2
+            mTitle.Text = (name == "root") and TP.title or string.upper(PAGE_TITLE[name] or name)
+            mSub.Text = (name == "root") and TP.sub or TP.title
+            buildRows()
+            syncMenu()
+            list.CanvasPosition = Vector2.new(0, 0)
+        end
+        showPage("root")
+
         if Theme.reopenMenu then
+            local back = Theme.reopenMenu
             Theme.reopenMenu = nil
+            if type(back) == "string" then showPage(back) end
             setMenu(true)
         end
 
@@ -16925,7 +16967,6 @@ do
             end
         end)
 
-        syncMenu()
         pcall(refresh)
 
         -- Arrive: the eye and its words fade in from nothing.
