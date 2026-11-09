@@ -1,5 +1,5 @@
 --[[
-    JJK SOLO BOT -- the single-fighter build (JJK-SOLO-v84).
+    JJK SOLO BOT -- the single-fighter build (JJK-SOLO-v85).
     Tracks game version 1.85 (THE HALLOWEEN UPDATE): manual respawn through
     JoinService.Respawn, the Hired Hunter (Toji) kit, Register's awakening
     moves and Sky Bender's Turbulence. See REVERSE_ENGINEERING_REFERENCE.md §17.
@@ -79,7 +79,7 @@ do
         end
     end
 
-    say("loading the hub (JJK-SOLO-v84)")
+    say("loading the hub (JJK-SOLO-v85)")
 end
 
 
@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v84"
+local BUILD_TAG = "JJK-SOLO-v85"
 
 local NL = string.char(10)
 
@@ -894,6 +894,33 @@ local Config = {
     -- Game 1.85: Road Rage and House hand the caster a throwaway remote and
     -- expect a stream of aim points. AimReply answers with the target's feet.
     AimReply = true,
+
+    -- ------------------------------------------------------------ tactics
+    -- The model-based layer (v85). It replaces "cast whatever is ready and in
+    -- range" with four rules that hold for every moveset: chain off a hit
+    -- that is known to have landed, block on time-to-contact instead of on
+    -- the swing, aim where the target will be, and never throw a cast the
+    -- server is certain to refuse. Each piece has its own switch (HUD >
+    -- Tactics) and its own counters in the LIFE END line, so its effect can
+    -- be read out of a log rather than guessed.
+    TacCombo = true,            -- chain a skill the moment a hit is confirmed
+    TacComboStep = 2,           -- ... once our own string has reached this hit
+    TacComboGap = 0.25,         -- seconds between two chained casts
+    TacDiscipline = true,       -- in melee, keep skills for a confirmed hit
+    TacNeutralGap = 4.0,        -- ... but still throw one unconfirmed this often
+    TacGuard = true,            -- block on time-to-contact, before the swing shows
+    TacGuardTTC = 0.38,         -- seconds to contact at which the block goes up
+    TacGuardReach = 6.5,        -- studs at which a basic attack connects
+    TacGuardSpeed = 12,         -- closing speed (studs/s) that counts as coming at us; base walk is 16
+    TacGuardHold = 0.55,        -- how long a predicted block waits for the swing
+    TacGuardRest = 1.4,         -- seconds before a prediction may fire again
+    TacPunish = 1.1,            -- counterattack window after a blocked string
+    TacLead = true,             -- aim where the target will be, not where it is
+    TacLeadSpeed = 140,         -- studs/s assumed for a projectile of unknown speed
+    TacLeadMax = 0.7,           -- cap on the lead time, seconds
+    TacLeadDist = 16,           -- cap on the lead distance, studs
+    TacCastGate = true,         -- no casts while stunned or ragdolled
+    TacVulnWeight = 14,         -- target-choice bonus for someone already stunned
     WatchdogIdle = 10,
     ChangeSpamGuard = 2.5,
     SpawnCombatWindow = 14,
@@ -2298,6 +2325,7 @@ MEM = {
     enemyCombos = {},
     enemyOpens = {},
     enemyTrust = {},
+    tactics = {},
 
 
     map = nil,
@@ -2424,6 +2452,7 @@ function memLoad()
         if type(data.enemyCombos) == "table" then MEM.enemyCombos = data.enemyCombos end
         if type(data.enemyOpens) == "table" then MEM.enemyOpens = data.enemyOpens end
         if type(data.enemyTrust) == "table" then MEM.enemyTrust = data.enemyTrust end
+        if type(data.tactics) == "table" then MEM.tactics = data.tactics end
         if type(MEM.stats) ~= "table" then MEM.stats = { clean = 0, dirty = 0 } end
 
         if data.version == 3 then
@@ -2682,6 +2711,7 @@ function memSave(force, why)
             enemyCombos = MEM.enemyCombos,
             enemyOpens = MEM.enemyOpens,
             enemyTrust = MEM.enemyTrust,
+            tactics = MEM.tactics,
             savedAt = os.time(),
         }
         memRound(payload)
@@ -2919,6 +2949,9 @@ end
 function memLifeStart()
     Life.active = true
     Life.startAt = tick()
+    Life.tac = {}
+    Life.tacCombo, Life.tacGuard, Life.tacGuardHit, Life.tacPunish = 0, 0, 0, 0
+    Life.tacLead, Life.tacGated, Life.m1Swings, Life.m1Hits, Life.m1Dmg = 0, 0, 0, 0, 0
     Life.dmg = 0
     Life.taken = 0
     Life.moves = 0
@@ -3264,6 +3297,7 @@ function memLifeEnd()
         (st.clean or 0) - (Life.stC0 or 0), (st.shared or 0) - (Life.stS0 or 0), (st.dirty or 0) - (Life.stD0 or 0),
         Life.stunnedSelf or 0, tostring(Bot.CamProbe))
     tail = tail .. " | discounted " .. tostring(Life.discounted or "no")
+    tail = tail .. tacLifeSummary()
     debug(string.format(
         "LIFE END: %.0f dmg in %.0fs (%.1f dmg/s, %d moves, %.0f%% engaged, %d blocks, %.0fs stunned) | %s | stunned by: %s | ff: %d held (holds %d/%d, freed %d, sidesteps %d), %.0f dmg + %d stuns in ally lanes | refused %d (rolled back %d), burst %d/%d, kite %.0fs, retreat %.0fs, revs %d, shared %.0f, fps %.0f (worst %.0f ms) | avg %.0f best %.0f over %d lives | samples %d clean / %d shared / %d dirty | fair %.0f | react %d judged / %d crowd / %d retests",
         Life.dmg, dur, Life.dmg / math.max(1, dur), Life.moves,
@@ -3514,9 +3548,9 @@ function memRecordUse(moveName, t, dist)
 
         alone = alone,
         allies = near,
-
         prevMove = lastMove,
         prevMoveAt = lastMoveAt,
+        ctx = (Bot.CastCtx and (tick() - (Bot.CastCtxAt or 0)) < 0.15) and Bot.CastCtx or "neutral",
     })
 
     lastMove, lastMoveAt = moveName, tick()
@@ -3597,9 +3631,9 @@ function memResolve()
                 p.seen = dmg
             else
                 table.remove(pending, idx)
-
                 dmg = math.min(dmg, Config.MemCreditCap)
                 local hit = dmg > 0.5
+                tacBook(p.ctx or "neutral", hit, dmg)
 
 
 
@@ -6502,12 +6536,149 @@ local function getMoveVector()
 end
 
 
+-- ============================================================================
+--  TACTICS (v85) -- the model-based layer
+--
+--  The logs of v83/v84 (25 lives, 49 minutes) showed where fights were lost:
+--  46% of every life spent stunned, a 29% skill hit rate with 87% of casts
+--  punished, 3% of casts chained, half of all blocks dropped inside 0.1 s
+--  because the hit they were raised for had already landed. None of that is
+--  about one moveset. It is about four things the machine did not model:
+--
+--    kinematics   where every nearby fighter is going, and how fast
+--    advantage    whether a hit of ours is known to have landed (target Stun)
+--    contact      when somebody closing on us will be in reach
+--    lead         where a moving target will be when a cast arrives
+--
+--  Everything below reads only what every character exposes the same way
+--  (HumanoidRootPart, Info.Stun, the Ragdoll attribute, CurrentM1), so it
+--  applies to all 26 movesets and to any that are added.
+-- ============================================================================
+Tac = { track = setmetatable({}, { __mode = "k" }), m1Step = nil }
+
+-- Velocity from position deltas, smoothed over about 0.15 s. Other players'
+-- HumanoidRootParts are moved by the game's own interpolation, so their
+-- Velocity property is not a physics reading; successive positions are.
+function tacTrack(c, now)
+    local h = c and getHRP(c)
+    if not h then return nil end
+    local p = h.Position
+    local r = Tac.track[c]
+    if not r then
+        r = { pos = p, vel = Vector3.new(0, 0, 0), at = now }
+        Tac.track[c] = r
+        return r
+    end
+    local dt = now - r.at
+    if dt >= 0.03 then
+        local v = (p - r.pos) / dt
+        if v.Magnitude > 150 then v = Vector3.new(0, 0, 0) end   -- a teleport, not motion
+        r.vel = r.vel:Lerp(v, math.clamp(dt / 0.15, 0.15, 1))
+        r.pos, r.at = p, now
+    end
+    return r
+end
+
+function tacVelocity(c)
+    local r = c and Tac.track[c]
+    if r and (tick() - r.at) < 0.4 then return r.vel end
+    return Vector3.new(0, 0, 0)
+end
+
+-- Where `c` will be `lead` seconds from now, on the level, capped.
+function tacPredict(c, lead)
+    local h = c and getHRP(c)
+    if not h then return nil end
+    local v = tacVelocity(c)
+    local off = Vector3.new(v.X, 0, v.Z) * math.clamp(lead or 0, 0, Config.TacLeadMax or 0.7)
+    local cap = Config.TacLeadDist or 16
+    if off.Magnitude > cap then off = off.Unit * cap end
+    return h.Position + off
+end
+
+-- How far ahead to aim for one move: its wind-up plus, for anything that has
+-- to cross a gap, the time to cross it. Wind-ups come from the geometry table
+-- where one is known; speeds from the rule where one is known.
+function tacLeadTime(moveName, dist)
+    if not Config.TacLead or not moveName then return 0 end
+    local rule = MoveRules[moveName] or DefaultRule
+    local g = nil
+    if type(FriendlyGeom) == "table" and type(senseMoveKey) == "function" then
+        local okK, key = pcall(senseMoveKey, moveName)
+        if okK and key then g = FriendlyGeom[key] end
+    end
+    local ranged = (rule.max or 0) >= 25
+    local cast = (g and g.cast) or (ranged and 0.35 or 0.15)
+    local travel = 0
+    if ranged and (dist or 0) > 8 then
+        travel = (dist or 0) / (rule.speed or Config.TacLeadSpeed or 140)
+    end
+    return math.clamp(cast + travel, 0, Config.TacLeadMax or 0.7)
+end
+
+-- Per-context outcome of a cast: was it thrown off a confirmed hit, raw, or
+-- as a counter after a block? Kept per life and for the career.
+function tacBook(ctx, hit, dmg)
+    if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
+    for _, tbl in ipairs({ MEM.tactics, Life.tac or {} }) do
+        local r = tbl[ctx]
+        if not r then r = { n = 0, h = 0, d = 0 }; tbl[ctx] = r end
+        r.n = r.n + 1
+        if hit then r.h = r.h + 1; r.d = r.d + (dmg or 0) end
+    end
+end
+
+-- Basic attacks were never counted, yet they are most of the damage. A swing
+-- is a change of our own CurrentM1; a hit is damage on the target while the
+-- string is running and no skill is in flight.
+function tacM1Tick()
+    local me = getChar()
+    if not me then return end
+    if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
+    local r = MEM.tactics.m1
+    if not r then r = { n = 0, h = 0, d = 0 }; MEM.tactics.m1 = r end
+    local step = me:GetAttribute("CurrentM1")
+    if step ~= Tac.m1Step then
+        if type(step) == "number" and Bot.M1Active then
+            Life.m1Swings = (Life.m1Swings or 0) + 1
+            r.n = r.n + 1
+        end
+        Tac.m1Step = step
+    end
+    local out = Bot.FrameDmgOut or 0
+    if out > 0 and Bot.M1Active and (tick() - (Bot.LastSkill or 0)) > (Config.MemCreditWindow or 1.2) then
+        Life.m1Hits = (Life.m1Hits or 0) + 1
+        Life.m1Dmg = (Life.m1Dmg or 0) + out
+        r.h = r.h + 1; r.d = r.d + out
+    end
+end
+
+function tacLifeSummary()
+    local function seg(k)
+        local r = Life.tac and Life.tac[k]
+        if not r or r.n == 0 then return "0" end
+        return string.format("%d/%d hit %.0f dmg", r.h, r.n, r.d)
+    end
+    return string.format(
+        " | tactics: confirm %s; neutral %s; punish %s; combos %d; pre-guards %d (%d met a swing), counters %d; lead-aimed %d; gated %d; M1 %d swings %d hits %.0f dmg",
+        seg("confirm"), seg("neutral"), seg("punish"), Life.tacCombo or 0,
+        Life.tacGuard or 0, Life.tacGuardHit or 0, Life.tacPunish or 0,
+        Life.tacLead or 0, Life.tacGated or 0, Life.m1Swings or 0, Life.m1Hits or 0, Life.m1Dmg or 0)
+end
+
+
 local function getAimPoint()
     local h = getHRP()
     local t = Bot.Target
     if t then
         local th = getHRP(t)
-        if th then return th.Position end
+        if th then
+            -- buildExtra sets the lead for the move being cast, a moment before
+            if Config.TacLead and (Bot.LeadT or 0) > 0 and (tick() - (Bot.LeadAt or 0)) < 0.2 then
+                return tacPredict(t, Bot.LeadT) or th.Position
+            end
+            return th.Position
+        end
     end
     return h and (h.Position + h.CFrame.LookVector * 40) or Vector3.zero
 end
@@ -6515,6 +6686,7 @@ end
 local function buildExtra(moveName)
     local rule = MoveRules[moveName] or DefaultRule
     local code = rule.code or 0
+    Bot.LeadT, Bot.LeadAt = tacLeadTime(moveName, Bot.Dist2D), tick()
 
     if code == 1 then return isAirborne() end
     if code == 2 then return Bot.Target end
@@ -6696,6 +6868,17 @@ local function useSkill(serviceName)
     local moves = getAvailableMoves()
     local m = moves[serviceName]
     if not m then return false end
+    -- A cast thrown while we cannot act is refused by the server and still
+    -- costs the decision; 19% of all casts were refused. Stun and ragdoll
+    -- are certain refusals. Whether blocking is one is not known (casts
+    -- straight out of a block were accepted in the logs), so the block state
+    -- goes into the refusal line instead of into the gate.
+    if Config.TacCastGate and not (MoveRules[m.value.Name] or DefaultRule).escape then
+        if isStunned() or isRagdolled() then
+            Life.tacGated = (Life.tacGated or 0) + 1
+            return false
+        end
+    end
 
 
 
@@ -6734,9 +6917,34 @@ local function useSkill(serviceName)
     end
 
     stopM1()
+    -- Lead: anything that has to cross a gap is thrown at where the target
+    -- is heading. Moves aimed by the body are turned; moves aimed by a point
+    -- get the point from getAimPoint through buildExtra.
+    if Config.TacLead and Bot.Target then
+        local ruleL = MoveRules[moveValue.Name] or DefaultRule
+        local leadL = tacLeadTime(moveValue.Name, Bot.Dist2D)
+        if leadL > 0 and (ruleL.max or 0) >= 25 then
+            local pp, hL = tacPredict(Bot.Target, leadL), getHRP()
+            local thL = getHRP(Bot.Target)
+            if pp and hL and thL and (pp - thL.Position).Magnitude > 1.5 then
+                local flat = Vector3.new(pp.X, hL.Position.Y, pp.Z)
+                if (flat - hL.Position).Magnitude > 2 then
+                    pcall(function() hL.CFrame = CFrame.lookAt(hL.Position, flat) end)
+                    Bot.FaceLeadUntil = tick() + 0.35
+                    Life.tacLead = (Life.tacLead or 0) + 1
+                end
+            end
+        end
+    end
+    local castInfo = string.format("m1=%s dash=%s blk=%s/%.2f tstun=%s trag=%s d=%.0f ctx=%s",
+        tostring(getChar() and getChar():GetAttribute("CurrentM1")),
+        tostring(getInfo() ~= nil and getInfo():FindFirstChild("InDash") ~= nil),
+        tostring(Bot.BlockActive and true or false), math.min(tick() - (Bot.BlockReleasedAt or 0), 9.99),
+        tostring(Bot.Target ~= nil and isStunned(Bot.Target)),
+        tostring(Bot.Target ~= nil and isRagdolled(Bot.Target)),
+        Bot.Dist2D or -1,
+        tostring((Bot.CastCtx and (tick() - (Bot.CastCtxAt or 0)) < 0.15) and Bot.CastCtx or "neutral"))
     local extra = buildExtra(moveValue.Name)
-
-
     fireRemote(serviceName, "Activated", moveValue, extra)
 
 
@@ -6799,7 +7007,7 @@ local function useSkill(serviceName)
 
             if Bot.UsedSkillsThisLife then Bot.UsedSkillsThisLife[serviceName] = nil end
             Bot.UsedSkillsThisFight[serviceName] = nil
-            debugEvery("refused:" .. serviceName, 5, "refused: " .. moveValue.Name .. " (no stamp moved)")
+            debugEvery("refused:" .. serviceName, 5, "refused: " .. moveValue.Name .. " (no stamp moved | at cast: " .. castInfo .. ")")
         end
     end)
     debug("Used: " .. moveValue.Name .. " [" .. serviceName .. "]")
@@ -7187,8 +7395,22 @@ end
 
 function releaseBlock()
     if not Bot.BlockActive then return end
-
-
+    do
+        local nowR = tick()
+        local held = nowR - (Bot.BlockSince or nowR)
+        local swings = Bot.BlockSwings or 0
+        local predicted = Bot.PreGuardAt ~= nil and Bot.BlockSince ~= nil and Bot.PreGuardAt >= Bot.BlockSince - 0.1
+        if predicted and swings > 0 then Life.tacGuardHit = (Life.tacGuardHit or 0) + 1 end
+        -- A string that was blocked through to its end leaves its owner in
+        -- recovery. That is the surest opening there is: take it.
+        if (Config.TacPunish or 0) > 0 and swings > 0 and held >= 0.25
+           and not isStunned() and not isRagdolled() then
+            Bot.PunishUntil = math.max(Bot.PunishUntil or 0, nowR + Config.TacPunish)
+            Bot.PunishFromBlock = nowR
+            Life.tacPunish = (Life.tacPunish or 0) + 1
+        end
+        if predicted then Bot.PreGuardAt = nil end
+    end
     if Bot.BlockHeld then
         debugEvery("defendheld", 0.2, string.format("DEFEND held %.1f s, swings %d",
             tick() - (Bot.BlockSince or tick()), Bot.BlockSwings or 0))
@@ -9715,6 +9937,7 @@ local PathfindingService = game:GetService("PathfindingService")
 
 function faceTarget(t, force)
     if not Config.SmoothFacing and not force then return end
+    if tick() < (Bot.FaceLeadUntil or 0) then return end
     local h = getHRP()
     local th = getHRP(t)
     if not h or not th then return end
@@ -10785,10 +11008,8 @@ local function bodyLockStep()
 
 
     if Bot.FollowWalk then releaseBody() return end
-
-
     if isInSkill() or isRagdolled() or senseGrabbed() then return end
-
+    if tick() < (Bot.FaceLeadUntil or 0) then return end
     bodyLocked = true
     Bot.BodyLocked = true
     if hum.AutoRotate then hum.AutoRotate = false end
@@ -11191,7 +11412,128 @@ function useBestMove(t, intent)
     return false
 end
 
+-- ------------------------------------------------------------------ advantage
+-- A target that is stunned on its feet cannot block, cannot step away and
+-- cannot hit back: whatever is thrown now lands. That is the one moment a
+-- skill is safe, and it is when a player chains. Ragdolled does not count:
+-- the string is over and most moves pass through a body on the ground.
+function tacConfirmed(t)
+    if not Config.TacCombo or not t then Bot.ConfirmSince = nil return false end
+    if not isStunned(t) or isRagdolled(t) or hasIFrames(t) then
+        Bot.ConfirmSince = nil
+        return false
+    end
+    Bot.ConfirmSince = Bot.ConfirmSince or tick()
+    return true
+end
 
+-- Pick what to chain. Quick close moves first (they cannot whiff on a target
+-- that is held in place), control next (it keeps the string alive), the
+-- heavy hitter when it would finish. The learned chain and damage weights
+-- then sort within that, so every moveset finds its own routes.
+function tacComboExtend(t, d2d)
+    local now = tick()
+    if now - (Bot.LastSkill or 0) < (Config.TacComboGap or 0.25) then return false end
+    if inOwnMove() then return false end
+    local me = getChar()
+    local step = me and me:GetAttribute("CurrentM1")
+    local held = now - (Bot.ConfirmSince or now)
+    -- let our own string get going first; a stun somebody else caused is
+    -- taken after half a second regardless
+    if type(step) == "number" and step < (Config.TacComboStep or 2) and held < 0.5 then return false end
+    local usable = getUsableMoves()
+    local maxDpt = memMaxDpt(usable, t)
+    local maxChain = memMaxChain(usable)
+    local dy = math.abs(Bot.DistY or 0)
+    local thp = getHPPct(t)
+    local best, bestScore = nil, 0
+    for _, e in ipairs(usable) do
+        local r = e.rule
+        if not (r.selfBuff or r.summon or r.escape or r.trap)
+           and isSkillReady(e.service) and dy <= verticalTolerance(r)
+           and not memIsHardDud(e.name)
+           and not (Bot.Refused and (now - (Bot.Refused[e.service] or 0)) < (Config.CastRefusalHold or 2.5)) then
+            local lo, hi = moveRange(e)
+            if d2d >= lo and d2d <= hi then
+                local base = (hi <= 16) and 10 or ((hi <= 30) and 7 or 4)
+                if r.cc then base = base + 3 end
+                if r.heavy then base = base + ((thp < 45) and 4 or 1) end
+                local score = base * memMoveWeight(e.name, t, maxDpt) * memChainWeight(e.name, maxChain)
+                if score > bestScore then best, bestScore = e, score end
+            end
+        end
+    end
+    if not best then return false end
+    Bot.CastCtx, Bot.CastCtxAt = "confirm", now
+    if useSkill(best.service) then
+        Life.tacCombo = (Life.tacCombo or 0) + 1
+        debugEvery("combo", 1.5, string.format("combo: %s off a confirmed hit (M1 step %s, stun held %.2f s, %.0f studs)",
+            best.name, tostring(step), held, d2d))
+        return true
+    end
+    return false
+end
+
+-- ------------------------------------------------------------------ contact
+-- Block before the swing. The old trigger was the enemy's swing animation,
+-- seen at a median 7 studs: by then the hit was a tenth of a second away and
+-- half of all blocks were broken inside 0.1 s. This one fires on arithmetic:
+-- somebody facing us, closing at running speed or better, who will be in
+-- reach within TacGuardTTC seconds. The block goes up and waits for the
+-- swing; if none comes it drops, and it cannot fire again for a moment.
+function tacIncoming()
+    if not Config.TacGuard or not Config.UseBlock then return false end
+    local now = tick()
+    -- inside the window of a prediction already made: keep it standing. The
+    -- swing sensor forgets anyone beyond 15 studs, and a dash starts further.
+    if now < (Bot.PreGuardUntil or 0) then
+        local vs = Bot.PreGuardVs
+        if vs and vs.Parent and isAlive(vs) and not isStunned(vs) then
+            Bot.DefendVs = vs
+            Bot.DefendVsUntil = math.max(Bot.DefendVsUntil or 0, Bot.PreGuardUntil)
+            return true
+        end
+        Bot.PreGuardUntil = 0
+        return false
+    end
+    if now < (Bot.PreGuardRestUntil or 0) or Bot.BlockActive then return false end
+    if isInSkill() then return false end
+    local h = getHRP()
+    if not h then return false end
+    local me, tgt, myPos = getChar(), Bot.Target, h.Position
+    local best, bestTtc, bestClosing, bestDist = nil, Config.TacGuardTTC or 0.38, 0, 0
+    for _, c in ipairs(Bot.HitCandidates or {}) do
+        if c ~= me and c.Parent and isAlive(c) and not isAllyName(c.Name) then
+            local ch, r = getHRP(c), Tac.track[c]
+            if ch and r and (now - r.at) < 0.3 then
+                local to = myPos - ch.Position
+                local flat = Vector3.new(to.X, 0, to.Z)
+                local dist = flat.Magnitude
+                if dist > 0.5 and dist <= 24 and math.abs(to.Y) <= 8
+                   and not isStunned(c) and not isRagdolled(c) then
+                    local dir = flat / dist
+                    local closing = Vector3.new(r.vel.X, 0, r.vel.Z):Dot(dir)
+                    if closing >= (Config.TacGuardSpeed or 12) and dir:Dot(ch.CFrame.LookVector) > 0.6 then
+                        local ttc = math.max(dist - (Config.TacGuardReach or 6.5), 0) / closing
+                        if ttc <= bestTtc then best, bestTtc, bestClosing, bestDist = c, ttc, closing, dist end
+                    end
+                end
+            end
+        end
+    end
+    if not best then return false end
+    -- our own target held in a stun in front of us is not a threat
+    if best == tgt and isStunned(tgt) then return false end
+    local hold = Config.TacGuardHold or 0.55
+    Bot.DefendVs, Bot.DefendVsSince, Bot.DefendVsUntil = best, now, now + hold
+    Bot.DefendVsSwinging = false
+    Bot.PreGuardUntil, Bot.PreGuardAt, Bot.PreGuardVs = now + hold, now, best
+    Bot.PreGuardRestUntil = now + hold + (Config.TacGuardRest or 1.4)
+    Life.tacGuard = (Life.tacGuard or 0) + 1
+    debugEvery("preguard", 0.8, string.format("guard: %s closing at %.0f studs/s from %.0f studs, contact in %.2f s - block up%s",
+        best.Name, bestClosing, bestDist, bestTtc, best ~= tgt and " (not our target)" or ""))
+    return true
+end
 
 function trySpecial(t, d2d)
     if not Config.UseSpecial then return false end
@@ -11792,9 +12134,8 @@ function scoreCandidate(c, myPos)
         end
     end
     terms.crowd = math.clamp(friends / 3, 0, 1)
-
-
     terms.matchup = memMatchupPenalty(c)
+    terms.vuln = ((isStunned(c) or isRagdolled(c)) and d2d <= 30) and 1 or 0
 
     local score =
           W.threat * terms.threat
@@ -11804,6 +12145,7 @@ function scoreCandidate(c, myPos)
         + W.engage * terms.engage
         - W.crowd  * terms.crowd
         - (W.matchup or 0) * terms.matchup
+        + (Config.TacVulnWeight or 0) * terms.vuln
 
     if c == Bot.Target then
         score = score + W.commit
@@ -13124,24 +13466,11 @@ local function updateState()
                 tostring(who and who.Name or "?"), Bot.Dist2D or 0))
         end
     elseif (canGuard or keepVs) and senseSwingerNear(Config.BlockMeleeRange or 12) then
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         if canGuard then Bot.DefendKeepVs = Bot.DefendVs end
+        Bot.State = "DEFEND"
+        stopM1()
+    elseif canGuard and tacIncoming() then
+        Bot.DefendKeepVs = Bot.DefendVs
         Bot.State = "DEFEND"
         stopM1()
     elseif tick() < (Bot.PunishUntil or 0) then
@@ -13610,25 +13939,11 @@ local function executeState()
     end
 
     if Bot.State == "PUNISH" then
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         faceTarget(t, true)
         stopWalking()
+        Bot.CastCtx, Bot.CastCtxAt = "punish", now
+        if tacConfirmed(t) and tacComboExtend(t, d2d) then return end
+        Bot.CastCtx, Bot.CastCtxAt = "punish", now
 
 
         if useBestMove(t, "trap") then return end
@@ -13982,24 +14297,19 @@ local function executeState()
 
 
         local recoverHold = not swinging and Bot.RecoverMode == "hold" and now < (Bot.RecoverUntil or 0)
+        Bot.TacPre = not swinging and now < (Bot.PreGuardUntil or 0)
         if swinging then
             Bot.LastSwingAt = now
             Bot.LastSwinger = dv
             doBlock(Config.BlockHold or 0.9)
-        elseif recoverHold then
+        elseif recoverHold or Bot.TacPre then
             doBlock(Config.BlockHold or 0.9)
         end
         if Bot.BlockActive and Bot.BlockHeld then
-            if isTargetAttacking(dv) then
-
-
-
-
-
+            if isTargetAttacking(dv) and not Bot.TacPre then
                 Bot.BlockHeld = false
                 Bot.BlockUntil = math.min(Bot.BlockUntil or now, now + Config.BlockDuration)
-            elseif now - (Bot.LastSwingAt or 0) > (Config.BlockStringGap or 0.5) and not recoverHold then
-
+            elseif now - (Bot.LastSwingAt or 0) > (Config.BlockStringGap or 0.5) and not recoverHold and not Bot.TacPre then
                 releaseBlock()
             else
 
@@ -14277,25 +14587,19 @@ local function executeState()
 
         local inMelee = d2d <= Config.M1Range + 2
         local skillGap = inMelee and Config.SkillGapClose or Config.SkillDelay
-
-
-
-
-
-
-
-
-
-
-        trySpecial(t, d2d)
-
-
-
-
-
-        local canSkill = (now - Bot.LastSkill) >= skillGap
-        if canSkill then
-            tryUseSkill(t, d)
+        Bot.TacConf = tacConfirmed(t)
+        if not (Bot.TacConf and tacComboExtend(t, d2d)) then
+            trySpecial(t, d2d)
+            -- no hit to chain from: in reach of their answer, a raw cast is
+            -- the thing that got punished 87% of the time. Keep the string
+            -- going and wait, but not for ever.
+            if inMelee and Config.TacDiscipline and not Bot.TacConf then
+                skillGap = math.max(skillGap, Config.TacNeutralGap or 4.0)
+            end
+            local canSkill = (now - Bot.LastSkill) >= skillGap
+            if canSkill then
+                tryUseSkill(t, d)
+            end
         end
 
 
@@ -14926,7 +15230,9 @@ local function startBot()
             local myHRP = getHRP()
             local myPos = myHRP and myHRP.Position
             if myPos then Bot.LastPos = myPos end
-
+            -- 1.85 moves a dead body far out of the arena before Died is
+            -- handled, so the death map needs the last place we stood alive
+            if myPos and isAlive() then Bot.LastAlivePos = myPos end
             if myPos then
                 local hostiles, nearest = 0, nil
                 local hostilesNear = 0
@@ -14955,6 +15261,7 @@ local function startBot()
                             local pd = (ph.Position - myPos).Magnitude
                             if pd <= Config.ThreatRange then
                                 table.insert(hitters, pl.Character)
+                                tacTrack(pl.Character, tick())
                             end
                         end
 
@@ -14993,6 +15300,8 @@ local function startBot()
 
 
             memTrackDamage(Bot.Target, Bot.Dist2D)
+            if Bot.Target then tacTrack(Bot.Target, tick()) end
+            tacM1Tick()
             if (Bot.FrameDmgIn or 0) > 0 then
                 Bot.LastHurtAt = tick()
                 senseNoteIncoming(Bot.FrameDmgIn)
@@ -17257,6 +17566,7 @@ do
         PAGES.root = {
             { fn = toggleBot, label = function() return Config.Enabled and TP.sleep or TP.awake end, hot = true },
             { page = "combat",   label = "Combat" },
+            { page = "tactics",  label = "Tactics" },
             { page = "marked",   label = "The Marked" },
             { page = "map",      label = "Map" },
             { page = "learning", label = "Learning" },
@@ -17284,6 +17594,20 @@ do
                   end
                   autoSwitchNow()
               end, label = "Swap character now" },
+        }
+        -- The model-based rules (v85). Each is independent, and each has its
+        -- own counters in the LIFE END line of the log.
+        PAGES.tactics = {
+            { back = true },
+            { key = "TacCombo",      label = "Chain off a landed hit",
+              on = function(v) announce(v and "tactics: skills chain the moment a hit is confirmed" or "tactics: chaining off") end },
+            { key = "TacDiscipline", label = "Hold skills for a hit",
+              on = function(v) announce(v and "tactics: in melee, skills wait for a confirmed hit" or "tactics: skills thrown freely in melee") end },
+            { key = "TacGuard",      label = "Block before the swing",
+              on = function(v) announce(v and "tactics: blocking on time-to-contact" or "tactics: blocking only on a seen swing") end },
+            { key = "TacLead",       label = "Lead the target",
+              on = function(v) announce(v and "tactics: aiming where the target will be" or "tactics: aiming at the target's current position") end },
+            { key = "TacCastGate",   label = "No casts while stunned" },
         }
         PAGES.marked = {
             { back = true },
@@ -17379,7 +17703,7 @@ do
                   debug("[HUD] closed")
               end, label = "Quit the HUD" },
         }
-        local PAGE_TITLE = { combat = "Combat", marked = "The Marked", map = "Map",
+        local PAGE_TITLE = { combat = "Combat", tactics = "Tactics", marked = "The Marked", map = "Map",
                              learning = "Learning", items = "Items", settings = "Settings" }
 
         local ROW_H = 52
@@ -17664,6 +17988,11 @@ do
                 l1.TextColor3 = DIM
             else
                 local word = stunned and "Stunned" or (STATE_WORD[st] or st)
+                if not stunned then
+                    if st == "ATTACK" and Bot.TacConf then word = "Chaining"
+                    elseif st == "DEFEND" and tick() < (Bot.PreGuardUntil or 0) then word = "Bracing"
+                    elseif st == "PUNISH" and Bot.PunishFromBlock and (tick() - Bot.PunishFromBlock) < 1.5 then word = "Countering" end
+                end
                 if hurt then word = word .. "  ·  bleeding" end
                 l1.Text = word
                 l1.TextColor3 = hurt and BAD or ACCENT2
@@ -17724,7 +18053,7 @@ do
     end
 end
 
-announce("The Eye HUD on v84 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v85 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 
@@ -17769,7 +18098,7 @@ local function onDeath(char, source)
     end
 
     local h = char and char:FindFirstChild("HumanoidRootPart")
-    local pos = (h and h.Position) or Bot.LastPos
+    local pos = Bot.LastAlivePos or (h and h.Position) or Bot.LastPos
     if pos then
         mapNoteDeath(pos)
     else
