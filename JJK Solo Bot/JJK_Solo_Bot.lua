@@ -1,5 +1,5 @@
 --[[
-    JJK SOLO BOT -- the single-fighter build (JJK-SOLO-v85).
+    JJK SOLO BOT -- the single-fighter build (JJK-SOLO-v86).
     Tracks game version 1.85 (THE HALLOWEEN UPDATE): manual respawn through
     JoinService.Respawn, the Hired Hunter (Toji) kit, Register's awakening
     moves and Sky Bender's Turbulence. See REVERSE_ENGINEERING_REFERENCE.md §17.
@@ -79,7 +79,7 @@ do
         end
     end
 
-    say("loading the hub (JJK-SOLO-v85)")
+    say("loading the hub (JJK-SOLO-v86)")
 end
 
 
@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v85"
+local BUILD_TAG = "JJK-SOLO-v86"
 
 local NL = string.char(10)
 
@@ -921,6 +921,21 @@ local Config = {
     TacLeadDist = 16,           -- cap on the lead distance, studs
     TacCastGate = true,         -- no casts while stunned or ragdolled
     TacVulnWeight = 14,         -- target-choice bonus for someone already stunned
+    TacComboDelay = 0.14,       -- let a basic attack finish landing before chaining off it
+    -- Movement (v86). The v85 log had the fighter moving backwards relative
+    -- to its own facing for 60% of APPROACH_FAR, with no sprint, because the
+    -- body was held on the target while the feet followed a path.
+    TacFaceTravel = true,       -- face the way we are running until in fighting distance
+    TacFaceDist = 14,           -- studs from the target at which the body squares up to it
+    TacFaceFlee = 10,           -- when retreating, turn and run once the pursuer is this far
+    TacFaceLerp = 0.28,         -- how fast the body turns onto the travel direction
+    TacMoveDamp = true,         -- a goal that reverses our direction must persist before it is obeyed
+    TacMoveDampFor = 0.2,       -- ... for this many seconds
+    -- 64% of the blocks in the v85 log lasted 0.1 s or less and 78% never met
+    -- a swing: the decision that raised them was gone on the next frame. A
+    -- block that short absorbs nothing and still interrupts the attack.
+    TacBlockKeep = true,        -- once raised, a block stays up at least TacBlockMin
+    TacBlockMin = 0.3,
     WatchdogIdle = 10,
     ChangeSpamGuard = 2.5,
     SpawnCombatWindow = 14,
@@ -2952,6 +2967,9 @@ function memLifeStart()
     Life.tac = {}
     Life.tacCombo, Life.tacGuard, Life.tacGuardHit, Life.tacPunish = 0, 0, 0, 0
     Life.tacLead, Life.tacGated, Life.m1Swings, Life.m1Hits, Life.m1Dmg = 0, 0, 0, 0, 0
+    Life.moveN, Life.moveBack, Life.tacDamped, Life.flipBy = 0, 0, 0, {}
+    Life.tacBlockKept = 0
+    Bot.RefusedN = {}
     Life.dmg = 0
     Life.taken = 0
     Life.moves = 0
@@ -5042,9 +5060,44 @@ cellEnteredAt = nil
 
 
 
+-- The arena was "within MapArenaRadius of the world origin". The 1.85 city
+-- is not built round the origin: fights happen 1100-1700 studs from it, so
+-- every position counted as outside. The bot believed it was inside a domain
+-- for whole lives ("domain: entered ... 16 hostiles inside"), mapObserve
+-- returned before recording anything, and no death, cell or route was
+-- learned from the day the map changed. The arena is now centred on the
+-- map's own spawn points, wherever a map puts them; a domain is still far
+-- outside that.
+ArenaRef = { at = 0, centre = nil }
+function mapArenaCentre()
+    local now = tick()
+    if ArenaRef.centre ~= nil and (now - ArenaRef.at) < 30 then return ArenaRef.centre or nil end
+    ArenaRef.at = now
+    local sx, sz, n = 0, 0, 0
+    local sp = Workspace:FindFirstChild("Spawns")
+    if sp then
+        for _, d in ipairs(sp:GetDescendants()) do
+            if d:IsA("BasePart") then
+                sx, sz, n = sx + d.Position.X, sz + d.Position.Z, n + 1
+            end
+        end
+    end
+    local was = ArenaRef.centre
+    ArenaRef.centre = (n > 0) and Vector3.new(sx / n, 0, sz / n) or false
+    if ArenaRef.centre and not was then
+        debug(string.format("arena: centred on %d spawn points at (%.0f, %.0f), radius %d",
+            n, ArenaRef.centre.X, ArenaRef.centre.Z, Config.MapArenaRadius or 0))
+    end
+    return ArenaRef.centre or nil
+end
+function mapArenaDist(pos)
+    local c = mapArenaCentre()
+    local dx, dz = pos.X - (c and c.X or 0), pos.Z - (c and c.Z or 0)
+    return math.sqrt(dx * dx + dz * dz)
+end
 function mapOutOfArena(pos)
     local r = Config.MapArenaRadius or 0
-    return r > 0 and pos ~= nil and (pos.X * pos.X + pos.Z * pos.Z) > r * r
+    return r > 0 and pos ~= nil and mapArenaDist(pos) > r
 end
 
 
@@ -5606,8 +5659,8 @@ function mapNoteDeath(pos)
     if Bot.InDomain then mapDomainNote(false) end
     if mapOutOfArena(pos) then
         if Escape.active then mapEscapeEnd(pos, false) end
-        debug(string.format("died out of the arena (cell %s, %.0f studs out): not booked",
-            tostring(mapKey(pos)), math.sqrt(pos.X * pos.X + pos.Z * pos.Z)))
+        debug(string.format("died out of the arena (cell %s, %.0f studs from its centre): not booked",
+            tostring(mapKey(pos)), mapArenaDist(pos)))
         return
     end
     local key, gx, gy, gz = mapKey(pos)
@@ -6644,6 +6697,7 @@ function tacM1Tick()
             r.n = r.n + 1
         end
         Tac.m1Step = step
+        Tac.m1StepAt = tick()
     end
     local out = Bot.FrameDmgOut or 0
     if out > 0 and Bot.M1Active and (tick() - (Bot.LastSkill or 0)) > (Config.MemCreditWindow or 1.2) then
@@ -6659,11 +6713,73 @@ function tacLifeSummary()
         if not r or r.n == 0 then return "0" end
         return string.format("%d/%d hit %.0f dmg", r.h, r.n, r.d)
     end
+    local topFlip, topN = "-", 0
+    for k, v in pairs(Life.flipBy or {}) do
+        if v > topN then topFlip, topN = k, v end
+    end
     return string.format(
-        " | tactics: confirm %s; neutral %s; punish %s; combos %d; pre-guards %d (%d met a swing), counters %d; lead-aimed %d; gated %d; M1 %d swings %d hits %.0f dmg",
+        " | tactics: confirm %s; neutral %s; punish %s; combos %d; pre-guards %d (%d met a swing), counters %d; lead-aimed %d; gated %d; M1 %d swings %d hits %.0f dmg"
+        .. " | movement: backward %.0f%% of travel; %d reversals held off (mostly %s x%d); blocks kept up %d",
         seg("confirm"), seg("neutral"), seg("punish"), Life.tacCombo or 0,
         Life.tacGuard or 0, Life.tacGuardHit or 0, Life.tacPunish or 0,
-        Life.tacLead or 0, Life.tacGated or 0, Life.m1Swings or 0, Life.m1Hits or 0, Life.m1Dmg or 0)
+        Life.tacLead or 0, Life.tacGated or 0, Life.m1Swings or 0, Life.m1Hits or 0, Life.m1Dmg or 0,
+        100 * (Life.moveBack or 0) / math.max(1, Life.moveN or 0), Life.tacDamped or 0, topFlip, topN,
+        Life.tacBlockKept or 0)
+end
+
+-- ------------------------------------------------------------------ movement
+-- Which way the body should face while covering ground: the way the feet
+-- are going. Two things used to prevent that. Inside 50 studs the body lock
+-- held the body on the target while the feet followed a path, so any route
+-- that was not a straight line was walked sideways or backwards. Beyond
+-- that, the game's lock-on leaves rotation camera-relative, and this bot's
+-- camera sits behind the body's own facing, so the facing fed itself and
+-- never turned. Either way: no sprint (sprint needs the feet within about
+-- 57 degrees of the facing) and a slow, crab-wise approach.
+-- Returns a flat unit vector, or nil when the body belongs on the target.
+function tacTravelDir()
+    if not Config.TacFaceTravel or not Bot.WalkActive then return nil end
+    local st = Bot.State
+    local d = Bot.Dist2D or 999
+    local travelling = st == "APPROACH_FAR" or st == "CHASE" or st == "IDLE" or st == "LEVEL"
+        or (st == "APPROACH" and d > (Config.TacFaceDist or 14))
+        or (st == "RETREAT" and d > (Config.TacFaceFlee or 10))
+    if not travelling then return nil end
+    local dir = Bot.MoveDirPrev
+    if not dir or (tick() - (Bot.MoveDirAt or 0)) > 0.25 then return nil end
+    return dir
+end
+
+-- Reversal damping. Two parts of the machine sometimes ask for opposite
+-- directions on alternate frames (the logs show up to nine reversals a
+-- second, 302 in one life) and the fighter shuffles on the spot. A new
+-- direction that points back the way we were just going is obeyed only once
+-- it has been asked for without a break for TacMoveDampFor seconds. A change
+-- of state resets it, and dodging is never delayed.
+function tacDampDir(dir, now)
+    if not Config.TacMoveDamp then return dir end
+    local st = Bot.State
+    local held = Bot.MoveHeldDir
+    local out = dir
+    if held and st == Bot.MoveHeldState and st ~= "REACT" and st ~= "CCED"
+       and (now - (Bot.MoveHeldAt or 0)) < 0.5 and dir:Dot(held) < -0.3 then
+        if not Bot.MoveFlipSince then
+            Bot.MoveFlipSince = now
+            local key = tostring(st) .. "/" .. tostring(Bot.NavMode)
+            if type(Life.flipBy) ~= "table" then Life.flipBy = {} end
+            Life.flipBy[key] = (Life.flipBy[key] or 0) + 1
+        end
+        if now - Bot.MoveFlipSince < (Config.TacMoveDampFor or 0.2) then
+            out = held
+            Life.tacDamped = (Life.tacDamped or 0) + 1
+        else
+            Bot.MoveFlipSince = nil
+        end
+    else
+        Bot.MoveFlipSince = nil
+    end
+    Bot.MoveHeldDir, Bot.MoveHeldAt, Bot.MoveHeldState = out, now, st
+    return out
 end
 
 
@@ -6834,7 +6950,8 @@ end
 
 
 local function tickM1(dt)
-    if not Bot.M1Active or not Config.Enabled then
+    if not Bot.M1Active or not Config.Enabled
+       or (Config.TacBlockKeep and Bot.BlockActive and Bot.BlockHeld) then
         m1Accum = 0
         return
     end
@@ -6878,6 +6995,11 @@ local function useSkill(serviceName)
             Life.tacGated = (Life.tacGated or 0) + 1
             return false
         end
+    end
+    if Config.TacBlockKeep and Bot.BlockActive and Bot.BlockHeld
+       and (tick() - (Bot.BlockSince or 0)) < (Config.TacBlockMin or 0.3)
+       and not (MoveRules[m.value.Name] or DefaultRule).escape then
+        return false
     end
 
 
@@ -6992,7 +7114,13 @@ local function useSkill(serviceName)
                 if Bot.NilStamp[serviceName] > 3 then return end
             end
             Bot.Refused = Bot.Refused or {}
-            Bot.Refused[serviceName] = tick()
+            Bot.RefusedN = Bot.RefusedN or {}
+            local nRef = (Bot.RefusedN[serviceName] or 0) + 1
+            Bot.RefusedN[serviceName] = nRef
+            -- A move refused again and again is waiting on something we cannot
+            -- see (a summon already out, a resource, a stance). Each refusal
+            -- in a row doubles how long it is left alone, up to eight times.
+            Bot.Refused[serviceName] = tick() + (math.min(2 ^ (nRef - 1), 8) - 1) * (Config.CastRefusalHold or 2.5)
             Life.refused = (Life.refused or 0) + 1
 
 
@@ -7008,6 +7136,8 @@ local function useSkill(serviceName)
             if Bot.UsedSkillsThisLife then Bot.UsedSkillsThisLife[serviceName] = nil end
             Bot.UsedSkillsThisFight[serviceName] = nil
             debugEvery("refused:" .. serviceName, 5, "refused: " .. moveValue.Name .. " (no stamp moved | at cast: " .. castInfo .. ")")
+        elseif Bot.RefusedN then
+            Bot.RefusedN[serviceName] = 0
         end
     end)
     debug("Used: " .. moveValue.Name .. " [" .. serviceName .. "]")
@@ -7417,6 +7547,7 @@ function releaseBlock()
     end
     Bot.BlockSwings, Bot.SwingName = 0, nil
     Bot.BlockActive = false
+    Bot.BlockKeptSaid = false
     Bot.BlockHeld = false
     Bot.BlockUntil = 0
     Bot.BlockReleasedAt = tick()
@@ -10107,10 +10238,9 @@ function moveStep()
         end
         return
     end
-    local dir = to.Unit
+    local dir = tacDampDir(to.Unit, Bot.MoveStepAt)
     hum:Move(dir, false)
     Bot.WalkActive = true
-
     local prevDir, nowM = Bot.MoveDirPrev, Bot.MoveStepAt
     if prevDir and nowM - (Bot.MoveDirAt or 0) < 0.5 and dir:Dot(prevDir) < -0.5
        and Bot.State ~= "CCED" and Bot.State ~= "DEAD" then
@@ -10990,6 +11120,22 @@ local function bodyLockStep()
     if not Config.Enabled or not Config.BodyLock then releaseBody() return end
     local h, hum = getHRP(), getHum()
     if not (h and hum) then bodyLocked = false return end
+    do
+        -- covering ground: the body goes where the feet go (see tacTravelDir)
+        local trav = tacTravelDir()
+        if trav then
+            if isInSkill() or isRagdolled() or senseGrabbed() then return end
+            if tick() < (Bot.FaceLeadUntil or 0) then return end
+            bodyLocked = true
+            Bot.BodyLocked = true
+            if hum.AutoRotate then hum.AutoRotate = false end
+            if h.CFrame.LookVector:Dot(trav) < math.cos(math.rad(Config.RotDeadbandDeg or 4)) then
+                local pos0 = h.Position
+                h.CFrame = h.CFrame:Lerp(CFrame.lookAt(pos0, pos0 + trav), Config.TacFaceLerp or 0.28)
+            end
+            return
+        end
+    end
 
 
 
@@ -11119,6 +11265,10 @@ function applySprint()
         if face.Magnitude > 0.05 then coneDot = face.Unit:Dot(md.Unit) end
     end
     local inCone = coneDot >= (Config.SprintCone or 0.55)
+    if moving and SPRINT_STATES[st] then
+        Life.moveN = (Life.moveN or 0) + 1
+        if coneDot < -0.3 then Life.moveBack = (Life.moveBack or 0) + 1 end
+    end
 
     local want = moving and inCone
                  and (SPRINT_STATES[st] or Bot.TeamFollow ~= nil or Bot.TeamRunTo ~= nil)
@@ -11441,6 +11591,9 @@ function tacComboExtend(t, d2d)
     -- let our own string get going first; a stun somebody else caused is
     -- taken after half a second regardless
     if type(step) == "number" and step < (Config.TacComboStep or 2) and held < 0.5 then return false end
+    -- a third of the chained casts were refused, most of them thrown the
+    -- instant our second hit began: let that swing finish landing first
+    if type(step) == "number" and (now - (Tac.m1StepAt or 0)) < (Config.TacComboDelay or 0.14) then return false end
     local usable = getUsableMoves()
     local maxDpt = memMaxDpt(usable, t)
     local maxChain = memMaxChain(usable)
@@ -13574,13 +13727,22 @@ local function executeState()
     if Bot.BlockActive and Bot.BlockHeld then
         local mismatch = Bot.BlockTarget ~= guardTarget()
         if mismatch or (Bot.State ~= "DEFEND" and not (Bot.State == "REACT" and Bot.Reacting == "block")) then
-
-
-
-
             local swapped = mismatch and Bot.State == "DEFEND"
-            releaseBlock()
-            if swapped then Bot.BlockReleasedAt = 0 end
+            -- whatever raised it expected a hit within a fraction of a second:
+            -- stay behind it that long. A dodge, a grab or a swap to another
+            -- attacker is not made to wait.
+            if Config.TacBlockKeep and not swapped
+               and (tick() - (Bot.BlockSince or 0)) < (Config.TacBlockMin or 0.3)
+               and Bot.State ~= "REACT" and Bot.State ~= "CCED" and Bot.State ~= "DEAD" then
+                if not Bot.BlockKeptSaid then
+                    Bot.BlockKeptSaid = true
+                    Life.tacBlockKept = (Life.tacBlockKept or 0) + 1
+                end
+            else
+                Bot.BlockKeptSaid = false
+                releaseBlock()
+                if swapped then Bot.BlockReleasedAt = 0 end
+            end
         end
     end
 
@@ -17608,6 +17770,12 @@ do
             { key = "TacLead",       label = "Lead the target",
               on = function(v) announce(v and "tactics: aiming where the target will be" or "tactics: aiming at the target's current position") end },
             { key = "TacCastGate",   label = "No casts while stunned" },
+            { key = "TacFaceTravel", label = "Face the way we run",
+              on = function(v) announce(v and "movement: body faces the travel direction until in fighting distance" or "movement: body held on the target at all times") end },
+            { key = "TacBlockKeep",  label = "Keep a raised block up",
+              on = function(v) announce(v and "tactics: a block stays up at least 0.3 s" or "tactics: blocks drop the moment their reason is gone") end },
+            { key = "TacMoveDamp",   label = "Steady footing",
+              on = function(v) announce(v and "movement: reversals must persist before they are obeyed" or "movement: every direction change obeyed at once") end },
         }
         PAGES.marked = {
             { back = true },
@@ -18053,7 +18221,7 @@ do
     end
 end
 
-announce("The Eye HUD on v85 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v86 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 

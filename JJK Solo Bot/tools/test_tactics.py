@@ -24,7 +24,8 @@ CLOCK = 100
 function tick() return CLOCK end
 Config = { TacLead = true, TacLeadSpeed = 140, TacLeadMax = 0.7, TacLeadDist = 16, TacGuard = true, UseBlock = true,
            TacGuardTTC = 0.38, TacGuardReach = 6.5, TacGuardSpeed = 12, TacGuardHold = 0.55, TacGuardRest = 1.4,
-           TacCombo = true, TacComboStep = 2, TacComboGap = 0.25, CastRefusalHold = 2.5, MemCreditWindow = 1.2 }
+           TacCombo = true, TacComboStep = 2, TacComboGap = 0.25, CastRefusalHold = 2.5, MemCreditWindow = 1.2,
+           TacComboDelay = 0.14, TacFaceTravel = true, TacFaceDist = 14, TacFaceFlee = 10, TacMoveDamp = true, TacMoveDampFor = 0.2 }
 Bot = { HitCandidates = {}, LastSkill = 0 }
 Life = { tac = {} }
 MEM = {}
@@ -198,14 +199,85 @@ check("M1 swings and hits", Life.m1Swings == 2 and Life.m1Hits == 1 and Life.m1D
       string.format("%s %s %s", tostring(Life.m1Swings), tostring(Life.m1Hits), tostring(MEM.tactics.m1.n)))
 Bot.FrameDmgOut = 9; Bot.LastSkill = CLOCK; tacM1Tick(); Bot.FrameDmgOut = 0
 check("damage right after a skill is not booked to M1", Life.m1Dmg == 4)
+-- 6b. a chained cast waits for the basic attack to land
+READY = {}; CHAINW = nil; victim.hp = 100; victim.stun = true; victim.rag = false
+tacConfirmed(victim); Bot.ConfirmSince = CLOCK - 0.2; Bot.LastSkill = CLOCK - 5
+ME.attrs.CurrentM1 = 3; Tac.m1StepAt = CLOCK - 0.05; CAST = {}
+check("swing only just begun: wait", tacComboExtend(victim, 5) == false and #CAST == 0)
+CLOCK = CLOCK + 0.12
+check("swing landed: chain", tacComboExtend(victim, 5) == true and #CAST == 1)
+
+-- 8. travel facing
+local east, west, north = Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0), Vector3.new(0, 0, -1)
+Bot.WalkActive = true; Bot.MoveDirPrev = east; Bot.MoveDirAt = CLOCK
+Bot.State = "APPROACH_FAR"; Bot.Dist2D = 40
+check("far approach: face the way we run", tacTravelDir() == east)
+Bot.State = "ATTACK"; check("in the fight: body stays on the target", tacTravelDir() == nil)
+Bot.State = "APPROACH"; Bot.Dist2D = 20; check("closing from 20: still running", tacTravelDir() == east)
+Bot.Dist2D = 10; check("closing inside 14: square up", tacTravelDir() == nil)
+Bot.State = "RETREAT"; Bot.Dist2D = 15; check("fleeing with room: turn and run", tacTravelDir() == east)
+Bot.Dist2D = 6; check("fleeing with them on us: keep facing them", tacTravelDir() == nil)
+Bot.State = "IDLE"; Bot.Dist2D = nil; check("roaming with no target: face travel", tacTravelDir() == east)
+Bot.WalkActive = false; check("standing still: nothing to face", tacTravelDir() == nil); Bot.WalkActive = true
+Bot.MoveDirAt = CLOCK - 1; check("mover not ticking: fall back", tacTravelDir() == nil); Bot.MoveDirAt = CLOCK
+Config.TacFaceTravel = false; check("travel facing off", tacTravelDir() == nil); Config.TacFaceTravel = true
+
+-- 9. reversal damping
+Life.flipBy = {}; Life.tacDamped = 0
+Bot.State = "APPROACH"; Bot.NavMode = "path"; Bot.MoveHeldDir = nil; Bot.MoveFlipSince = nil
+local t0 = CLOCK
+check("first direction is obeyed", tacDampDir(east, t0) == east)
+check("same direction again", tacDampDir(east, t0 + 0.016) == east)
+check("a reversal is held off at first", tacDampDir(west, t0 + 0.032) == east)
+check("... and still at 0.1 s", tacDampDir(west, t0 + 0.13) == east)
+check("... but obeyed once it has persisted 0.2 s", tacDampDir(west, t0 + 0.24) == west)
+check("the source of the flip is recorded", Life.flipBy["APPROACH/path"] == 1 and Life.tacDamped == 2)
+-- frame-by-frame alternation: the fighter keeps one heading instead of shuffling
+Bot.MoveHeldDir = nil; Bot.MoveFlipSince = nil
+local steady = true
+for i = 0, 59 do
+    local want = (i % 2 == 0) and east or west
+    if tacDampDir(want, t0 + 1 + i / 60) ~= east then steady = false end
+end
+check("alternating goals: one steady heading for a full second", steady)
+Bot.MoveHeldDir = nil; Bot.MoveFlipSince = nil
+tacDampDir(east, t0 + 3)
+check("a right-angle turn is not a reversal", tacDampDir(north, t0 + 3.016) == north)
+tacDampDir(east, t0 + 4); Bot.State = "RETREAT"
+check("a change of state turns at once", tacDampDir(west, t0 + 4.016) == west)
+Bot.State = "REACT"; tacDampDir(east, t0 + 5)
+check("a dodge is never delayed", tacDampDir(west, t0 + 5.016) == west)
+Bot.State = "APPROACH"; tacDampDir(east, t0 + 6)
+check("after a pause the old heading no longer binds", tacDampDir(west, t0 + 7) == west)
+Config.TacMoveDamp = false; tacDampDir(east, t0 + 8)
+check("damping off", tacDampDir(west, t0 + 8.016) == west); Config.TacMoveDamp = true
+
+Life.moveN, Life.moveBack = 200, 30
 local line = tacLifeSummary()
+check("movement in the summary", line:find("backward 15%% of travel") ~= nil and line:find("mostly APPROACH/path") ~= nil, line)
 check("summary formats", type(line) == "string" and line:find("confirm 1/2 hit 12 dmg") ~= nil and line:find("M1 2 swings 1 hits 4 dmg") ~= nil, line)
+-- 10. the arena follows the map
+check("a fight in the 1.85 city is inside the arena", mapOutOfArena(Vector3.new(1416, 7, 300)) == false)
+check("the far edge of the city is inside", mapOutOfArena(Vector3.new(1663, 7, 929)) == false)
+check("a domain 3500 studs off is outside", mapOutOfArena(Vector3.new(2030, -24, -3032)) == true)
+check("centre is the mean of the spawns", near(mapArenaCentre().X, 1310, 0.01) and near(mapArenaCentre().Z, 550, 0.01))
+SPAWNS = nil; ArenaRef.centre = nil; ArenaRef.at = 0
+check("no spawn folder: falls back to the world origin", mapOutOfArena(Vector3.new(1416, 7, 300)) == true and mapOutOfArena(Vector3.new(300, 0, 300)) == false)
 return n, fails, line, LOG
 '''
 lua = LuaRuntime(unpack_returned_tuples=True)
 lua.execute(MOCK)
 lua.execute(core)
 lua.execute(combat)
+a3 = src.index('ArenaRef = { at = 0, centre = nil }'); b3 = src.index('function mapOutOfArena(pos)'); b3 = src.index('\nend', b3) + 5
+lua.execute('''
+function debug() end
+local function part(x, z) return { Position = Vector3.new(x, 5, z), IsA = function(_, c) return c == "BasePart" end } end
+SPAWNS = { part(1300, 500), part(1400, 600), part(1200, 560), part(1340, 540) }
+Workspace = { FindFirstChild = function(_, n) if n == "Spawns" and SPAWNS then return { GetDescendants = function() return SPAWNS end } end end }
+Config.MapArenaRadius = 1000
+''')
+lua.execute(src[a3:b3])
 n, fails, line, log = lua.execute(TESTS)
 fails = list(fails.values())
 print('%d checks, %d failed' % (n, len(fails)))

@@ -83,6 +83,46 @@ there (always `trag=true`, always shortly after a block) is the next gate.
 The figures to compare with the table at the top: stunned share of life,
 damage dealt against taken, `DEFEND held` times, and refused casts.
 
+## v86: what the first v85 log showed, and what changed
+
+One v85 log (18 lives, 38 minutes, 14 different characters) against the v83/v84 baseline:
+
+| Measure | Before | v85 |
+|---|---|---|
+| Damage dealt for each 1 taken | 0.67 | 0.88 |
+| Damage per second | 1.00 | 1.20 |
+| Time spent stunned | 46% | 41% |
+| Hit rate of casts chained off a confirmed hit | n/a | 80% (16 of 20) |
+| Hit rate of raw casts | 29% | 32% (139 of 435) |
+| Predicted blocks that met a swing | n/a | 34% (18 of 53) |
+| Casts refused | 19% | 27% |
+| Blocks lasting 0.1 s or less | 51% | 64% |
+| Share of far-approach time spent moving backwards | not measured | 60% |
+
+The principle holds: a cast chained off a confirmed hit lands 80% of the time
+against 32% raw. It just fires far too rarely (20 times in 38 minutes).
+
+What v86 changes because of it:
+
+| Finding | Cause | Change | Switch |
+|---|---|---|---|
+| Walking backwards on the far approach | Inside 50 studs the body was locked onto the target while the feet followed a path. Beyond that the game's lock-on leaves rotation camera-relative, and the bot's camera sits behind its own facing, so the facing never turned. Either way no sprint | The body faces the travel direction until within 14 studs of the target, and when fleeing with 10 studs of room | `TacFaceTravel` |
+| Shuffling on the spot, up to 9 reversals a second | Two parts of the machine asking for opposite directions on alternate frames | A direction that reverses the last one must be asked for 0.2 s without a break before it is obeyed. The state and navigation mode that asked are counted | `TacMoveDamp` |
+| "died out of the arena" on every death | The arena was a 1000-stud circle round the world origin. The 1.85 city is 1100 to 1700 studs from it, so the bot believed it was in a domain for whole lives and recorded no cell, route or death since the map changed | The arena is centred on `Workspace.Spawns` | n/a |
+| Blocks of 0.0 s, repeating every 0.4 s | The decision that raised them was gone on the next frame | A raised block stays up at least 0.3 s. Nothing is cast or swung from behind it. Dodges and grab escapes are not delayed | `TacBlockKeep` |
+| A third of chained casts refused, most at the instant our second hit began | Cast sent before the basic attack had landed | Chaining waits 0.14 s after our hit counter moves | `TacComboDelay` |
+| Summons and resource moves refused over and over | They wait on something the client cannot see | Each refusal in a row doubles how long that move is left alone, up to eight times; a success resets it | n/a |
+
+New in the `LIFE END` line:
+
+```
+| movement: backward 6% of travel; 14 reversals held off (mostly APPROACH/path x9); blocks kept up 11
+```
+
+`backward` should be near zero now; it was 60% on the far approach. `mostly
+STATE/mode` names where the opposing directions come from, which is what to
+fix at the source next.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
@@ -95,7 +135,7 @@ damage dealt against taken, `DEFEND held` times, and refused casts.
 ## Tests
 
 `tools/test_tactics.py` runs the kinematics, prediction, lead, contact, confirm
-and chain-choice code against mocked game objects (46 checks). It needs
+chain-choice, travel-facing, reversal-damping and arena code against mocked game objects (76 checks). It needs
 Python with `lupa`:
 
 ```
