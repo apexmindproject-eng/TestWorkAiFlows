@@ -358,8 +358,9 @@ Putting the v85 and v86 logs side by side with the new analyser:
 | Backward share of travel | 60% on the far approach | 4% |
 
 v86 fixed the walking and made the fighting worse. Ten lives is a small
-sample, but both drops are too large to be chance alone, and v86 contains a
-cause. It made the body face the way the feet go while covering ground.
+sample and casts within one life are not independent, so this is not proof.
+But both drops are large, about 2.6 and 3.0 standard errors if every cast is
+counted on its own, and v86 contains a cause. It made the body face the way the feet go while covering ground.
 Before it, the body was always on the target inside 50 studs, so every cast
 left toward the target. After it, a cast thrown on the approach left along
 the path. The lead-aim turned the body only for moving targets and long
@@ -368,6 +369,7 @@ moves.
 | Change | What it does | Switch |
 |---|---|---|
 | Face what is thrown at | Every cast turns the body onto the target at once, and the body stays on the target for 0.6 s instead of swinging back to the path. This holds at any range | `TacFaceCast` |
+| Swing facing the target | On the approach the body is snapped onto the target as the swing starts | n/a |
 | Swing only in reach | On the approach the bot swung from 11 studs. A swing at air still moves the string along, so the fourth hit and its 2 s lockout were often spent before contact. It now swings inside the reach plus one stud, or when the gap will have closed in 0.2 s | `TacM1Slack` |
 | Measure the reach | Every swing is booked by the distance it was thrown from and whether damage followed. The reach is the furthest 2-stud band where one swing in four still lands, once that band has eight swings. Until then it is 7 studs | `TacM1Probe` |
 | Strings are not four hits for everybody | The research lists True Cannon's string as three hits and Head of the Hei's last hit as having no slam or launcher. Chaining, the last-hit choice and the after-string pause now ask how long this character's string is | n/a |

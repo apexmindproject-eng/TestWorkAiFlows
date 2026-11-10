@@ -16283,6 +16283,7 @@ local function executeState()
 
         -- only once the swing can reach: a swing at air still spends the string
         if tacM1InReach(t, d2d) and math.abs(dy) <= Config.MaxVertical then
+            faceTarget(t, true)     -- a swing goes where the body points
             startM1()
         end
 
