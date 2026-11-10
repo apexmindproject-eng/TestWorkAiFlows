@@ -1082,15 +1082,15 @@ MYHP = 22; getHPPct = function(c) if c then return c.hp or 100 end return MYHP e
 hitterLive = function(c) return c.hitting == true end
 check("hold: not in force until an escape", tacRecoverHold() == false)
 tacRecoverStart(); check("hold: starts after an escape while hurt", tacRecoverHold() == true)
-local far, near, biter = mkChar("far", 0, -60, 0, 1), mkChar("near", 0, -10, 0, 1), mkChar("biter", 0, -60, 0, 1); biter.hitting = true
-check("hold: no new fight at a distance", tacRecoverBars(far, 60) == true)
-check("hold: somebody close is still fought", tacRecoverBars(near, 10) == false)
-check("hold: somebody hitting us is still fought", tacRecoverBars(biter, 60) == false)
+local farC, nearC, biterC = mkChar("far", 0, -60, 0, 1), mkChar("near", 0, -10, 0, 1), mkChar("biter", 0, -60, 0, 1); biterC.hitting = true
+check("hold: no new fight at a distance", tacRecoverBars(farC, 60) == true)
+check("hold: somebody close is still fought", tacRecoverBars(nearC, 10) == false)
+check("hold: somebody hitting us is still fought", tacRecoverBars(biterC, 60) == false)
 MYHP = 45; LOG = {}; check("hold: over once health is back", tacRecoverHold() == false and Bot.RecoverHold == nil)
 check("hold: the rate of recovery is logged", #LOG == 1 and LOG[1]:find("recover hold over") ~= nil and LOG[1]:find("22%% to 45%%") ~= nil, LOG[1])
 MYHP = 22; tacRecoverStart(); CLOCK = CLOCK + 21; check("hold: or once the time is up", tacRecoverHold() == false)
 MYHP = 80; tacRecoverStart(); check("hold: not started at good health", Bot.RecoverHold == nil)
-Config.RecoverHold = false; MYHP = 10; tacRecoverStart(); check("hold: off is off", Bot.RecoverHold == nil and tacRecoverBars(far, 60) == false)
+Config.RecoverHold = false; MYHP = 10; tacRecoverStart(); check("hold: off is off", Bot.RecoverHold == nil and tacRecoverBars(farC, 60) == false)
 Config.RecoverHold = true; getHPPct, hitterLive = realHP, realHitter
 -- seeds
 reset(); Config.KnowSeedSkip = true
@@ -1112,6 +1112,36 @@ for i = 1, 3 do
 end
 Life.knowProbes, Bot.KnowProbeAt = 0, 0
 check("seed: three real misses close it", knowAllows(entry("Reversal Red"), foe, 6, "neutral") == false)
+
+-- what the v93 log measured (v94)
+reset(); Config.RetreatHP, Config.GuardWhenLow, Config.PunishGuardLock = 25, true, 0.6
+check("guard: allowed at low health", tacCanGuard(12) == true)
+Config.GuardWhenLow = false; check("guard: unless switched back", tacCanGuard(12) == false and tacCanGuard(60) == true); Config.GuardWhenLow = true
+Bot.PunishUntil = CLOCK + 3; check("guard: off while the punish itself goes out", tacCanGuard(60) == false)
+CLOCK = CLOCK + 0.7; check("guard: back on for the rest of the punish window", tacCanGuard(60) == true)
+Bot.PunishUntil = CLOCK + 2; check("guard: a new punish window locks it again", tacCanGuard(60) == false)
+reset(); Config.TacSpacing, Config.TacSpaceTo, Config.M1Range, Config.TacM1Probe = true, 4.5, 7, true
+check("spacing: six studs until measured", tacM1Good() == 6)
+MEM.tactics = { m1r = { ["2"] = { n = 30, h = 18 }, ["4"] = { n = 42, h = 38 }, ["6"] = { n = 27, h = 12 }, ["12"] = { n = 28, h = 2 } } }
+check("spacing: the good reach is where half the swings land", tacM1Good() == 6 and (tacM1Reach()) == 8)
+WALKED = nil; walkTo = function(p) WALKED = p end
+foe = mkChar("foe", 0, -8, 0, 1); foe.hpv = 100
+check("spacing: steps in from the edge of reach", tacStepIn(foe, 8) == true and WALKED ~= nil and near(WALKED.Z, -3.5, 0.01))
+WALKED = nil; check("spacing: stands when already close", tacStepIn(foe, 5) == false and WALKED == nil)
+foe.rag = true; check("spacing: does not walk onto a body on the ground", tacStepIn(foe, 8) == false); foe.rag = nil
+check("spacing: no swings at air", tacTooFar(12) == true and tacTooFar(8) == false)
+Config.TacSpacing = false; check("spacing: off is off", tacStepIn(foe, 8) == false and not tacTooFar(12)); Config.TacSpacing = true
+-- a raw cast up close needs a better chance
+reset(); Config.KnowMinPClose, Config.KnowCloseDist, Config.KnowProbe = 0.4, 14, false
+foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100
+local okC, pC = knowAllows(entry("Twofold Kick"), foe, 6, "neutral")
+check("close: an unproven raw cast is withheld in their reach", okC == false and near(pC, 0.35, 0.01), pC)
+check("close: the same cast is allowed from range", knowAllows(entry("Reversal Red"), foe, 30, "neutral") == true)
+MEM.facts["Twofold Kick"] = { n = 10, s = { free = { n = 10, h = 6, r = 10 } } }
+check("close: a cast proven to land raw is still thrown", knowAllows(entry("Twofold Kick"), foe, 6, "neutral") == true)
+MEM.facts["Twofold Kick"] = nil; foe.stun = true; Know.stT = nil
+check("close: a chained cast is not held to it", knowAllows(entry("Twofold Kick"), foe, 6, "confirm") == true)
+Config.KnowProbe = true
 
 -- report lines do not error and say what is known
 reset()

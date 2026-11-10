@@ -1,4 +1,4 @@
-# Tactics layer (v85 to v93)
+# Tactics layer (v85 to v94)
 
 The decision core changed in v85. This file says why, what the new rules are,
 and how to tell from a log whether they work.
@@ -457,6 +457,57 @@ penalty, making the knowledge layer the only judge of a move, a wider credit
 window, and character choice by results. `review/agreed.md` lists the
 evidence each one needs.
 
+## v94: the first v93 log
+
+13 lives, 26 minutes, against the two logs before it:
+
+| Measure | v85 | v86 | v93 |
+|---|---|---|---|
+| Kills per life | 0.83 | 0.40 | 0.62 |
+| Damage per second | 1.20 | 0.90 | 1.25 |
+| Damage dealt for each 1 taken | n/a | n/a | 0.79 |
+| Raw casts that landed | 32% | 21% | 36% |
+| Chained casts per minute | 0.5 | 0.3 | 0.7 |
+| Blocks of 0.1 s or less | 64% | 62% | 22% |
+| Route calculations per minute | 22 | 20 | 9 |
+| Time stunned | 41% | 43% | 44% |
+| Basic swings per minute | 13.2 | 9.9 | 10.5 |
+
+The v86 regression is gone and the one-frame blocks are gone. Time stunned
+and swings per minute have not moved. The new measurements say why.
+
+| Measured in v93 | Value |
+|---|---|
+| Hits that got in within 1.2 s of a cast of ours | 155 of 263, 59% |
+| Raw casts, and how many landed | 269, 96 |
+| Blocks raised, accepted, absorbed a hit | 229, 143, 94 |
+| Hits that got in while a rule kept the guard down | 119 |
+| of those: health under 25% | 54 |
+| of those: a punish window of ours | 34 |
+| of those: rest timers after a block | 55 |
+| Swings that landed from 4 to 6 studs | 38 of 42 |
+| Swings that landed from 6 to 8 studs | 12 of 27 |
+| Swings that landed from 12 studs or more | 2 of 28 |
+| Basic attacks that stunned us inside the listed 0.5 s wake-up immunity | 7, from 0.09 s |
+| Seconds in ATTACK, of 1,560 | 66 |
+| Seconds in REACT | 274 |
+| Our swings thrown with the game marking us busy | 1 of 272 |
+
+What v94 changes because of it:
+
+| Finding | Change | Switch |
+|---|---|---|
+| Nearly every missed raw cast is punished | Inside 14 studs of a target that can answer, a raw cast needs a 40% chance, not 20%. Chained casts and casts from range are unchanged | `KnowMinPClose` |
+| Blocks work, 94 of 143 accepted ones absorbed a hit, but the guard was off under 25% health | A swing in reach is blocked at low health too | `GuardWhenLow` |
+| The guard was off for a whole punish window, up to 3.5 s | Off for its first 0.6 s only | `PunishGuardLock` |
+| Rest timers after a block | 3 s to 1 s after a dropped guard, 0.3 s to 0.15 s after any block | `DefendDropRest`, `DefendCapRest` |
+| Swings land from 4 to 6 studs and miss from further | In reach but past 6 studs the bot steps in to 4.5. No swings from more than 3 studs past the good reach. On the approach it swings from 7 studs, not 9 | `TacSpacing` |
+| The wake-up immunity is not real | Wake-up rules off. The research was wrong | `TacWake` |
+| 274 s in REACT | Not changed yet. The life line now splits REACT seconds by reaction, so the next log shows which one eats the time | n/a |
+
+The question the reviewers could not settle is answered: the game does not
+mark us as busy during our own swings, so the guard is not blind while we attack.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
@@ -489,7 +540,7 @@ evidence each one needs.
 
 `tools/test_tactics.py` runs the code against mocked game objects: 76 checks
 on kinematics, prediction, lead, contact, chaining, travel facing, reversal
-damping and the arena, and 297 on knowledge and fight sense: families, target states, beliefs,
+damping and the arena, and 313 on knowledge and fight sense: families, target states, beliefs,
 seeding, the gate, probes, the recorder, timing regression, counters,
 guard-breaks, ground hits, held swings, the fourth hit, late cooldowns,
 second presses, the hit ledger, getting up, awakening, domains, held

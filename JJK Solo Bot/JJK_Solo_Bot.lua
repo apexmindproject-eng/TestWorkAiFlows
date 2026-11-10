@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v93"
+local BUILD_TAG = "JJK-SOLO-v94"
 
 local NL = string.char(10)
 
@@ -969,7 +969,7 @@ local Config = {
     KnowP2Trials = 3,
     -- Fight sense (v89).
     TacLedger = true,           -- write down what we were doing each time a hit got in
-    TacWake = true,             -- getting up: swing through theirs, guard against ours
+    TacWake = false,            -- off in v94: the v93 log has basic attacks stunning us 0.09 to 0.48 s after getting up, so the listed immunity is not real             -- getting up: swing through theirs, guard against ours
     TacWakeWindow = 0.5,        -- seconds of immunity to melee stun after getting up (researched)
     TacAwaken = true,           -- awaken when hurt, when the target cannot answer, or after TacAwakenHold
     TacAwakenHP = 70,
@@ -994,7 +994,7 @@ local Config = {
     TacFaceCastHold = 0.6,
     TacM1Probe = true,          -- learn the real reach of a basic attack from which swings land
     TacM1Slack = 1.0,           -- swing on the approach only inside the reach plus this
-    TacM1Lead = 0.2,            -- ... or if the gap will have closed this many seconds from now        -- how much less an awakened enemy is worth as a target while we are not           -- tries of each delay before the best one is kept       -- seconds before judging a cast refused, for moves seen to start their cooldown late
+    TacM1Lead = 0.1,            -- ... or if the gap will have closed this many seconds from now        -- how much less an awakened enemy is worth as a target while we are not           -- tries of each delay before the best one is kept       -- seconds before judging a cast refused, for moves seen to start their cooldown late
     -- v93, from the design review of v92. The v86 log has more blocks than
     -- swings in nine lives of ten (385 against 160), and chaining needs three
     -- landed swings, so that caps everything v85 to v92 added. The first two
@@ -1015,7 +1015,19 @@ local Config = {
     RecoverHoldFor = 20,
     RecoverHoldDist = 30,       -- ... unless somebody within this distance, or somebody hitting us, forces one
     KnowSeedSkip = true,        -- old career totals are not used as evidence for slow, summoned or two-press moves
-    MemShrinkTries = 6,         -- a move's learned weight is pulled toward the middle until it has this many casts
+    MemShrinkTries = 6,
+    -- v94, from the first v93 log (13 lives, 26 minutes).
+    -- 155 of 263 hits that got in came within 1.2 s of a cast of ours: 269
+    -- raw casts, 96 landed, and nearly every miss was punished. Up close a
+    -- raw cast now needs a better chance than at range.
+    KnowMinPClose = 0.4,        -- chance a raw cast needs inside KnowCloseDist of a target that can answer
+    KnowCloseDist = 14,
+    -- Blocks work when they go up (94 of 143 accepted blocks took a hit), and
+    -- the rules below kept them down for 119 of the hits that got in.
+    GuardWhenLow = true,        -- a swing in reach is blocked under RetreatHP too (54 hits got in with the guard switched off there)
+    PunishGuardLock = 0.6,      -- a punish window only switches the guard off this long, not for all of it (34 hits)
+    TacSpacing = true,          -- fight from where swings land: step in past TacSpaceIn, no swings past the good reach + 3
+    TacSpaceTo = 4.5,           -- swings from 4 to 6 studs landed 38 of 42; from 6 to 8, 12 of 27; from 12 up, 2 of 28         -- a move's learned weight is pulled toward the middle until it has this many casts
     FrameStaleGuard = true,     -- a frame that comes back from a path compute after others have run stops there
     -- The fourth basic hit: "down" (falling: unblockable, reaches the ground),
     -- "up" (rising: launches, longest time down), "flat", "off", or "auto",
@@ -1218,7 +1230,7 @@ local Config = {
     AdoptSwinger = true,
     AdoptSwingerWindow = 1.5,
     AdoptSwingerRange = 12,
-    DefendDropRest = 3,
+    DefendDropRest = 1,         -- 3 before v94: 27 hits got in during this rest
 
     DefendGangedGrace = 1.0,
     SwingIncludeChase = true,
@@ -1280,7 +1292,7 @@ local Config = {
     SwingCastMin = 0.4,
     SwingPunishWindow = 1.5,
 
-    DefendCapRest = 0.3,
+    DefendCapRest = 0.15,       -- 0.3 before v94: 28 hits got in during this rest
 
     DefendUnderRetreat = true,
     DefendKeepMax = 1.0,
@@ -7321,7 +7333,12 @@ function knowAllows(entry, t, d2d, ctx)
     if kind == "counter" then return false, 0, "counter with nobody swinging" end
     local state = knowState(t)
     local p, n, settled = knowChance(entry.name, state, kind, f)
-    if p < (Config.KnowMinP or 0.2) then
+    local minP = Config.KnowMinP or 0.2
+    if ctx ~= "confirm" and (state == "free" or state == "swing")
+       and (d2d or 99) <= (Config.KnowCloseDist or 0) then
+        minP = math.max(minP, Config.KnowMinPClose or 0)
+    end
+    if p < minP then
         -- an open question (nothing researched, hardly tried) may be asked a
         -- few times a life: that is how the answer gets into the memory
         -- seeded evidence is second-hand: only casts really made close the question
@@ -8001,7 +8018,7 @@ end
 
 function tacM1InReach(t, d2d)
     if not t or not d2d then return false end
-    local reach = (tacM1Reach()) + (Config.TacM1Slack or 1.0)
+    local reach = (Config.TacSpacing and tacM1Good() or (tacM1Reach())) + (Config.TacM1Slack or 1.0)
     if d2d <= reach then return true end
     if d2d > reach + 5 then return false end
     -- closing: will the gap be shut by the time the swing comes out?
@@ -8192,6 +8209,7 @@ function tacProbeTick(dt)
     if not Config.TacBlockProbe then return end
     local now = tick()
     local st = tostring(Bot.State or "?")
+    if st == "REACT" then st = "REACT:" .. tostring(Bot.Reacting or "?") end
     if type(Life.stSec) ~= "table" then Life.stSec = {} end
     Life.stSec[st] = (Life.stSec[st] or 0) + (dt or 0.016)
     -- did the server take the last block?
@@ -8351,6 +8369,57 @@ function knowSeedSkips(name)
     if type(Know.P2) == "table" and Know.P2[senseMoveKey(name)] then return true end
     local kind = knowKind(name)
     return kind == "summon" or kind == "trap" or kind == "aoe_point"
+end
+
+-- ------------------------------------------------------------------ what the v93 log measured (v94)
+-- The guard was switched off under RetreatHP and for the whole of a punish
+-- window (up to 3.5 s). 88 of the hits that got in fell in those two gaps.
+-- A block that goes up absorbs a hit two times in three, so both are closed:
+-- low health no longer forbids a block, and a punish window forbids one only
+-- for its first PunishGuardLock seconds, the time the punish itself takes.
+function tacCanGuard(hp)
+    local now = tick()
+    local pu = Bot.PunishUntil or 0
+    if pu ~= Bot.PunishSeenUntil then Bot.PunishSeenUntil, Bot.PunishFrom = pu, now end
+    local punishing = now < pu
+    if punishing and (now - (Bot.PunishFrom or 0)) >= (Config.PunishGuardLock or 99) then punishing = false end
+    if punishing then return false end
+    if (hp or 100) < Config.RetreatHP and not Config.GuardWhenLow then return false end
+    return true
+end
+
+-- The furthest band in which at least half our swings land. tacM1Reach asks
+-- for one in four, which is how far a swing can reach; this is how far out
+-- it is worth throwing one.
+function tacM1Good()
+    local r = type(MEM.tactics) == "table" and MEM.tactics.m1r or nil
+    local best = nil
+    if Config.TacM1Probe and type(r) == "table" then
+        for lo = 0, 12, 2 do
+            local b = r[tostring(lo)]
+            if type(b) == "table" and b.n >= 8 and b.h / b.n >= 0.5 then best = lo + 2 end
+        end
+    end
+    return best or math.min(Config.M1Range or 7, 6)
+end
+
+-- In reach but past where swings land well: close the last few studs
+-- instead of standing and swinging at the edge. Returns true if it walked.
+function tacStepIn(t, d2d)
+    if not Config.TacSpacing or not t or not d2d then return false end
+    if d2d <= tacM1Good() or isRagdolled(t) then return false end
+    local h, th = getHRP(), getHRP(t)
+    if not (h and th) then return false end
+    local to = Vector3.new(h.Position.X - th.Position.X, 0, h.Position.Z - th.Position.Z)
+    if to.Magnitude < 0.5 then return false end
+    walkTo(th.Position + to.Unit * (Config.TacSpaceTo or 4.5))
+    Life.stepIn = (Life.stepIn or 0) + 1
+    return true
+end
+
+-- A swing from well outside the good reach meets air and still spends the string.
+function tacTooFar(d2d)
+    return Config.TacSpacing and (d2d or 0) > tacM1Good() + 3
 end
 
 -- ------------------------------------------------------------------ openers (v90)
@@ -15511,7 +15580,7 @@ local function updateState()
 
 
 
-    local canGuard = hp >= Config.RetreatHP and tick() >= (Bot.PunishUntil or 0)
+    local canGuard = tacCanGuard(hp)
                      and tick() >= (Bot.GangedUntil or 0) + (Config.DefendGangedGrace or 1.0)
     if not canGuard then
         tacBlockGate((hp < Config.RetreatHP) and "health under RetreatHP"
@@ -16781,20 +16850,7 @@ local function executeState()
         end
 
         faceTarget(t, true)
-        stopWalking()
-
-
-
-
-
-
-
-
-
-
-
-
-
+        if not tacStepIn(t, d2d) then stopWalking() end
 
         local inMelee = d2d <= Config.M1Range + 2
         local skillGap = inMelee and Config.SkillGapClose or Config.SkillDelay
@@ -16827,7 +16883,7 @@ local function executeState()
 
 
         if not isInSkill() then
-            if knowM1Wasted(t, Bot.KnowSt) then stopM1() else startM1() end
+            if knowM1Wasted(t, Bot.KnowSt) or tacTooFar(d2d) then stopM1() else startM1() end
         end
 
         local wantsToClose = d2d > Config.CloseDashMin
@@ -20348,7 +20404,7 @@ do
     end
 end
 
-announce("The Eye HUD on v93 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v94 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 
