@@ -517,6 +517,11 @@ check("chain: out of arm's reach there is nothing to wait for", (function()
     return tacComboExtend(foe, 25) end)() == true)
 CLOCK = CLOCK + 1; CAST = {}; Bot.ConfirmSince = CLOCK - 2; Tac.m1StepAt = CLOCK - 1
 check("chain: a string that stalls is not waited on for ever", tacComboExtend(foe, 5) == true)
+CLOCK = CLOCK + 1; CAST = {}; MoveRules["Slam"].max = 12; MoveRules["Hold"].max = 12
+ME.attrs.CurrentM1 = 2; Bot.ConfirmSince = CLOCK - 0.9; Tac.m1StepAt = CLOCK - 0.7
+check("chain: swings that stopped coming are not waited for", tacComboExtend(foe, 5) == true)
+CLOCK = CLOCK + 1; CAST = {}; Bot.ConfirmSince = CLOCK - 0.9; Tac.m1StepAt = CLOCK - 0.2
+check("chain: swings still coming are", tacComboExtend(foe, 5) == false)
 check("chain: the counter is never part of it", (function() for _, c in ipairs(CAST) do if c == "Manji KickService" then return false end end return true end)())
 
 -- counters go into swings

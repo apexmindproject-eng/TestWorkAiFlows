@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v91"
+local BUILD_TAG = "JJK-SOLO-v92"
 
 local NL = string.char(10)
 
@@ -906,6 +906,7 @@ local Config = {
     TacCombo = true,            -- chain a skill the moment a hit is confirmed
     TacComboStep = 4,           -- ... once CurrentM1 says the fourth swing is next (three are out)
     TacComboPatience = 1.6,     -- ... or the target has been held this long without the string advancing
+    TacComboStall = 0.6,        -- ... or our own string has not moved for this long
     TacComboGap = 0.25,         -- seconds between two chained casts
     TacDiscipline = true,       -- in melee, keep skills for a confirmed hit
     TacNeutralGap = 4.0,        -- ... but still throw one unconfirmed this often
@@ -12905,8 +12906,11 @@ function tacComboExtend(t, d2d)
     -- string is three basic hits, then the skill, then three more; the
     -- fourth hit puts the target down and ends it. Out of arm's reach there
     -- is no string to wait for.
+    -- ... and no string to wait for if ours has stopped moving: a stun that
+    -- somebody else caused, or our swings locked out, is taken at once.
     if type(step) == "number" and step >= 2 and step < math.min(Config.TacComboStep or 4, (tacStringLen()))
-       and d2d <= (Config.M1Range or 8) + 2 and held < (Config.TacComboPatience or 1.6) then return false end
+       and d2d <= (Config.M1Range or 8) + 2 and held < (Config.TacComboPatience or 1.6)
+       and (now - (Tac.m1StepAt or 0)) < (Config.TacComboStall or 0.6) then return false end
     -- a third of the chained casts were refused, most of them thrown the
     -- instant our second hit began: let that swing finish landing first
     if type(step) == "number" and (now - (Tac.m1StepAt or 0)) < (Config.TacComboDelay or 0.14) then return false end
@@ -19896,7 +19900,7 @@ do
     end
 end
 
-announce("The Eye HUD on v91 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v92 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 

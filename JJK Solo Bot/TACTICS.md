@@ -1,4 +1,4 @@
-# Tactics layer (v85 to v91)
+# Tactics layer (v85 to v92)
 
 The decision core changed in v85. This file says why, what the new rules are,
 and how to tell from a log whether they work.
@@ -389,6 +389,11 @@ fixed.
 
 `tools/analyze_log.py old.txt new.txt` prints the before-and-after table.
 
+v92 is v91 plus one guard on the chain. Waiting for three basic hits made
+sense only while our own swings were still coming. If the string has not
+moved for 0.6 s, because somebody else caused the stun or our swings are
+locked out, the chain casts at once as it did before v87.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
@@ -421,7 +426,7 @@ fixed.
 
 `tools/test_tactics.py` runs the code against mocked game objects: 76 checks
 on kinematics, prediction, lead, contact, chaining, travel facing, reversal
-damping and the arena, and 206 on knowledge and fight sense: families, target states, beliefs,
+damping and the arena, and 208 on knowledge and fight sense: families, target states, beliefs,
 seeding, the gate, probes, the recorder, timing regression, counters,
 guard-breaks, ground hits, held swings, the fourth hit, late cooldowns,
 second presses, the hit ledger, getting up, awakening, domains, held
