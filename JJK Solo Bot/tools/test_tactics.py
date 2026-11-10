@@ -1206,6 +1206,53 @@ tacBlockRefused({ swing = 0.2, cast = 5, rel = 5, stun = false }); tacBlockRefus
 tacBlockRefused({ swing = 3, cast = 5, rel = 5, stun = false })
 check("refused blocks: sorted by what we were doing", tacBlockRefSummary() == " | blocks not taken: none of these 1, within 0.45 s of a swing 1, within 1 s of a cast 1", tacBlockRefSummary())
 
+-- v98: jumping
+reset(); stopWalking = function() WALKED = "stop" end; faceTarget = function() end; walkTo = function(p) WALKED = p end
+for k, v in pairs({ TacGuardPlay = true, TacVaultEvery = 3, TacVaultFor = 0.9, TacVaultJumpAt = 7, TacBaitAfter = 2.5, TacBaitDist = 12, TacBaitFor = 4,
+                    ReactJump = true, KnowAir = true, KnowAirTrials = 3 }) do Config[k] = v end
+Bot.TurtleT, Bot.TurtleSince, Bot.Vault, Bot.Bait, Bot.VaultAt = nil, nil, nil, nil, nil
+foe = mkChar("foe", 0, -8, 0, 1); foe.hpv = 100; foe.info = { Block = true }   -- facing us (+Z), guard up
+HUM.FloorMaterial, HUM.Jump = "Ground", false; WALKED = nil
+check("guard play: a guard in reach is vaulted", tacGuardPlay(foe, 8, CLOCK) == true and Life.vaults == 1)
+CLOCK = CLOCK + 0.1; check("guard play: runs in at a point behind them", tacGuardPlay(foe, 8, CLOCK) == true and WALKED ~= nil and WALKED.Z < -8)
+check("guard play: no jump before the run-in is close", HUM.Jump == false)
+CLOCK = CLOCK + 0.1; tacGuardPlay(foe, 6, CLOCK); check("guard play: jumps on the run-in", HUM.Jump == true)
+ME.HRP.Position = Vector3.new(0, 0, -13); CLOCK = CLOCK + 0.3
+check("guard play: behind them, the swing is released", tacGuardPlay(foe, 5, CLOCK) == false and Life.vaultBehind == 1 and Bot.LastDodge == CLOCK)
+ME.HRP.Position = Vector3.new(0, 0, 0); CLOCK = CLOCK + 0.5
+check("guard play: not vaulted again at once", tacGuardPlay(foe, 8, CLOCK) == false)
+CLOCK = CLOCK + 2.0; WALKED = nil
+check("guard play: a guard held too long is baited", tacGuardPlay(foe, 8, CLOCK) == true and Life.baits == 1)
+CLOCK = CLOCK + 0.1; tacGuardPlay(foe, 8, CLOCK); check("guard play: steps back out of reach", WALKED ~= nil and WALKED ~= "stop" and WALKED.Z > 3)
+CLOCK = CLOCK + 0.1; tacGuardPlay(foe, 12, CLOCK); check("guard play: waits there", WALKED == "stop")
+foe.info = nil; CLOCK = CLOCK + 0.5
+check("guard play: the guard drops and the bait is over", tacGuardPlay(foe, 12, CLOCK) == false and Life.baitPaid == 1 and Bot.Bait == nil)
+Config.TacGuardPlay = false; foe.info = { Block = true }; check("guard play: off is off", tacGuardPlay(foe, 8, CLOCK) == false); Config.TacGuardPlay = true
+-- a jump as a reaction
+reset(); HUM.FloorMaterial, HUM.Jump = "Ground", false
+tacJump(); check("jump: leaves the ground and is counted", HUM.Jump == true and Life.reactJumps == 1)
+HUM.FloorMaterial, HUM.Jump = "Air", false; tacJump(); check("jump: not twice in the air", HUM.Jump == false and Life.reactJumps == 1)
+-- air versions
+reset(); HUM.FloorMaterial, HUM.Jump = "Ground", false; Bot.AirCast, Bot.AirCastNow, Bot.TacConf, Bot.CastCtx = nil, nil, nil, nil
+MoveRules["Shut Up!"] = { min = 0, max = 12, prio = 4, code = 1 }
+check("air: a move with no air version is thrown as it is", knowAirFirst("Twofold Kick", "TKService") == false and HUM.Jump == false)
+check("air: untried, the air version is tried first", knowAirFirst("Shut Up!", "ShutUpService") == true and HUM.Jump == true and Bot.AirCast ~= nil and Bot.HoldUntil > CLOCK)
+knowAirTick(CLOCK + 0.02); check("air: nothing until we are off the ground", #CAST == 0)
+HUM.FloorMaterial = "Air"; CLOCK = CLOCK + 0.1; knowAirTick(CLOCK)
+check("air: thrown once airborne, marked as the air version", CAST[1] == "ShutUpService" and Bot.KnowAirArm == "air" and Bot.AirCast == nil)
+foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100
+pd = { move = "Shut Up!", target = foe, hp0 = 100, at = CLOCK, dist = 6 }; knowStamp(pd, foe); foe.hpv = 88; knowWatch(pd, 0.5); knowBook(pd, 88)
+check("air: the air arm is credited", MEM.facts["Shut Up!"].air.air.n == 1 and MEM.facts["Shut Up!"].air.air.d == 12)
+HUM.FloorMaterial, HUM.Jump = "Ground", false
+MEM.facts["Shut Up!"].air = { ground = { n = 3, d = 21 }, air = { n = 3, d = 36 } }
+check("air: kept when it deals more", knowAirFirst("Shut Up!", "ShutUpService") == true)
+Bot.AirCast = nil; HUM.Jump = false; MEM.facts["Shut Up!"].air = { ground = { n = 3, d = 36 }, air = { n = 3, d = 12 } }
+check("air: dropped when it deals less", knowAirFirst("Shut Up!", "ShutUpService") == false and HUM.Jump == false and Bot.KnowAirArm == "ground")
+Bot.TacConf = true; MEM.facts["Shut Up!"].air = nil; check("air: never in the middle of a string", knowAirFirst("Shut Up!", "ShutUpService") == false); Bot.TacConf = nil
+Bot.AirCast, Bot.HoldUntil = nil, nil
+Life.vaults, Life.vaultBehind, Life.baits, Life.baitPaid, Life.reactJumps, Life.airCasts = 3, 2, 1, 1, 4, 5
+check("jump summary", tacJumpSummary() == " | jumping: vaults 3 (2 got behind), baits 1 (1 dropped the guard), jumped reactions 4, air casts 5", tacJumpSummary())
+
 -- report lines do not error and say what is known
 reset()
 foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100

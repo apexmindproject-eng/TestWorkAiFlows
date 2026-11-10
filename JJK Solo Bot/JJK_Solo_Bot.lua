@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v97"
+local BUILD_TAG = "JJK-SOLO-v98"
 
 local NL = string.char(10)
 
@@ -1046,6 +1046,20 @@ local Config = {
     -- added since, in the same sessions against the same players, and the
     -- results of each are kept in the memory file.
     ABTest = true,
+    -- v98, from watching it play. Players jump over a guard to take the
+    -- back, jump to make a horizontal attack miss, and use the air versions
+    -- of their moves. The bot walked round a blocker in circles (six seconds
+    -- in one case) and never left the ground on purpose.
+    TacGuardPlay = true,        -- against a held guard: vault over it, and if that does not open it, back off and bait
+    TacVaultEvery = 3,          -- seconds between vaults
+    TacVaultFor = 0.9,          -- how long one vault may take
+    TacVaultJumpAt = 7,         -- jump when this close on the run-in
+    TacBaitAfter = 2.5,         -- a guard held this long is not walked round any more: step back
+    TacBaitDist = 12,           -- ... to here, inside dash-punch reach, and wait for it to drop
+    TacBaitFor = 4,
+    ReactJump = true,           -- jumping is one of the reactions tried against rushes, beams, pulls and blasts, and kept where it works
+    KnowAir = true,             -- moves that have an air version: jump first sometimes, keep whichever of ground and air deals more
+    KnowAirTrials = 3,
     KnowCloseDist = 9,          -- 14 before v96: the higher bar now applies only where a swing could be thrown instead
     -- Blocks work when they go up (94 of 143 accepted blocks took a hit), and
     -- the rules below kept them down for 119 of the hits that got in.
@@ -3116,6 +3130,8 @@ function memLifeStart()
     Life.castFaced, Life.castTurned = 0, 0
     tacLifeReset()
     tacABStart()
+    Life.vaults, Life.vaultBehind, Life.baits, Life.baitPaid, Life.reactJumps, Life.airCasts = 0, 0, 0, 0, 0, 0
+    Bot.Vault, Bot.Bait, Bot.TurtleSince, Bot.AirCast = nil, nil, nil, nil
     Life.pbRaised, Life.pbAccepted, Life.pbAbsorbed, Life.pbDelay, Life.pbSwingSkill = 0, 0, 0, 0, 0
     Life.stSec, Life.revPair = {}, {}
     Life.pathSeen, Life.staleFrames, Life.reactLatch = 0, 0, 0
@@ -3484,7 +3500,7 @@ function memLifeEnd()
     tacSessionLine()
     tacABEnd()
     Life.flushN, Life.flushMax = LOG.flushN or 0, LOG.flushMax or 0
-    tail = tail .. tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary() .. tacM1ReachSummary() .. tacProbeSummary() .. tacBlockRefSummary()
+    tail = tail .. tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary() .. tacM1ReachSummary() .. tacProbeSummary() .. tacBlockRefSummary() .. tacJumpSummary()
     debug(string.format(
         "LIFE END: %.0f dmg in %.0fs (%.1f dmg/s, %d moves, %.0f%% engaged, %d blocks, %.0fs stunned) | %s | stunned by: %s | ff: %d held (holds %d/%d, freed %d, sidesteps %d), %.0f dmg + %d stuns in ally lanes | refused %d (rolled back %d), burst %d/%d, kite %.0fs, retreat %.0fs, revs %d, shared %.0f, fps %.0f (worst %.0f ms) | avg %.0f best %.0f over %d lives | samples %d clean / %d shared / %d dirty | fair %.0f | react %d judged / %d crowd / %d retests",
         Life.dmg, dur, Life.dmg / math.max(1, dur), Life.moves,
@@ -4456,10 +4472,10 @@ ReactOptions = {
 
 
     grab    = { "away", "dodge" },
-    pull    = { "block", "away", "dodge" },
-    beam    = { "dodge", "block", "away" },
-    rush    = { "block", "dodge", "away" },
-    aoe     = { "away", "dodge", "block" },
+    pull    = { "block", "away", "dodge", "jump" },
+    beam    = { "dodge", "block", "away", "jump" },
+    rush    = { "block", "dodge", "away", "jump" },
+    aoe     = { "away", "dodge", "block", "jump" },
     counter = { "hold", "away" },
 }
 
@@ -6909,6 +6925,7 @@ function tacM1Tick()
     tacSelfTick(tick())
     tacDashOpenTick(tick())
     tacM1Resolve(tick())
+    if type(knowAirTick) == "function" then knowAirTick(tick()) end
     if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
     local r = MEM.tactics.m1
     if not r then r = { n = 0, h = 0, d = 0 }; MEM.tactics.m1 = r end
@@ -7465,6 +7482,8 @@ function knowStamp(p, t)
     p.myPos = h and h.Position or nil
     Bot.KnowLastPending = p
     if Bot.KnowHoldName == p.move then p.holdArm = Bot.KnowHoldArm end
+    if Bot.KnowAirName == p.move then p.airArm = Bot.KnowAirArm end
+    Bot.KnowAirName = nil
     Bot.KnowHoldName = nil
     p.tDist = p.dist
     -- our own basic attack still in flight would be booked as this move's hit
@@ -7551,6 +7570,11 @@ function knowBook(p, hp1)
         end
     end
     if p.moved then o.mv = (o.mv or 0) + p.moved; o.mvN = (o.mvN or 0) + 1 end
+    if p.airArm and type(o.air) == "table" and type(o.air[p.airArm]) == "table" then
+        local arm = o.air[p.airArm]
+        arm.n = arm.n + 1
+        arm.d = arm.d + math.max(dmg, 0)
+    end
     if p.holdArm and type(o.hold) == "table" and type(o.hold[p.holdArm]) == "table" then
         local arm = o.hold[p.holdArm]
         arm.n = arm.n + 1
@@ -7652,6 +7676,11 @@ function knowLifeReport()
             local tp, hd = o.hold.tap or { n = 0, d = 0 }, o.hold.hold or { n = 0, d = 0 }
             extra = extra .. string.format(" | tapped %.1f dmg x%d, held %.1f dmg x%d",
                 tp.n > 0 and tp.d / tp.n or 0, tp.n, hd.n > 0 and hd.d / hd.n or 0, hd.n)
+        end
+        if type(o.air) == "table" and ((o.air.ground and o.air.ground.n or 0) + (o.air.air and o.air.air.n or 0)) > 0 then
+            local gr, ar = o.air.ground or { n = 0, d = 0 }, o.air.air or { n = 0, d = 0 }
+            extra = extra .. string.format(" | from the ground %.1f dmg x%d, from the air %.1f dmg x%d",
+                gr.n > 0 and gr.d / gr.n or 0, gr.n, ar.n > 0 and ar.d / ar.n or 0, ar.n)
         end
         local spec2 = type(Know.P2) == "table" and Know.P2[senseMoveKey(name)] or nil
         if spec2 and type(o.p2) == "table" then
@@ -8107,6 +8136,7 @@ function tacReactPick(t, move, kind)
     local L = Bot.ReactLatched
     if not (L and L.t == t and L.move == move and (now - L.seen) < (Config.ReactLatchGap or 0.5)) then
         L = { t = t, move = move, at = now, pick = memBestReaction(move, fallback, kind) }
+        if L.pick == "jump" and not Config.ReactJump then L.pick = "dodge" end
         Bot.ReactLatched = L
         Life.reactLatch = (Life.reactLatch or 0) + 1
         -- A dodge learned for a move had no direction of its own. It went
@@ -8587,6 +8617,124 @@ function tacBlockRefSummary()
     return " | blocks not taken: " .. ((#parts > 0) and table.concat(parts, ", ") or "none")
 end
 
+-- ------------------------------------------------------------------ jumping (v98)
+-- Against a guard that stays up. Walking round to the back does not work on
+-- a player, who simply turns. Two things do. A jump over them lands us
+-- behind the 170 degrees a guard covers before they have turned. And if the
+-- guard still holds, stepping back out of reach gives them nothing to
+-- block: they drop it to come after us, and the dash punch is waiting.
+function tacGuardPlay(t, d2d, now)
+    if not Config.TacGuardPlay or not t then return false end
+    local h, th, hum = getHRP(), getHRP(t), getHum()
+    if not (h and th and hum) then return false end
+    if Bot.TurtleT ~= t then Bot.TurtleT, Bot.TurtleSince, Bot.Bait, Bot.Vault = t, nil, nil, nil end
+    d2d = d2d or 99
+    if knowBlocking(t) then
+        Bot.TurtleSince = Bot.TurtleSince or now
+        Bot.TurtleSeenAt = now
+    elseif now - (Bot.TurtleSeenAt or 0) > 0.4 then
+        if Bot.Bait then
+            Life.baitPaid = (Life.baitPaid or 0) + 1
+            debugEvery("bait", 1, string.format("bait: %s dropped the guard after %.1f s", tostring(t.Name), now - Bot.Bait.at))
+        end
+        Bot.TurtleSince, Bot.Bait, Bot.Vault = nil, nil, nil
+        return false
+    end
+    local look = th.CFrame.LookVector
+    local flatLook = Vector3.new(look.X, 0, look.Z)
+    local toUs = Vector3.new(h.Position.X - th.Position.X, 0, h.Position.Z - th.Position.Z)
+    local behind = toUs.Magnitude > 0.1 and toUs.Unit:Dot(flatLook) < -0.2
+    if Bot.Vault then
+        if behind and d2d < 9 then
+            Life.vaultBehind = (Life.vaultBehind or 0) + 1
+            Bot.Vault = nil
+            Bot.LastDodge, Bot.FlankUntil = now, 0       -- opens the flank window: swings are allowed again
+            faceTarget(t, true)
+            debugEvery("vault", 1, string.format("vault: behind %s, swinging", tostring(t.Name)))
+            return false
+        end
+        if now - Bot.Vault.at < (Config.TacVaultFor or 0.9) then
+            walkTo(th.Position - flatLook * 5)
+            if d2d <= (Config.TacVaultJumpAt or 7) and hum.FloorMaterial ~= Enum.Material.Air then hum.Jump = true end
+            return true
+        end
+        Bot.Vault = nil
+    end
+    if Bot.Bait then
+        if now - Bot.Bait.at < (Config.TacBaitFor or 4) then
+            local want = Config.TacBaitDist or 12
+            if toUs.Magnitude > 0.1 and d2d < want - 1 then walkTo(th.Position + toUs.Unit * want) else stopWalking() end
+            faceTarget(t, true)
+            return true
+        end
+        Bot.Bait, Bot.TurtleSince = nil, now
+        return false
+    end
+    if (now - (Bot.TurtleSince or now)) >= (Config.TacBaitAfter or 2.5) then
+        Bot.Bait = { at = now }
+        Life.baits = (Life.baits or 0) + 1
+        debugEvery("bait", 1, string.format("bait: %s has held the guard %.1f s, stepping back to %d studs", tostring(t.Name), now - Bot.TurtleSince, Config.TacBaitDist or 12))
+        return true
+    end
+    if d2d <= 10 and not behind and (now - (Bot.VaultAt or 0)) > (Config.TacVaultEvery or 3) then
+        Bot.Vault, Bot.VaultAt = { at = now }, now
+        Life.vaults = (Life.vaults or 0) + 1
+        debugEvery("vault", 1, string.format("vault: over %s's guard from %.0f studs", tostring(t.Name), d2d))
+        return true
+    end
+    return false
+end
+
+function tacJump()
+    local hum = getHum()
+    if hum and hum.FloorMaterial ~= Enum.Material.Air then
+        hum.Jump = true
+        Life.reactJumps = (Life.reactJumps or 0) + 1
+    end
+end
+
+-- Moves with an air version: the game is told whether we are airborne when
+-- the move goes out, and for many moves that is a different attack (a slam
+-- from above, an instant version). The bot was only ever in the air by
+-- accident. Now it sometimes jumps first, and keeps whichever of ground and
+-- air has dealt more for that move.
+function knowAirFirst(name, service)
+    if not Config.Know or not Config.KnowAir or Bot.AirCastNow or not name then return false end
+    local rule = MoveRules[name]
+    if not (rule and (rule.code == 1 or rule.code == 7)) then return false end
+    if Bot.TacConf or Bot.CastCtx == "counter" then return false end          -- a string or a counter cannot wait for a jump
+    local hum = getHum()
+    if not hum then return false end
+    if type(MEM.facts) ~= "table" then MEM.facts = {} end
+    local o = MEM.facts[name]
+    if not o then o = { n = 0, s = {} }; MEM.facts[name] = o end
+    if type(o.air) ~= "table" then o.air = { ground = { n = 0, d = 0 }, air = { n = 0, d = 0 } } end
+    if hum.FloorMaterial == Enum.Material.Air then
+        Bot.KnowAirName, Bot.KnowAirArm = name, "air"
+        return false
+    end
+    local g, a = o.air.ground, o.air.air
+    local trials = Config.KnowAirTrials or 3
+    local arm = "ground"
+    if a.n < trials and a.n <= g.n then arm = "air"
+    elseif g.n >= trials and a.n >= trials and a.d / a.n > g.d / g.n then arm = "air" end
+    if arm == "ground" then
+        Bot.KnowAirName, Bot.KnowAirArm = name, "ground"
+        return false
+    end
+    hum.Jump = true
+    Bot.AirCast = { service = service, name = name, at = tick() }
+    Bot.HoldUntil = tick() + 0.4
+    Life.airCasts = (Life.airCasts or 0) + 1
+    debugEvery("air:" .. tostring(name), 2, "jumping to throw the air version of " .. tostring(name))
+    return true
+end
+
+function tacJumpSummary()
+    return string.format(" | jumping: vaults %d (%d got behind), baits %d (%d dropped the guard), jumped reactions %d, air casts %d",
+        Life.vaults or 0, Life.vaultBehind or 0, Life.baits or 0, Life.baitPaid or 0, Life.reactJumps or 0, Life.airCasts or 0)
+end
+
 -- ------------------------------------------------------------------ openers (v90)
 -- The front-dash punch: a 20-stud slide into a jab that stuns, on a 6 s
 -- cooldown. It is 12% of the stuns we take and it is how opponents start
@@ -8865,6 +9013,7 @@ local function useSkill(serviceName)
     -- straight out of a block were accepted in the logs), so the block state
     -- goes into the refusal line instead of into the gate.
     if tick() < (Bot.HoldUntil or 0) then return false end
+    if knowAirFirst(m.value.Name, serviceName) then return true end
     if Config.TacCastGate and not (MoveRules[m.value.Name] or DefaultRule).escape then
         if isStunned() or isRagdolled() then
             Life.tacGated = (Life.tacGated or 0) + 1
@@ -13817,6 +13966,21 @@ function knowP2Event(serviceName, key, a1, a2, a3)
     knowP2Schedule(rec, 0)
 end
 
+-- The second half of an air cast: off the ground (or out of time), throw it.
+function knowAirTick(now)
+    local a = Bot.AirCast
+    if not a then return end
+    local hum = getHum()
+    local up = hum and hum.FloorMaterial == Enum.Material.Air
+    local el = now - a.at
+    if not ((up and el >= 0.08) or el > 0.35) then return end
+    Bot.AirCast, Bot.HoldUntil = nil, 0
+    Bot.KnowAirName, Bot.KnowAirArm = a.name, up and "air" or "ground"
+    Bot.AirCastNow = true
+    pcall(useSkill, a.service)
+    Bot.AirCastNow = false
+end
+
 -- ------------------------------------------------------------------ knowledge, acting on it
 -- A counter is the answer to a swing that has already started.
 function knowTryCounter(dv, now, pre)
@@ -16301,6 +16465,7 @@ local function executeState()
     end
 
     if Bot.State == "FLANK" then
+        if tacGuardPlay(t, Bot.Dist2D, tick()) then return end
 
 
 
@@ -16618,6 +16783,13 @@ local function executeState()
             return
         end
 
+        if r == "jump" then
+            -- straight up, on the spot: a sweep or a ground line passes under
+            if not Bot.ReactHelpless then tacJump() end
+            faceTarget(t, true)
+            if Bot.ReactMove then memReactStart(Bot.ReactMove, "jump") end
+            return
+        end
         if r == "hold" then
 
 
@@ -20571,7 +20743,7 @@ do
     end
 end
 
-announce("The Eye HUD on v97 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v98 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 

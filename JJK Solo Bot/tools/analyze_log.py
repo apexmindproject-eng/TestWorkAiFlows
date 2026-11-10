@@ -150,6 +150,10 @@ def report(r):
     if r['know']:
         print('\nMoves (last KNOW line each)')
         for name in sorted(r['know'])[:60]: print('  %-22s %s' % (name[:22], r['know'][name][:210]))
+    jm = collections.Counter()
+    for a, b, c, d, e, f in re.findall(r'jumping: vaults (\d+) \((\d+) got behind\), baits (\d+) \((\d+) dropped the guard\), jumped reactions (\d+), air casts (\d+)', open(r['path'], encoding='utf-8', errors='replace').read()):
+        for k, v in zip(('vaults', 'got behind', 'baits', 'guard dropped', 'jumped reactions', 'air casts'), (a, b, c, d, e, f)): jm[k] += int(v)
+    if jm: print('\nJumping\n  ' + ', '.join('%s %d' % (k, jm[k]) for k in ('vaults', 'got behind', 'baits', 'guard dropped', 'jumped reactions', 'air casts')))
     exp = re.findall(r'EXPERIMENT: [^\n]*', open(r['path'], encoding='utf-8', errors='replace').read())
     if exp: print('\nThe bot\'s own experiment (latest)\n  ' + exp[-1].replace(' | ', '\n  '))
     ref = collections.Counter()

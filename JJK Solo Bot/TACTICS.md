@@ -1,4 +1,4 @@
-# Tactics layer (v85 to v97)
+# Tactics layer (v85 to v98)
 
 The decision core changed in v85. This file says why, what the new rules are,
 and how to tell from a log whether they work.
@@ -661,6 +661,33 @@ EXPERIMENT: A v93 rules: 9 lives, 0.80 dealt for each 1 taken, 0.56 kills a life
 It carries over between sessions. About 20 lives an arm is enough to act on.
 Switch: `ABTest`. With it off, the current rules apply to every life.
 
+## v98: jumping
+
+From the owner watching it play, not from a log: players jump over a guard
+to take the back, jump on the spot to make horizontal attacks miss, use the
+air versions of their moves, and get away or close in by jumping off walls.
+The bot walked round a blocking player in circles, six seconds in one case,
+and never left the ground on purpose.
+
+| Change | What it does | Switch |
+|---|---|---|
+| Vault a held guard | Against a blocking target inside 10 studs the bot runs at a point behind them and jumps on the way in. Behind them, swings are allowed again: a guard covers the front only. At most once every 3 s | `TacGuardPlay` |
+| Bait a guard that will not open | If the guard has been up 2.5 s the bot stops trying to get round it, steps back to 12 studs and waits, facing them. That is inside dash-punch reach. When the guard drops the normal approach takes over, and it opens with the dash punch | `TacGuardPlay` |
+| Jump as a reaction | "Jump" joins block, dodge and back off as a reaction to rushes, beams, pulls and blasts. Each enemy move's reactions are tried and the one that costs the least health is kept, so jumping is learned for the moves it works against | `ReactJump` |
+| Air versions of our own moves | 41 moves tell the game whether we are airborne when they go out, and for many that is a different attack. For those the bot sometimes jumps first, then keeps whichever of ground and air has dealt more for that move. Never in the middle of a string, and never for a counter | `KnowAir` |
+
+New in the life line, and on the `KNOW` line of a move with an air version:
+
+```
+| jumping: vaults 3 (2 got behind), baits 1 (1 dropped the guard), jumped reactions 4, air casts 5
+KNOW Shut Up!: ... | from the ground 7.0 dmg x3, from the air 12.0 dmg x3
+```
+
+Not built: using walls to chase or to get away. The script has a parkour
+call it uses for changing level, and that needs its own look.
+
+The experiment from v97 keeps running. Both of its arms have these changes.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
@@ -673,6 +700,10 @@ Switch: `ABTest`. With it off, the current rules apply to every life.
   the falling hit comes out flat and is booked as flat.
 - Whether a counter thrown the instant a swing is seen is early enough for
   the 0.25 s windows.
+- Whether a jump clears another player in this game. The vault assumes so,
+  from players doing it. `vaults N (M got behind)` will show it.
+- Which attacks a jump on the spot avoids. Not listed anywhere, so it is
+  learned per enemy move.
 - How long each held move must be held. The bot uses 1.4 s for Ultra Cannon,
   where 1.3 s is listed, and a guess for the other three. The tap and hold
   figures on the `KNOW` line show whether the hold did anything.
@@ -693,7 +724,7 @@ Switch: `ABTest`. With it off, the current rules apply to every life.
 
 `tools/test_tactics.py` runs the code against mocked game objects: 76 checks
 on kinematics, prediction, lead, contact, chaining, travel facing, reversal
-damping and the arena, and 343 on knowledge and fight sense: families, target states, beliefs,
+damping and the arena, and 365 on knowledge and fight sense: families, target states, beliefs,
 seeding, the gate, probes, the recorder, timing regression, counters,
 guard-breaks, ground hits, held swings, the fourth hit, late cooldowns,
 second presses, the hit ledger, getting up, awakening, domains, held
