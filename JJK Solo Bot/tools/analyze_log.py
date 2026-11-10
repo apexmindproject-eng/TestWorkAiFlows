@@ -19,6 +19,7 @@ def analyse(path):
     out = {'path': path, 'build': build.group(1) if build else '?', 'lives': len(lives), 'kills': len(re.findall(r'Kill! Total', txt))}
     S = collections.Counter(); chars = collections.Counter(); opens = collections.Counter(); fins = collections.defaultdict(lambda: [0, 0.0])
     stun_by = collections.Counter(); held_why = collections.Counter()
+    state_sec = collections.Counter(); rev_pairs = collections.Counter()
     for L in lives:
         m = re.match(r'LIFE END: ([\d.]+) dmg in ([\d.]+)s \(([\d.]+) dmg/s, (\d+) moves, ([\d.]+)% engaged, (\d+) blocks, ([\d.]+)s stunned\) \| ([^|]*)\|', L)
         if not m: continue
@@ -61,6 +62,24 @@ def analyse(path):
         if mm: out['m1bands'] = mm.group(1); out['m1reach'] = '%s studs (%s)' % (mm.group(2), mm.group(3)); S['cast_turned'] += int(mm.group(4)); S['cast_faced'] += int(mm.group(5))
         mm = re.search(r'dash punches (\d+) \((\d+) landed\)(?: \| took ([\d.]+) dmg)?', L)
         if mm: S['dash'] += int(mm.group(1)); S['dash_hit'] += int(mm.group(2)); S['taken'] += num(mm.group(3))
+        mm = re.search(r'\| path (\d+) computes \(', L)
+        if mm: S['computes'] += int(mm.group(1))
+        # v93: what blocks achieve, time per state, where reversals fall, frames dropped
+        mm = re.search(r'probe: blocks raised/accepted/absorbed (\d+)/(\d+)/(\d+) \(accepted after ([\d.]+) ms\); state s ([^;]*); reversals between ([^;]*); swings in a skill (\d+) of (\d+); log flushes (\d+) \(worst ([\d.]+) ms\)', L)
+        if mm:
+            S['blk_raised'] += int(mm.group(1)); S['blk_accepted'] += int(mm.group(2)); S['blk_absorbed'] += int(mm.group(3))
+            S['blk_delay_sum'] += num(mm.group(4)) * int(mm.group(2))
+            for part in mm.group(5).split(','):
+                pm = re.match(r'\s*(\S+) ([\d.]+)$', part)
+                if pm: state_sec[pm.group(1)] += num(pm.group(2))
+            for part in mm.group(6).split(','):
+                pm = re.match(r'\s*(\S+) x(\d+)$', part)
+                if pm: rev_pairs[pm.group(1)] += int(pm.group(2))
+            S['swing_inskill'] += int(mm.group(7)); S['swing_probe_n'] += int(mm.group(8)); S['flushes'] += int(mm.group(9))
+            S['flush_worst'] = max(S['flush_worst'], num(mm.group(10)))
+        mm = re.search(r'path: (\d+) of (\d+) computes with the target in sight; stale frames (\d+); reactions latched (\d+)', L)
+        if mm: S['path_seen'] += int(mm.group(1)); S['path_n'] += int(mm.group(2)); S['stale'] += int(mm.group(3)); S['latched'] += int(mm.group(4))
+    S['blk_delay_ms'] = round(S['blk_delay_sum'] / S['blk_accepted']) if S['blk_accepted'] else 0
     holds = [(num(a), int(b)) for a, b in re.findall(r'DEFEND held ([\d.]+) s, swings (\d+)', txt)]
     know = {}
     for name, rest in re.findall(r'KNOW (.+?): ([^\n]*)', txt): know[name] = rest
@@ -68,7 +87,12 @@ def analyse(path):
                refused_by=collections.Counter(re.findall(r'refused: (.+?) \(no stamp moved', txt)),
                checks=re.findall(r'research check: [^\n]*', txt), probes=re.findall(r'probe result: [^\n]*', txt),
                late=collections.Counter(re.findall(r'not refused after all: (.+?) started', txt)),
-               hooks=re.findall(r'second press: [A-Z][^\n]*(?:hooked|absent)[^\n]*', txt))
+               hooks=re.findall(r'second press: [A-Z][^\n]*(?:hooked|absent)[^\n]*', txt),
+               state_sec=state_sec, rev_pairs=rev_pairs,
+               flanks=len(re.findall(r'Target blocking', txt)), flank_by=collections.Counter(re.findall(r'Target blocking \(([^)]*)\) -> flanking', txt)),
+               gates=collections.Counter(re.findall(r'\| block stopped by (.+?)(?: \([\d.]+ s more to run\))?, [\d.]+ s before', txt)),
+               chase=[int(d) for nm, d in re.findall(r'DEFEND: \S+ \([^:()]*:([^()]*)\) swinging at us from (\d+) studs', txt) if 'Chase' in nm],
+               health=len(re.findall(r'\] health: \d+% \|', txt)), dodges=len(re.findall(r'\] dodge: [^\n]* - stepping out to the (?:left|right)', txt)))
     return out
 
 def pct(a, b): return '%.0f%%' % (100.0 * a / b) if b else 'n/a'
@@ -85,6 +109,9 @@ def report(r):
             ('Chained casts that landed', '%s (%d of %d)' % (pct(S['confirm_h'], S['confirm_n']), S['confirm_h'], S['confirm_n'])),
             ('Punish casts that landed', '%s (%d of %d)' % (pct(S['punish_h'], S['punish_n']), S['punish_h'], S['punish_n'])),
             ('Basic attacks that landed', '%s (%d of %d, %.0f dmg)' % (pct(S['m1_h'], S['m1_n']), S['m1_h'], S['m1_n'], S['m1_d'])),
+            ('Basic swings per minute', '%.1f' % (60.0 * S['m1_n'] / dur)),
+            ('Flank lines per minute', '%.1f (%d)' % (60.0 * r['flanks'] / dur, r['flanks'])),
+            ('Path computes per minute', '%.1f (%d)' % (60.0 * S['computes'] / dur, S['computes'])),
             ('Casts refused', '%s (%d of %d)' % (pct(S['refused'], S['moves'] + S['refused']), S['refused'], S['moves'] + S['refused'])),
             ('Predicted blocks that met a swing', '%s (%d of %d)' % (pct(S['preguard_met'], S['preguard']), S['preguard_met'], S['preguard'])),
             ('Escapes', '%d of %d tries' % (S['escapes'], S['bursts'])),
@@ -103,7 +130,20 @@ def report(r):
         print('  dash punches %d (%d landed) | wake-up: swung through %d, guarded theirs %d, stunned while immune %d' % (S['dash'], S['dash_hit'], S['wake_swing'], S['wake_guard'], S['wake_stunned']))
         if r.get('m1bands'): print('  swings by distance (career): %s | reach taken as %s' % (r['m1bands'], r['m1reach']))
         if S['cast_faced']: print('  casts that had to be turned onto the target: %d of %d' % (S['cast_turned'], S['cast_faced']))
-    for title, c in (('Where stun time came from', r['stun_by']), ('What we were doing when a hit got in', r['opens']), ('Refused casts by move', r['refused_by']), ('Refusals that were not', r['late'])):
+    if S['blk_raised'] or S['path_n'] or S['stale'] or r['state_sec']:
+        tot = sum(r['state_sec'].values()) or 1; revs = sum(r['rev_pairs'].values()) or 1
+        print('\nMeasurement (v93)')
+        print('  blocks raised %d | taken by the server %d (%s, after %d ms) | took a hit %d (%s of raised)' % (
+            S['blk_raised'], S['blk_accepted'], pct(S['blk_accepted'], S['blk_raised']), S['blk_delay_ms'], S['blk_absorbed'], pct(S['blk_absorbed'], S['blk_raised'])))
+        print('  swings thrown with our own InSkill set: %d of %d (%s)' % (S['swing_inskill'], S['swing_probe_n'], pct(S['swing_inskill'], S['swing_probe_n'])))
+        print('  seconds per state: ' + (', '.join('%s %.0f (%s)' % (k, v, pct(v, tot)) for k, v in r['state_sec'].most_common(14)) or 'none'))
+        print('  reversals fell between (top three of each life): ' + (', '.join('%s x%d (%s)' % (k, v, pct(v, revs)) for k, v in r['rev_pairs'].most_common(6)) or 'none'))
+        print('  path computes %d, %d with the target in sight (%s) | stale frames dropped %d | log flushes %d (worst %.0f ms)' % (
+            S['path_n'], S['path_seen'], pct(S['path_seen'], S['path_n']), S['stale'], S['flushes'], S['flush_worst']))
+        print('  reactions latched %d | aimed dodges %d | health lines %d' % (S['latched'], r['dodges'], r['health']))
+        if r['flank_by']: print('  flank lines by detector: ' + ', '.join('%s x%d' % kv for kv in r['flank_by'].most_common(4)))
+        if r['chase']: print('  front-dash latches %d, first seen at 13 studs or more: %d (%s)' % (len(r['chase']), sum(1 for d in r['chase'] if d >= 13), pct(sum(1 for d in r['chase'] if d >= 13), len(r['chase']))))
+    for title, c in (('Where stun time came from', r['stun_by']), ('What we were doing when a hit got in', r['opens']), ('What stopped a block when a hit got in', r['gates']), ('Refused casts by move', r['refused_by']), ('Refusals that were not', r['late'])):
         if c:
             tot = sum(c.values()); print('\n%s' % title)
             for k, v in c.most_common(9): print('  %4d  %4s  %s' % (v, pct(v, tot), k))
@@ -129,6 +169,11 @@ def compare(rs):
             ('Chained casts landed', cols(rate('confirm_h', 'confirm_n'))),
             ('Chained casts per minute', cols(lambda r: '%.1f' % (60.0 * r['S']['confirm_n'] / (r['S']['dur'] or 1)))),
             ('Basic attacks landed', cols(rate('m1_h', 'm1_n'))),
+            ('Basic swings per minute', cols(lambda r: '%.1f' % (60.0 * r['S']['m1_n'] / (r['S']['dur'] or 1)))),
+            ('Flank lines per minute', cols(lambda r: '%.1f' % (60.0 * r['flanks'] / (r['S']['dur'] or 1)))),
+            ('Path computes per minute', cols(lambda r: '%.1f' % (60.0 * r['S']['computes'] / (r['S']['dur'] or 1)))),
+            ('Blocks taken by the server', cols(rate('blk_accepted', 'blk_raised'))),
+            ('Blocks that took a hit', cols(rate('blk_absorbed', 'blk_raised'))),
             ('Casts refused', cols(lambda r: pct(r['S']['refused'], r['S']['moves'] + r['S']['refused']))),
             ('Predicted blocks met a swing', cols(rate('preguard_met', 'preguard'))),
             ('Escapes of tries', cols(rate('escapes', 'bursts'))),

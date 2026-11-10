@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v92"
+local BUILD_TAG = "JJK-SOLO-v93"
 
 local NL = string.char(10)
 
@@ -251,6 +251,7 @@ local function logFlush(force)
 
     LOG.pending = 0
     LOG.lastFlush = os.clock()
+    local flushT0 = LOG.lastFlush
 
     local header = table.concat({
         "=== JJK AUTO-FIGHT LOG ===", NL,
@@ -262,6 +263,10 @@ local function logFlush(force)
     local ok, err = pcall(function()
         WRITEFILE(LOG.name, header .. table.concat(LOG.lines, NL) .. NL)
     end)
+    -- every flush rewrites the whole log, and debug() can flush in the middle
+    -- of a frame: how often, and how long the worst one took, per life
+    LOG.flushN = (LOG.flushN or 0) + 1
+    LOG.flushMax = math.max(LOG.flushMax or 0, os.clock() - flushT0)
 
     if ok then
         LOG.writes = LOG.writes + 1
@@ -929,7 +934,7 @@ local Config = {
     -- body was held on the target while the feet followed a path.
     TacFaceTravel = true,       -- face the way we are running until in fighting distance
     TacFaceDist = 14,           -- studs from the target at which the body squares up to it
-    TacFaceFlee = 10,           -- when retreating, turn and run once the pursuer is this far
+    TacFaceFlee = 0,            -- when retreating, turn and run at once (10 before v93: backing off facing them is walking pace)
     TacFaceLerp = 0.28,         -- how fast the body turns onto the travel direction
     TacMoveDamp = true,         -- a goal that reverses our direction must persist before it is obeyed
     TacMoveDampFor = 0.2,       -- ... for this many seconds
@@ -990,6 +995,28 @@ local Config = {
     TacM1Probe = true,          -- learn the real reach of a basic attack from which swings land
     TacM1Slack = 1.0,           -- swing on the approach only inside the reach plus this
     TacM1Lead = 0.2,            -- ... or if the gap will have closed this many seconds from now        -- how much less an awakened enemy is worth as a target while we are not           -- tries of each delay before the best one is kept       -- seconds before judging a cast refused, for moves seen to start their cooldown late
+    -- v93, from the design review of v92. The v86 log has more blocks than
+    -- swings in nine lives of ten (385 against 160), and chaining needs three
+    -- landed swings, so that caps everything v85 to v92 added. The first two
+    -- switches take out the two old rules that cause it. The rest measure
+    -- what could not be read from a log, or tidy the approach.
+    FlankInferBlock = false,    -- false: "no damage for 2.5 s" is our own dry spell, not the target blocking
+    ReactLatch = true,          -- one reaction per sighting of a move, kept until it is unseen for ReactLatchGap
+    ReactLatchGap = 0.5,
+    ReactDodgeAim = true,       -- a learned dodge steps out sideways from the attacker, toward the middle (needs ReactLatch)
+    BlockChaseRange = 20,       -- a front-dash aimed at us is guarded from this far, the length of its slide (0 = off)
+    TacBlockProbe = true,       -- count what blocks achieve, time per state, reversal pairs, own health; log only
+    PathLean = true,            -- no stuck time while we cannot walk, the route dropped on stopping, a shorter commit
+    PathLeanCommit = 1.5,       -- seconds a route is followed once something was in the way (PathCommit without PathLean)
+    KillCredit = true,          -- a target's death is our kill only if we dealt KillCreditMin to it since picking it
+    KillCreditMin = 15,
+    RecoverHold = true,         -- after escaping a fight, no new fight is picked until RecoverHoldHP or RecoverHoldFor
+    RecoverHoldHP = 40,
+    RecoverHoldFor = 20,
+    RecoverHoldDist = 30,       -- ... unless somebody within this distance, or somebody hitting us, forces one
+    KnowSeedSkip = true,        -- old career totals are not used as evidence for slow, summoned or two-press moves
+    MemShrinkTries = 6,         -- a move's learned weight is pulled toward the middle until it has this many casts
+    FrameStaleGuard = true,     -- a frame that comes back from a path compute after others have run stops there
     -- The fourth basic hit: "down" (falling: unblockable, reaches the ground),
     -- "up" (rising: launches, longest time down), "flat", "off", or "auto",
     -- which tries each and keeps what pays (damage dealt minus taken after).
@@ -2958,6 +2985,7 @@ function memRateTick(dt, dmgOut, hasTarget, inReach, dmgIn)
 
     Life.frames = (Life.frames or 0) + 1
     if (dt or 0) > (Life.worstDt or 0) then Life.worstDt = dt end
+    tacProbeTick(dt or 0.016)
     if Bot.State == "TEAMKITE" then Life.kiteSec = (Life.kiteSec or 0) + (dt or 0.016)
     elseif Bot.State == "RETREAT" then Life.retreatSec = (Life.retreatSec or 0) + (dt or 0.016)
     elseif Bot.State == "DEFEND" then Life.guardSec = (Life.guardSec or 0) + (dt or 0.016) end
@@ -3044,6 +3072,13 @@ function memLifeStart()
     Bot.UltFullSince, Bot.HoldUntil, Bot.StunWho = nil, nil, nil
     Life.dashOpen, Life.dashOpenHit = 0, 0
     Life.castFaced, Life.castTurned = 0, 0
+    tacLifeReset()
+    Life.pbRaised, Life.pbAccepted, Life.pbAbsorbed, Life.pbDelay, Life.pbSwingSkill = 0, 0, 0, 0, 0
+    Life.stSec, Life.revPair = {}, {}
+    Life.pathSeen, Life.staleFrames, Life.reactLatch = 0, 0, 0
+    Life.flushN, Life.flushMax = 0, 0
+    LOG.flushN, LOG.flushMax = 0, 0
+    Bot.ProbeBlockAt, Bot.GateWhy, Bot.HpSaidAt = nil, nil, nil
     Bot.FaceCastUntil = nil
     Bot.DashOpen = nil
     Bot.P2Last, Bot.KnowLastPending = nil, nil
@@ -3398,7 +3433,8 @@ function memLifeEnd()
     tail = tail .. " | discounted " .. tostring(Life.discounted or "no")
     knowLifeReport()
     tacSessionLine()
-    tail = tail .. tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary() .. tacM1ReachSummary()
+    Life.flushN, Life.flushMax = LOG.flushN or 0, LOG.flushMax or 0
+    tail = tail .. tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary() .. tacM1ReachSummary() .. tacProbeSummary()
     debug(string.format(
         "LIFE END: %.0f dmg in %.0fs (%.1f dmg/s, %d moves, %.0f%% engaged, %d blocks, %.0fs stunned) | %s | stunned by: %s | ff: %d held (holds %d/%d, freed %d, sidesteps %d), %.0f dmg + %d stuns in ally lanes | refused %d (rolled back %d), burst %d/%d, kite %.0fs, retreat %.0fs, revs %d, shared %.0f, fps %.0f (worst %.0f ms) | avg %.0f best %.0f over %d lives | samples %d clean / %d shared / %d dirty | fair %.0f | react %d judged / %d crowd / %d retests",
         Life.dmg, dur, Life.dmg / math.max(1, dur), Life.moves,
@@ -3663,6 +3699,10 @@ end
 
 -- Every cast in flight is watched frame by frame: when the first damage
 -- lands, what the target is left doing, how far the move carried us.
+function memPendingClear()
+    for i = #pending, 1, -1 do pending[i] = nil end
+end
+
 function knowScan(now)
     for i = 1, #pending do
         local p = pending[i]
@@ -4138,6 +4178,11 @@ function memMoveWeight(moveName, t, maxDpt)
     if not maxDpt or maxDpt <= 0 then return 1 end
 
     local norm = math.clamp(dpt / maxDpt, 0, 1)
+    -- A move that lands 27% of the time shows 0 of 3 four times in ten and
+    -- was then ranked below a move never tried. Until it has been cast
+    -- often, its weight is pulled toward the middle.
+    local k = Config.MemShrinkTries or 0
+    if k > 0 then norm = (norm * tries + 0.5 * k) / (tries + k) end
     return 0.55 + 0.9 * norm
 end
 
@@ -4293,6 +4338,14 @@ ReactWatch = nil
 
 function memReactStart(move, reaction)
     if not Config.Memory or not move or not reaction then return end
+    if Config.ReactLatch then
+        -- One watch per reaction. Restarted on every frame, its window only
+        -- began once the reaction was over, so a reaction was scored on the
+        -- damage that came after it.
+        if ReactWatch then return end
+        -- stunned or down, nothing was carried out: there is nothing to score
+        if tacHelpless() then return end
+    end
     ReactWatch = { move = move, reaction = reaction, at = tick(), hp0 = getHP(),
                    crowd = (Bot.Hostiles or 0) > 1 }
 end
@@ -6815,6 +6868,7 @@ function tacM1Tick()
         if type(step) == "number" and Bot.M1Active then
             Life.m1Swings = (Life.m1Swings or 0) + 1
             r.n = r.n + 1
+            if Config.TacBlockProbe and isInSkill() then Life.pbSwingSkill = (Life.pbSwingSkill or 0) + 1 end
             if step >= 2 then tacM1Swing(tick()) end
         end
         Tac.m1Step = step
@@ -7204,7 +7258,7 @@ function knowSeed()
     if type(g) ~= "table" then return end
     for name, m in pairs(g) do
         if type(name) == "string" and type(m) == "table" and not name:find("^SPECIAL:")
-           and (m.tries or 0) >= 4 and MEM.facts[name] == nil then
+           and (m.tries or 0) >= 4 and MEM.facts[name] == nil and not knowSeedSkips(name) then
             local w = math.min(m.tries, Config.KnowSeedCap or 8)
             MEM.facts[name] = { n = 0, seeded = true,
                 s = { free = { n = w, h = math.clamp((m.hits or 0) / m.tries, 0, 1) * w } } }
@@ -7270,6 +7324,12 @@ function knowAllows(entry, t, d2d, ctx)
     if p < (Config.KnowMinP or 0.2) then
         -- an open question (nothing researched, hardly tried) may be asked a
         -- few times a life: that is how the answer gets into the memory
+        -- seeded evidence is second-hand: only casts really made close the question
+        local oS = type(MEM.facts) == "table" and MEM.facts[entry.name] or nil
+        if oS and oS.seeded then
+            local cS = type(oS.s) == "table" and oS.s[state] or nil
+            n = (cS and cS.r) or 0
+        end
         if Config.KnowProbe and not settled and n < (Config.KnowProbeTries or 3)
            and (Life.knowProbes or 0) < (Config.KnowProbePerLife or 3)
            and (now - (Bot.KnowProbeAt or 0)) > (Config.KnowProbeGap or 8) then
@@ -7417,6 +7477,7 @@ function knowBook(p, hp1)
     if not c then c = { n = 0, h = 0 }; o.s[st] = c end
     o.n = (o.n or 0) + 1
     c.n = c.n + 1
+    c.r = (c.r or 0) + 1                -- casts made, as against casts assumed from the old totals
     if hit then
         c.h = c.h + 1
         o.hn = (o.hn or 0) + 1
@@ -7727,9 +7788,10 @@ function tacOpener(who, key)
     if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
     if type(MEM.tactics.open) ~= "table" then MEM.tactics.open = {} end
     MEM.tactics.open[doing] = (MEM.tactics.open[doing] or 0) + 1
-    debugEvery("opener", 0.7, string.format("hit taken: %s from %s studs, %s | we were %s (%s)%s",
+    debugEvery("opener", 0.7, string.format("hit taken: %s from %s studs, %s | we were %s (%s)%s%s",
         key, dist and string.format("%.0f", dist) or "?", side, doing, tostring(st),
-        (now < (Bot.PreGuardRestUntil or 0) and not Bot.BlockActive) and " | a predicted block had just run out" or ""))
+        (now < (Bot.PreGuardRestUntil or 0) and not Bot.BlockActive) and " | a predicted block had just run out" or "",
+        tacGateText(now)))
 end
 
 function tacOpenerSummary()
@@ -7770,6 +7832,7 @@ function tacOwnWake(t)
         Life.wakeSwing = (Life.wakeSwing or 0) + 1
         debugEvery("wakeswing", 2, "wake-up: swinging through, their basic attacks cannot stop ours for half a second")
     end
+    tacBlockGate("our own getting up (swinging through)")
     return true
 end
 
@@ -7967,6 +8030,327 @@ function tacM1ReachSummary()
     return string.format(" | swings by distance: %s; reach taken as %.0f studs%s | casts turned onto the target %d of %d",
         (#parts > 0) and table.concat(parts, ", ") or "none yet", reach, learned and " (measured)" or " (default)",
         Life.castTurned or 0, Life.castFaced or 0)
+end
+
+-- ------------------------------------------------------------------ reactions, latched (v93)
+-- memBestReaction is a draw, not a lookup: a move with an untried option
+-- gets one at random, and a learned move is retested 8% of the time. It was
+-- asked every frame, so the answer changed from one frame to the next: a
+-- block went up, the next frame drew "away", and the block came down. 195 of
+-- the 219 blocks of 0.1 s or less in the v86 log were these.
+-- One sighting of a move now gets one answer. It is kept for this attacker
+-- and this move until the move has gone unseen for ReactLatchGap seconds; a
+-- different move draws again.
+function tacReactPick(t, move, kind)
+    local fallback = DangerPlan[kind] or "block"
+    if not Config.ReactLatch then return memBestReaction(move, fallback, kind) end
+    local now = tick()
+    local L = Bot.ReactLatched
+    if not (L and L.t == t and L.move == move and (now - L.seen) < (Config.ReactLatchGap or 0.5)) then
+        L = { t = t, move = move, at = now, pick = memBestReaction(move, fallback, kind) }
+        Bot.ReactLatched = L
+        Life.reactLatch = (Life.reactLatch or 0) + 1
+        -- A dodge learned for a move had no direction of its own. It went
+        -- wherever the last projectile had sent us, or nowhere, and was
+        -- booked as a dodge all the same.
+        if L.pick == "dodge" and Config.ReactDodgeAim then
+            local dir, side = tacSideVec(getHRP(), t and getHRP(t))
+            L.dir = dir
+            if dir then
+                debugEvery("dodge:" .. tostring(move), 1.0, string.format("dodge: %s from %s - stepping out to the %s",
+                    tostring(move), tostring(t and t.Name or "?"), side))
+            end
+        end
+    end
+    L.seen = now
+    -- written every frame of the sighting: a projectile in between may have
+    -- pointed the dodge somewhere else
+    if L.dir then Bot.ReactDir = L.dir end
+    return L.pick
+end
+
+-- Sideways from an attacker, on the side that leads back toward the middle
+-- of the arena: the choice tacEscapeDir makes, as a direction in the world
+-- instead of a dash key. Returns a flat unit vector and which side it is,
+-- as seen facing the attacker.
+function tacSideVec(h, from)
+    if not (h and from) then return nil end
+    local away = Vector3.new(h.Position.X - from.Position.X, 0, h.Position.Z - from.Position.Z)
+    if away.Magnitude < 0.1 then return nil end
+    away = away.Unit
+    local left = Vector3.new(-away.Z, 0, away.X)
+    local pick, side = left, "left"
+    local centre = type(mapArenaCentre) == "function" and mapArenaCentre() or nil
+    if centre then
+        local toC = Vector3.new(centre.X - h.Position.X, 0, centre.Z - h.Position.Z)
+        if toC.Magnitude > 1 and toC:Dot(left) < 0 then pick, side = left * -1, "right" end
+    elseif math.random() < 0.5 then
+        pick, side = left * -1, "right"
+    end
+    -- a little away as well as across
+    return (pick + away * 0.35).Unit, side
+end
+
+-- Unable to act: stunned or on the ground. Carrying a throwable sets Stun
+-- as well, and a fighter carrying one can do everything, so that is not it.
+function tacHelpless()
+    if not (isStunned() or isRagdolled()) then return false end
+    return not (type(senseHoldingThrowable) == "function" and senseHoldingThrowable())
+end
+
+-- Unable to walk: the above, or held in a move of our own.
+function tacRooted()
+    if type(senseHoldingThrowable) == "function" and senseHoldingThrowable() then return false end
+    return (isStunned() or isRagdolled() or isInSkill()) and true or false
+end
+
+-- How long a raised block is kept whatever the state says next. The guard
+-- against somebody getting up asks for the whole half second in which our
+-- swings cannot stop theirs; the general floor let it go at 0.3 s.
+function tacBlockKeepFor()
+    local keep = Config.TacBlockMin or 0.3
+    if Config.ReactLatch and Bot.WakeGuardAt and Bot.BlockSince
+       and math.abs(Bot.BlockSince - Bot.WakeGuardAt) < 0.05 then
+        keep = math.max(keep, Config.TacWakeWindow or 0.5)
+    end
+    return keep
+end
+
+-- ------------------------------------------------------------------ the dash punch, seen sooner (v93)
+-- The front-dash punch slides 20 studs and the swing sensor looked inside
+-- 12: 14 of the 22 Chase latches in the v86 log were first seen at 10 to 12
+-- studs, which at the speed of the slide is a fifth of a second late. Its
+-- animation now counts from BlockChaseRange out, but beyond the ordinary
+-- range only when the dash is pointed at us (within about 37 degrees, dot
+-- 0.8), or we would stop to guard dashes meant for somebody else.
+function tacChaseSeen(c, nm, dd, range)
+    local far = Config.BlockChaseRange or 0
+    if far <= range or dd > far then return false end
+    if type(nm) ~= "string" or not nm:find("Chase", 1, true) then return false end
+    local h, ch = getHRP(), getHRP(c)
+    if not (h and ch) then return false end
+    local to = h.Position - ch.Position
+    if to.Magnitude < 0.1 then return true end
+    return to.Unit:Dot(ch.CFrame.LookVector) >= 0.8
+end
+
+-- A latch made on a dash from far out is kept out to that range. The
+-- ordinary three studs of slack past the swing range would drop it, and
+-- make it again, on every frame of the slide.
+function tacSwingKeep(range)
+    if Bot.DefendVsFarAt and Bot.DefendVsFarAt == Bot.DefendVsSince then
+        return math.max(range, Config.BlockChaseRange or 0)
+    end
+    return range
+end
+
+-- ------------------------------------------------------------------ measurement (v93)
+-- Questions the logs could not answer, counted so the next one can. Nothing
+-- here changes what the fighter does.
+--   blocks    how many were raised, how many the server took (our own
+--             Info.Block showed within 0.2 s) and how many took a hit
+--             (BlockService.Effects fired for us)
+--   states    seconds in each, and the two states a reversal fell between
+--   swings    how many of ours went out with our own InSkill value set: if
+--             that is most of them, the swing sensor is blind while we attack
+--   health    our own, every 2 s while under half
+--   gates     what stopped a block, named on the "hit taken" line
+function tacProbeBlockUp(now)
+    if not Config.TacBlockProbe then return end
+    Life.pbRaised = (Life.pbRaised or 0) + 1
+    Bot.ProbeBlockAt = now
+end
+
+function tacProbeAbsorbed()
+    if not Config.TacBlockProbe then return end
+    Life.pbAbsorbed = (Life.pbAbsorbed or 0) + 1
+end
+
+-- `untilT` is given where the gate is a timer, so the line can say how long
+-- it still had to run.
+function tacBlockGate(why, untilT)
+    if not Config.TacBlockProbe then return end
+    Bot.GateWhy, Bot.GateAt, Bot.GateUntil = why, tick(), untilT
+end
+
+function tacGateText(now)
+    if not Config.TacBlockProbe or Bot.BlockActive or not Bot.GateWhy then return "" end
+    local ago = now - (Bot.GateAt or 0)
+    if ago > 0.5 then return "" end
+    return string.format(" | block stopped by %s%s, %.2f s before", tostring(Bot.GateWhy),
+        Bot.GateUntil and string.format(" (%.1f s more to run)", Bot.GateUntil - (Bot.GateAt or 0)) or "", ago)
+end
+
+function tacProbeReversal(before, st)
+    if not Config.TacBlockProbe then return end
+    local key = tostring(before or "?") .. ">" .. tostring(st or "?")
+    if type(Life.revPair) ~= "table" then Life.revPair = {} end
+    Life.revPair[key] = (Life.revPair[key] or 0) + 1
+end
+
+function tacProbeTick(dt)
+    if not Config.TacBlockProbe then return end
+    local now = tick()
+    local st = tostring(Bot.State or "?")
+    if type(Life.stSec) ~= "table" then Life.stSec = {} end
+    Life.stSec[st] = (Life.stSec[st] or 0) + (dt or 0.016)
+    -- did the server take the last block?
+    if Bot.ProbeBlockAt then
+        local i = getInfo()
+        if i and (i:FindFirstChild("Block") or i:GetAttribute("Block")) then
+            Life.pbAccepted = (Life.pbAccepted or 0) + 1
+            Life.pbDelay = (Life.pbDelay or 0) + (now - Bot.ProbeBlockAt)
+            Bot.ProbeBlockAt = nil
+        elseif now - Bot.ProbeBlockAt > 0.2 then
+            Bot.ProbeBlockAt = nil
+        end
+    end
+    local hp = getHPPct()
+    if hp > 0 and hp < 50 and now - (Bot.HpSaidAt or 0) >= 2 then
+        Bot.HpSaidAt = now
+        local t = Bot.Target
+        debug(string.format("health: %.0f%% | %s | %s", hp, st,
+            t and string.format("target %s %.0f%% at %.0f studs", tostring(t.Name), getHPPct(t), Bot.Dist2D or -1) or "no target"))
+    end
+end
+
+function tacProbeSummary()
+    local function top(tb, n, fmt)
+        local rows = {}
+        for k, v in pairs(type(tb) == "table" and tb or {}) do rows[#rows + 1] = { k = tostring(k), v = v } end
+        table.sort(rows, function(a, b) if a.v == b.v then return a.k < b.k end return a.v > b.v end)
+        local parts = {}
+        for i = 1, math.min(n, #rows) do parts[#parts + 1] = string.format(fmt, rows[i].k, rows[i].v) end
+        return (#parts > 0) and table.concat(parts, ", ") or "none"
+    end
+    local probe = "off"
+    if Config.TacBlockProbe then
+        local acc = Life.pbAccepted or 0
+        probe = string.format("blocks raised/accepted/absorbed %d/%d/%d (accepted after %.0f ms); state s %s; reversals between %s; swings in a skill %d of %d; log flushes %d (worst %.0f ms)",
+            Life.pbRaised or 0, acc, Life.pbAbsorbed or 0, 1000 * (Life.pbDelay or 0) / math.max(1, acc),
+            top(Life.stSec, 20, "%s %.1f"), top(Life.revPair, 3, "%s x%d"),
+            Life.pbSwingSkill or 0, Life.m1Swings or 0, Life.flushN or 0, 1000 * (Life.flushMax or 0))
+    end
+    return " | probe: " .. probe .. string.format(" | path: %d of %d computes with the target in sight; stale frames %d; reactions latched %d",
+        Life.pathSeen or 0, Life.pathN or 0, Life.staleFrames or 0, Life.reactLatch or 0)
+end
+
+-- ------------------------------------------------------------------ frames that come back late (v93)
+-- A path compute parks the frame that asked for it: 0.28 s on average in the
+-- v86 log, 1.3 s at worst, 8% of a life in all. Other frames run meanwhile.
+-- When the parked one came back it carried on where it had left off, with
+-- the distance, the target and the clock of a quarter second before: a dash
+-- at where the target had been, a second round of swings and dash steering
+-- in one frame, and after a death or a Stop a walker bound again with the
+-- bot off. A frame that finds the counter has moved on while it was away
+-- now stops there. The route it waited for is still adopted, and the
+-- failure counting in navigateTo is as it was.
+Tac.STALE = "STALE"
+
+function tacFrameCheck(seq)
+    if not Config.FrameStaleGuard or seq == Bot.FrameSeq then return end
+    -- the seconds spent parked are taken off a frame's cost further down
+    -- the loop, and this frame never gets there
+    Bot.PathSec = 0
+    error(Tac.STALE, 0)
+end
+
+-- The run itself changed while a frame was parked (stopBot, a death, a
+-- restart): nothing of the old run may be touched.
+function tacEpochCheck(epoch)
+    if Config.FrameStaleGuard and epoch ~= Bot.RunEpoch then error(Tac.STALE, 0) end
+end
+
+function tacStaleCaught(err)
+    if err ~= Tac.STALE then return false end
+    Life.staleFrames = (Life.staleFrames or 0) + 1
+    return true
+end
+
+-- How long a route is followed once something was in the way. At three
+-- seconds the fighter was still on waypoints long after the way was clear:
+-- 32 of 35 pacing lines in path mode had the target in plain sight.
+function tacPathCommit()
+    if Config.PathLean then return Config.PathLeanCommit or 1.5 end
+    return Config.PathCommit or 3
+end
+
+-- ------------------------------------------------------------------ honest books, clean starts (v93)
+-- Any death of our target was booked as our kill: 5 of 19 came within five
+-- seconds of picking the target, one with no damage dealt at all. And our
+-- own death was booked against Bot.Target, which is nobody after an escape.
+-- The matchup memory learned from both.
+function tacKillCredit(t)
+    if not Config.KillCredit then return true end
+    local dealt = (Life.dmg or 0) - (Bot.TargetDmg0 or 0)
+    if dealt >= (Config.KillCreditMin or 15) then return true end
+    debugEvery("nokill", 1, string.format("%s died, not our kill (%.0f dealt since we picked them)", tostring(t and t.Name or "?"), dealt))
+    return false
+end
+
+function tacDeathBy()
+    local a = Bot.Aggressor
+    if Config.KillCredit and a and a.Parent and (tick() - (Bot.AggressorAt or 0)) < 6 then return a end
+    return Bot.Target
+end
+
+-- What must not survive a death: who was threatening us (the killer kept
+-- its full threat score into the next life), casts still waiting to be
+-- booked, the reaction in hand, the route.
+function tacLifeReset()
+    if type(Threat) == "table" then
+        for k in pairs(Threat) do Threat[k] = nil end
+    end
+    if type(memPendingClear) == "function" then memPendingClear() end
+    Bot.ReactDir, Bot.ReactDirAt, Bot.ReactLatched, Bot.RecoverHold = nil, nil, nil, nil
+    if type(clearPath) == "function" then pcall(clearPath) end
+end
+
+-- Escaped, then straight back in: eight of nine escapes in the logs picked a
+-- new target within a quarter of a second, and every life that dropped under
+-- a quarter health ended in death, twenty seconds later at the median.
+-- Health does come back in this game, slowly. So after an escape no new
+-- fight is picked for a while: until health is back to RecoverHoldHP or
+-- RecoverHoldFor seconds have passed. Somebody close, or somebody hitting
+-- us, is still fought. The line at the end gives the measured rate.
+function tacRecoverStart()
+    if not Config.RecoverHold then return end
+    local hp = getHPPct()
+    if hp >= (Config.RecoverHoldHP or 40) then return end
+    Bot.RecoverHold = { at = tick(), hp0 = hp }
+    debugEvery("recoverhold", 1, string.format("recover hold: %.0f%% health, picking no new fight for up to %.0f s", hp, Config.RecoverHoldFor or 20))
+end
+
+function tacRecoverHold()
+    local r = Bot.RecoverHold
+    if not r then return false end
+    local now, hp = tick(), getHPPct()
+    if hp >= (Config.RecoverHoldHP or 40) or (now - r.at) > (Config.RecoverHoldFor or 20) or hp <= 0 then
+        debug(string.format("recover hold over: %.0f s, health %.0f%% to %.0f%% (%+.2f%% a second)",
+            now - r.at, r.hp0, hp, (hp - r.hp0) / math.max(0.1, now - r.at)))
+        Bot.RecoverHold = nil
+        return false
+    end
+    return true
+end
+
+-- May this candidate be picked while holding? Only one that is on us.
+function tacRecoverBars(c, d2d)
+    if not tacRecoverHold() then return false end
+    if (d2d or 0) <= (Config.RecoverHoldDist or 30) then return false end
+    if type(hitterLive) == "function" and hitterLive(c) then return false end
+    return true
+end
+
+-- Old career totals as evidence: not for moves the old build could not have
+-- used properly (two presses, of which it sent one) nor for moves whose
+-- damage comes later than the 0.9 s in which a cast was credited (summons,
+-- traps, things placed at a point).
+function knowSeedSkips(name)
+    if not Config.KnowSeedSkip then return false end
+    if type(Know.P2) == "table" and Know.P2[senseMoveKey(name)] then return true end
+    local kind = knowKind(name)
+    return kind == "summon" or kind == "trap" or kind == "aoe_point"
 end
 
 -- ------------------------------------------------------------------ openers (v90)
@@ -8872,7 +9256,10 @@ function doBlock(hold)
     local dur = hold or Config.BlockDuration
 
 
-    if hold and now - (Bot.BlockReleasedAt or 0) < (Config.DefendCapRest or 0.3) then return end
+    if hold and now - (Bot.BlockReleasedAt or 0) < (Config.DefendCapRest or 0.3) then
+        tacBlockGate("the 0.3 s rest after the last block")
+        return
+    end
     if Bot.BlockActive then
         if hold then
             local cap = (Bot.BlockSince or now) + (Config.BlockHoldMax or 2.0)
@@ -8885,6 +9272,7 @@ function doBlock(hold)
     Life.blocks = (Life.blocks or 0) + 1
     local vs = guardTarget()
     fireRemote("BlockService", "Activated", vs)
+    tacProbeBlockUp(now)
     Bot.BlockTarget = vs
     Bot.BlockActive = true
     Bot.BlockHeld = hold ~= nil
@@ -9459,6 +9847,9 @@ function senseInit()
         pcall(function()
             blk.Effects:Connect(function(char)
                 local c = charOf(char) or char
+                -- fired for us, it is the one word the game gives that a
+                -- block of ours took a hit
+                if c and c == getChar() then tacProbeAbsorbed() end
                 if c and c ~= getChar() then
                     local e = Enemy[c] or {}
                     e.blockedAt = tick()
@@ -11251,45 +11642,43 @@ function trackTargetHP(t)
 end
 
 function isTargetBlocking(t)
+    Bot.BlockSeenBy = nil
     if not t then return false end
-
 
     local i = getInfo(t)
     if i then
-        if i:FindFirstChild("Block") or i:FindFirstChild("Blocking") then return true end
-        if i:GetAttribute("Block") or i:GetAttribute("Blocking") then return true end
+        if i:FindFirstChild("Block") or i:FindFirstChild("Blocking")
+           or i:GetAttribute("Block") or i:GetAttribute("Blocking") then
+            Bot.BlockSeenBy = "guard flag"
+            return true
+        end
     end
 
+    if Config.Sense and senseBlocking(t) then
+        Bot.BlockSeenBy = "block signal or slowed walk"
+        return true
+    end
 
-
-
-
-
-
-
-
-    if Config.Sense and senseBlocking(t) then return true end
-
+    -- "Our basic attack is on and their health has not dropped for 2.5 s"
+    -- used to count as blocking. After an approach, or a stun of our own,
+    -- that is already true, so melee opened in FLANK with swings off: 61
+    -- flank lines against 160 swings in the v86 log. The same rule fed the
+    -- matchup memory, which then shortened its own window ("turtle"). It is
+    -- a dry spell of ours, not a guard of theirs.
+    if not Config.FlankInferBlock then return false end
 
     if not Bot.M1Active then return false end
     if Bot.TargetHPTime == 0 then return false end
-
-
-
-
-
-
-
-
-    if Config.Sense and senseBlocking(t) then return true end
-
-
 
     local window = Config.BlockDetectTime
     if Bot.Plan and Bot.Plan.flankEarly then
         window = window / Config.MemLearnBlock
     end
-    return (tick() - Bot.TargetHPTime) > window
+    if (tick() - Bot.TargetHPTime) > window then
+        Bot.BlockSeenBy = string.format("no damage for %.1f s", window)
+        return true
+    end
+    return false
 end
 
 
@@ -11560,8 +11949,9 @@ function moveStep()
 
         Bot.RevPending = (Bot.RevPending or 0) + 1
         Bot.RevGoal = goal
+        tacProbeReversal(Bot.MoveDirState, Bot.State)
     end
-    Bot.MoveDirPrev, Bot.MoveDirAt = dir, nowM
+    Bot.MoveDirPrev, Bot.MoveDirAt, Bot.MoveDirState = dir, nowM, Bot.State
     local cam = Workspace.CurrentCamera
     if cam then
         if cam.CameraType ~= Enum.CameraType.Scriptable then
@@ -11645,6 +12035,10 @@ end
 
 function stopWalking()
     Bot.Path = nil
+    -- Bot.Path is read by nobody. The waypoints are what the walker follows,
+    -- and left in place they were walked again while the next route was
+    -- still being worked out.
+    if Config.PathLean then clearPath() end
     Bot.WalkGoal = nil
     Bot.DetourGoal = nil
     local hum = getHum()
@@ -11890,6 +12284,7 @@ function computePath(destination, goalKey)
 
 
     local t0 = os.clock()
+    local epoch = Bot.RunEpoch
     local ok, path = pcall(function()
         local pth = PathfindingService:CreatePath({
             AgentRadius = 3,
@@ -11900,6 +12295,9 @@ function computePath(destination, goalKey)
         pth:ComputeAsync(h.Position, destination)
         return pth
     end)
+    -- Stopped, or stopped and started again, while this was parked: the busy
+    -- flag belongs to the new run now, and this frame to nobody.
+    tacEpochCheck(epoch)
     Bot.PathBusy = false
     do
         local sec = os.clock() - t0
@@ -12165,7 +12563,7 @@ function spreadGoal(t, goal)
     return Vector3.new(tp.X + best.X * r, goal.Y, tp.Z + best.Z * r)
 end
 
-function navigateTo(t, destination)
+function navigateToInner(t, destination)
     local now = tick()
     if t == Bot.Target then destination = leashGoal(destination) else Bot.Leashed = false end
     if t == Bot.Target then
@@ -12201,7 +12599,7 @@ function navigateTo(t, destination)
     local blockedNow = (not clear) or Bot.StuckTime >= 0.5
                        or (h0 ~= nil and probeBlocked(h0.Position, destination))
     if blockedNow then
-        Bot.PathCommitUntil = math.max(Bot.PathCommitUntil or 0, now + (Config.PathCommit or 3))
+        Bot.PathCommitUntil = math.max(Bot.PathCommitUntil or 0, now + tacPathCommit())
     elseif now > (Bot.PathCommitUntil or 0) then
         clearPath()
         Bot.NavMode = "straight"
@@ -12227,6 +12625,7 @@ function navigateTo(t, destination)
 
     if needNew then
         Bot.PathTargetPos = destination
+        if clear then Life.pathSeen = (Life.pathSeen or 0) + 1 end
         if not computePath(destination) then
 
 
@@ -12275,6 +12674,7 @@ function navigateTo(t, destination)
                 local flat = h3 and Vector3.new(destination.X - h3.Position.X, 0, destination.Z - h3.Position.Z)
                 if h3 and flat and flat.Magnitude > 1 then
                     local stone = h3.Position + flat.Unit * (Config.FarPathStep or 60)
+                    if clear then Life.pathSeen = (Life.pathSeen or 0) + 1 end
                     if computePath(stone, destination) then
                         Bot.PathTargetPos = destination
                         Bot.LastPathCompute = now
@@ -12384,6 +12784,16 @@ function navigateTo(t, destination)
     if not followPath() then
         walkOrSteer(destination)
     end
+end
+
+-- The way in for everybody else. A path compute inside parks this frame
+-- while later ones run. When it comes back the route has been adopted and
+-- the failure counting above is done, and that is all a late frame should
+-- do: see tacFrameCheck.
+function navigateTo(t, destination)
+    local seq = Bot.FrameSeq
+    navigateToInner(t, destination)
+    tacFrameCheck(seq)
 end
 
 
@@ -12973,7 +13383,7 @@ function tacIncoming()
         return false
     end
     if now < (Bot.PreGuardRestUntil or 0) or Bot.BlockActive then return false end
-    if isInSkill() then return false end
+    if isInSkill() then tacBlockGate("a move of our own (InSkill is set)") return false end
     local h = getHRP()
     if not h then return false end
     local me, tgt, myPos = getChar(), Bot.Target, h.Position
@@ -13539,7 +13949,7 @@ function senseSwingerNear(range)
 
     Bot.DefendVsSwinging = false
     if not Config.UseBlock or not AnimMapReady then Bot.DefendVs = nil; return nil end
-    if isInSkill() then Bot.DefendVs = nil; return nil end
+    if isInSkill() then tacBlockGate("a move of our own (InSkill is set)"); Bot.DefendVs = nil; return nil end
     local now = tick()
     local h = getHRP()
     if not h then Bot.DefendVs = nil; return nil end
@@ -13551,7 +13961,7 @@ function senseSwingerNear(range)
         local capAt = (Bot.DefendVsSince or now) + (Config.DefendVsMax or 1.6)
 
         if ch and now < (Bot.DefendVsUntil or 0) and now < capAt
-           and (ch.Position - myPos).Magnitude <= range + 3 then
+           and (ch.Position - myPos).Magnitude <= tacSwingKeep(range) + 3 then
             local sw, nm = false, nil
             if isTargetFacingUs(cur) then sw, nm = senseMeleeSwing(cur) end
             if sw then
@@ -13570,21 +13980,29 @@ function senseSwingerNear(range)
         Bot.DefendVs = nil
         if now >= capAt then Bot.DefendVsRest = now + (Config.DefendCapRest or 0.3) end
     end
-    if now < (Bot.DefendVsRest or 0) then return nil end
+    if now < (Bot.DefendVsRest or 0) then
+        tacBlockGate("the rest after a dropped guard", Bot.DefendVsRest)
+        return nil
+    end
 
 
 
 
 
-    if not Bot.BlockActive and now - (Bot.BlockReleasedAt or 0) < (Config.DefendCapRest or 0.3) then return nil end
+    if not Bot.BlockActive and now - (Bot.BlockReleasedAt or 0) < (Config.DefendCapRest or 0.3) then
+        tacBlockGate("the 0.3 s rest after the last block")
+        return nil
+    end
 
     local best, bestD, bestSwing = nil, range, nil
+    -- a front-dash is looked for further out than a swing: see tacChaseSeen
+    local far = math.max(range, Config.BlockChaseRange or 0)
     local me = getChar()
     for _, c in ipairs(Bot.HitCandidates or {}) do
         if c ~= me and c.Parent then
             local ch = getHRP(c)
             local dd = ch and (ch.Position - myPos).Magnitude
-            if dd and dd < bestD and isAlive(c) then
+            if dd and (dd < bestD or (not best and dd <= far)) and isAlive(c) then
                 local p = Players:GetPlayerFromCharacter(c)
 
 
@@ -13593,7 +14011,7 @@ function senseSwingerNear(range)
                                       or (isIgnoredPlayer(p.Name) and Bot.Aggressor ~= c))
                 if not friend and isTargetFacingUs(c) then
                     local sw, nm = senseMeleeSwing(c)
-                    if sw then best, bestD, bestSwing = c, dd, nm end
+                    if sw and (dd < range or tacChaseSeen(c, nm, dd, range)) then best, bestD, bestSwing = c, dd, nm end
                 end
             end
         end
@@ -13601,6 +14019,7 @@ function senseSwingerNear(range)
     if best then
         Bot.DefendVs = best
         Bot.DefendVsSince = now
+        Bot.DefendVsFarAt = (bestD >= range) and now or nil
         Bot.DefendVsUntil = now + (Config.DefendLatch or 0.6)
         Bot.DefendVsSwinging = true
         Bot.LastSwingAt = now
@@ -13723,6 +14142,7 @@ function scoreCandidate(c, myPos)
 
     local d2d = getDist2D(myPos, ch.Position)
     local dy  = math.abs(getDistY(myPos, ch.Position))
+    if tacRecoverBars(c, d2d) then return nil end      -- just escaped and still hurt: no new fight at a distance
 
 
 
@@ -14106,6 +14526,7 @@ local function setTarget(c, now, why)
         Bot.TargetHPTime = now
         Bot.TargetSince = now
         Bot.LastTargetSwitch = now
+        Bot.TargetDmg0 = Life.dmg or 0
         if c then memNewEncounter(c) end
     end
     Bot.Target = c
@@ -14575,7 +14996,7 @@ local function updateTarget()
 
     if Bot.Target and not isValidTarget(Bot.Target) and not targetBlinking(Bot.Target)
        and not hitterLive(Bot.Target) then
-        if not isAlive(Bot.Target) then
+        if not isAlive(Bot.Target) and tacKillCredit(Bot.Target) then
             Bot.Kills = Bot.Kills + 1
             memNoteKill(Bot.Target)
             debug("Kill! Total: " .. Bot.Kills)
@@ -14849,7 +15270,7 @@ local function updateState()
         if move then
             Bot.State = "REACT"
             Bot.ReactPrevMelee = inMeleeState
-            Bot.Reacting = memBestReaction(move, DangerPlan[kind] or "block", kind)
+            Bot.Reacting = tacReactPick(t, move, kind)
             Bot.ReactMove = move
             Bot.ReactKind = kind
             return
@@ -14894,12 +15315,12 @@ local function updateState()
 
 
                 if Bot.SeekChar and Bot.SeekChar.Parent
-                   and (Bot.Attackers or 0) == 0 then
+                   and (Bot.Attackers or 0) == 0 and not tacRecoverHold() then
                     local sh = getHRP(Bot.SeekChar)
                     if sh then goal, why = sh.Position, "seek" end
                 end
 
-                if not goal and tick() > (Bot.HuntGoalAt or 0) then
+                if not goal and not tacRecoverHold() and tick() > (Bot.HuntGoalAt or 0) then
                     Bot.HuntGoalAt = tick() + 4
                     Bot.HuntGoal = mapBestHunt(h2.Position)
                     if not Bot.HuntGoal then
@@ -14996,7 +15417,10 @@ local function updateState()
 
 
 
-        if Bot.WalkGoal and Bot.WalkActive then
+        -- Stunned, down or held in a move, we are not stuck: we are not
+        -- walking. Counted as stuck, it sent the next approach round by
+        -- waypoints with nothing in the way.
+        if Bot.WalkGoal and Bot.WalkActive and not (Config.PathLean and tacRooted()) then
             local gd = getDist2D(h.Position, Bot.WalkGoal) or 0
             if Bot.StuckRef and (getDist2D(h.Position, Bot.StuckRef) or 0) < 1.5 then
                 Bot.StuckTime = Bot.StuckTime + (Bot.FrameDelta or 0.016)
@@ -15089,6 +15513,10 @@ local function updateState()
 
     local canGuard = hp >= Config.RetreatHP and tick() >= (Bot.PunishUntil or 0)
                      and tick() >= (Bot.GangedUntil or 0) + (Config.DefendGangedGrace or 1.0)
+    if not canGuard then
+        tacBlockGate((hp < Config.RetreatHP) and "health under RetreatHP"
+            or ((tick() < (Bot.PunishUntil or 0)) and "a punish window of ours" or "the ganged hold"))
+    end
 
 
 
@@ -15302,7 +15730,7 @@ local function updateState()
         Bot.FlankUntil = tick() + Config.FlankTime; Bot.FlankDashed = false
         Bot.State = "FLANK"
         stopM1()
-        debugEvery("flank", 2.0, "Target blocking -> flanking")
+        debugEvery("flank", 2.0, "Target blocking (" .. tostring(Bot.BlockSeenBy) .. ") -> flanking")
     elseif shouldBlock(t, d) then
         Bot.State = "DEFEND"
         stopM1()
@@ -15325,7 +15753,7 @@ local function executeState()
             -- stay behind it that long. A dodge, a grab or a swap to another
             -- attacker is not made to wait.
             if Config.TacBlockKeep and not swapped
-               and (tick() - (Bot.BlockSince or 0)) < (Config.TacBlockMin or 0.3)
+               and (tick() - (Bot.BlockSince or 0)) < tacBlockKeepFor()
                and not (Bot.State == "REACT" and (Bot.Reacting == "dodge" or Bot.Reacting == "grabbed"))
                and Bot.State ~= "CCED" and Bot.State ~= "DEAD" then
                 if not Bot.BlockKeptSaid then
@@ -15621,9 +16049,11 @@ local function executeState()
     local now = tick()
 
     if not isAlive(t) then
-        Bot.Kills = Bot.Kills + 1
-        memNoteKill(t)
-        debug("Kill! Total: " .. Bot.Kills)
+        if tacKillCredit(t) then
+            Bot.Kills = Bot.Kills + 1
+            memNoteKill(t)
+            debug("Kill! Total: " .. Bot.Kills)
+        end
         Bot.Target = nil
         Bot.UsedSkillsThisFight = {}
         stopM1()
@@ -15865,6 +16295,12 @@ local function executeState()
 
     if Bot.State == "REACT" then
         local r = Bot.Reacting
+        -- Stunned or on the ground, nothing asked for here is carried out.
+        -- A block or a dash sent now is turned down and still costs its
+        -- rest timer; the v86 log has five blocks raised between two escape
+        -- attempts, while we were down. The branches still run: skipping
+        -- them would hand the frame to LEVEL, PERCHED or AWAKEN.
+        Bot.ReactHelpless = Config.ReactLatch and tacHelpless() or false
 
         if r == "grabbed" then
 
@@ -15891,7 +16327,7 @@ local function executeState()
                 if t then faceTarget(t, true) end
             elseif dir and h2 then
 
-                if not Bot.ReactSoft then dashWorld(dir) end
+                if not Bot.ReactSoft and not Bot.ReactHelpless then dashWorld(dir) end
                 walkTo(h2.Position + dir * (Bot.ReactSoft and 12 or 18))
             end
             if Bot.ReactMove then memReactStart(Bot.ReactMove, "dodge") end
@@ -15899,6 +16335,7 @@ local function executeState()
         end
 
         if r == "block" then
+            if Bot.ReactHelpless then tacBlockGate("a stun (we were held or down)") return end
             if tick() < (Bot.KnowCounterUntil or 0) then return end
             if Bot.ReactKind == "rush" and t and knowTryCounter(t, tick(), false) then return end
 
@@ -15907,6 +16344,8 @@ local function executeState()
                 doBlock(Config.BlockHold or 0.9)
             elseif tick() - (Bot.LastBlock or 0) > Config.BlockCooldown then
                 doBlock(Config.BlockHold or 0.9)
+            else
+                tacBlockGate("the block cooldown")
             end
 
 
@@ -15935,7 +16374,7 @@ local function executeState()
                 local awayV = h2.Position - th2.Position
                 if awayV.Magnitude > 0.1 then
                     awayV = awayV.Unit
-                    dashWorld(awayV)
+                    if not Bot.ReactHelpless then dashWorld(awayV) end
                     walkTo(h2.Position + awayV * 24)
                 end
             end
@@ -16678,7 +17117,7 @@ local function stuckArc(h, goal, side)
     Bot.DetourGoal = arcGoal
     Bot.DetourUntil = tick() + (Config.DetourHold or 1.5) + 1
     Bot.NavMode = "detour"
-    Bot.PathCommitUntil = tick() + (Config.PathCommit or 3) + 2
+    Bot.PathCommitUntil = tick() + tacPathCommit() + 2
     walkTo(arcGoal)
     debugEvery("arc", 2, string.format("arc: side=%s clear=%.0f run=%.0f", (side > 0) and "L" or "R", bestClear, run))
     return true
@@ -16757,7 +17196,7 @@ local function handleStuck()
 
         clearPath()
         Bot.LastPathCompute = 0
-        Bot.PathCommitUntil = now + (Config.PathCommit or 3) + 2
+        Bot.PathCommitUntil = now + tacPathCommit() + 2
 
 
 
@@ -16917,6 +17356,11 @@ local function startBot()
 
     Config.Enabled = true
     Bot.StartTime = tick()
+    -- A frame of the last run may still be parked in a path compute. It
+    -- must find the run has changed, and it will not hand back the busy
+    -- flag, so that is cleared here.
+    Bot.RunEpoch = (Bot.RunEpoch or 0) + 1
+    Bot.PathBusy = false
     Bot.LastPos = getHRP() and getHRP().Position or Vector3.zero
     Bot.State = "IDLE"
     startBodyLock()
@@ -16959,6 +17403,7 @@ local function startBot()
     connection = RunService.Heartbeat:Connect(function(dt)
         local ok, err = pcall(function()
             Bot.FrameDelta = dt or 0.016
+            Bot.FrameSeq = (Bot.FrameSeq or 0) + 1       -- which frame this is: see tacFrameCheck
 
 
 
@@ -17151,6 +17596,7 @@ local function startBot()
                 if (Bot.FleeClearFor or 0) > Config.FleeEscapedFor then
                     debugEvery("escaped", 4,
                         "escaped " .. Bot.FleeingFrom.Name .. " - finding someone else")
+                    tacRecoverStart()
                     Bot.BadTargets[Bot.FleeingFrom] = tick()
                     if Bot.Aggressor == Bot.FleeingFrom then Bot.Aggressor = nil end
                     Bot.Target = nil
@@ -17225,7 +17671,8 @@ local function startBot()
                 if frame > (Life.cpuMax or 0) then Life.cpuMax = frame end
             end
         end)
-        if not ok then
+        -- a frame that stopped itself because it came back late is not an error
+        if not ok and not tacStaleCaught(err) then
             debug("ERROR: " .. tostring(err))
         end
     end)
@@ -17269,6 +17716,7 @@ local function stopBot()
     Bot.DetourGoal = nil
     Bot.Leashed = false
     Bot.LeashPoint = nil
+    Bot.RunEpoch = (Bot.RunEpoch or 0) + 1
     Bot.PathBusy = false
     Bot.LaneHold = nil
     Bot.AllyLane = nil
@@ -19900,7 +20348,7 @@ do
     end
 end
 
-announce("The Eye HUD on v92 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v93 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 
@@ -19955,7 +20403,7 @@ local function onDeath(char, source)
 
 
 
-    memNoteDeath(Bot.Target)
+    memNoteDeath(tacDeathBy())
     memLifeEnd()
     autoOnDeath()
     memSave(true, "death")

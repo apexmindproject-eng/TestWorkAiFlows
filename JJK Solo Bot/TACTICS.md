@@ -1,4 +1,4 @@
-# Tactics layer (v85 to v92)
+# Tactics layer (v85 to v93)
 
 The decision core changed in v85. This file says why, what the new rules are,
 and how to tell from a log whether they work.
@@ -394,6 +394,69 @@ sense only while our own swings were still coming. If the string has not
 moved for 0.6 s, because somebody else caused the stun or our swings are
 locked out, the chain casts at once as it did before v87.
 
+## v93: the older code, reviewed
+
+Five reviewers each read one older subsystem against the real logs: target
+choice and the state machine, mapping and navigation, defence and reactions,
+the learning memory, and performance. A sixth then argued with all five,
+re-checked their main claims in the code, ruled on where they collided with
+each other or with v85 to v92, and returned one build list. All six reports
+are in `review/`. `review/agreed.md` is the list.
+
+What the challenger found that the five had missed:
+
+| Measure, v86 log | Value |
+|---|---|
+| Basic swings thrown | 160 |
+| Blocks raised | 385 |
+| Lives with more blocks than swings | 9 of 10 |
+
+The fighter hardly swings. Chaining needs three landed swings, so that caps
+everything v85 to v92 added. Two old rules cause most of it and both are
+fixed first.
+
+| Built | What was wrong | Switch |
+|---|---|---|
+| No flanking on our own dry spells | "No damage for 2.5 s" counted as the target blocking. After an approach or a stun that is already true, so melee opened with swings off. 210 flank lines in 54 minutes; in about half the target was attacking | `FlankInferBlock` |
+| One reaction per sighting | The reaction to an enemy skill was drawn afresh every frame, at random where a move had under 3 samples. Block went up one frame and down the next. 195 of the 219 blocks of 0.1 s or less came from this | `ReactLatch` |
+| Nothing sent while stunned | Blocks and dashes were requested while down, refused, and still cost their rest timers | `ReactLatch` |
+| A learned dodge has a direction | It used the last projectile's escape direction, or none | `ReactDodgeAim` |
+| The dash punch is seen from 20 studs | It was looked for inside 12. Its slide is 20. 14 of 22 were first seen at the edge | `BlockChaseRange` |
+| Routes only when something is in the way | The stuck timer ran while stunned or casting, which sent the next approach round by waypoints. 20 route calculations a minute, 32 of 35 with the target in plain sight | `PathLean` |
+| A frame that wakes up late stops | A route calculation parks its frame for 0.28 s on average. The woken frame fired dashes and swings on old distances, and could restart movement with the bot off | `FrameStaleGuard` |
+| Honest kills and deaths | Any target death was our kill, 5 of 19 within 5 s of picking the target. Deaths were booked to the target, which is nobody after an escape | `KillCredit` |
+| Clean start to a life | The killer kept its full threat score into the next life. Pending casts, the reaction and the route also survived | n/a |
+| Turn and run at once | Retreat kept the body on the pursuer inside 10 studs, at walking pace. Half of all deaths were failed retreats one or two cells away | `TacFaceFlee` |
+| Recover after an escape | 8 of 9 escapes picked a new target within a quarter second, and all 11 lives that dropped under 25% health died, 20 s later at the median. Now no new fight is picked until 40% health or 20 s, unless somebody is within 30 studs or hitting us | `RecoverHold` |
+| Old totals are not evidence for slow moves | Damage landing more than 0.9 s after a cast was never credited, so summons and multi-hit moves were scored as misses, and v87 seeded its beliefs from those scores. Summons, traps, placed moves and two-press moves are no longer seeded, and a seeded belief can now be re-tested | `KnowSeedSkip` |
+| Steadier early weights | A move that lands 27% of the time shows 0 of 3 four times in ten, and was then ranked below a move never tried. A weight is pulled toward the middle until the move has 6 casts | `MemShrinkTries` |
+
+Measurement added, so the next log can settle what this one could not:
+
+```
+| probe: blocks raised/accepted/absorbed 40/31/12 (accepted after 85 ms); state s ATTACK 31.0, APPROACH 22.4, ...; reversals between ATTACK>DEFEND x9, ...; swings in a skill 3 of 44; log flushes 12 (worst 9 ms) | path: 2 of 9 computes with the target in sight; stale frames 4; reactions latched 17
+health: 23% | RETREAT | target Name 61% at 14 studs
+hit taken: ... | block stopped by the 0.3 s rest after the last block, 0.12 s before
+recover hold over: 20 s, health 22% to 36% (+0.70% a second)
+```
+
+How to read it:
+
+- `raised/accepted/absorbed`: if accepted is far below raised, blocks are
+  being refused. If absorbed is far below accepted, they are late or aimed
+  wrong. This is the first direct measure of whether blocking works.
+- `swings in a skill`: if most swings show it, the game marks us as busy
+  while we attack and the swing sensor is blind exactly then.
+- `state s`: where each life is spent. Swings per minute should rise well
+  above the 10 of v86.
+- `block stopped by`: names the timer or rule that kept a block from going up.
+
+Left for the next log, each with the evidence that would settle it: extending
+the reversal damper across states, blocking at low health, a stronger matchup
+penalty, making the knowledge layer the only judge of a move, a wider credit
+window, and character choice by results. `review/agreed.md` lists the
+evidence each one needs.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
@@ -426,12 +489,14 @@ locked out, the chain casts at once as it did before v87.
 
 `tools/test_tactics.py` runs the code against mocked game objects: 76 checks
 on kinematics, prediction, lead, contact, chaining, travel facing, reversal
-damping and the arena, and 208 on knowledge and fight sense: families, target states, beliefs,
+damping and the arena, and 297 on knowledge and fight sense: families, target states, beliefs,
 seeding, the gate, probes, the recorder, timing regression, counters,
 guard-breaks, ground hits, held swings, the fourth hit, late cooldowns,
 second presses, the hit ledger, getting up, awakening, domains, held
 versions, dash openers, escape direction, string lengths, the session line
-and the measured reach of a basic attack. It
+the measured reach of a basic attack, and the v93 review items: the reaction
+latch, dodge direction, dash-punch range, late frames, kill credit, respawn
+resets, the recover hold and seeding. It
 needs Python with `lupa`:
 
 ```

@@ -303,6 +303,20 @@ function getSpecialRule() return SPECIAL end
 function isSpecialReady() return true end
 function useSpecial() CAST[#CAST + 1] = "SPECIAL"; return true end
 MEM.global = { moves = {} }
+-- v93: reactions, carrying, and a path compute that can park the frame
+DangerPlan = { grab = "away", pull = "block", beam = "dodge", rush = "block", aoe = "away", counter = "hold" }
+PICKS, PICKN = {}, 0
+function memBestReaction(move, fallback, kind) PICKN = PICKN + 1; return PICKS[PICKN] or fallback end
+function senseHoldingThrowable() return ME.holding == true end
+Enum.PathStatus = { Success = "Success" }
+YIELD = false
+PathfindingService = { CreatePath = function()
+    return { Status = "Success",
+             ComputeAsync = function() if YIELD then coroutine.yield() end end,
+             GetWaypoints = function() return { { Position = Vector3.new(0, 0, 0) }, { Position = Vector3.new(0, 0, -10) } } end }
+end }
+function firstWaypointAhead() return 2 end
+function clearPath() Bot.Path, Bot.PathPoints, Bot.PathIndex = nil, nil, 1 end
 """
 KTESTS = r"""
 function debug(msg) LOG[#LOG + 1] = msg end
@@ -834,6 +848,271 @@ check("reach: a blocked swing says nothing about reach", MEM.tactics.m1r["2"].n 
 check("reach: the life line shows the bands", tacM1ReachSummary():find("swings by distance: 2%-4 10/10, 4%-6 6/10, 6%-8 1/10, 10%-12 0/10; reach taken as 6 studs %(measured%)") ~= nil, tacM1ReachSummary())
 Config.TacM1Probe = false; check("reach: off uses the default", (tacM1Reach()) == 7); Config.TacM1Probe = true
 
+-- v93: one reaction per sighting of a move
+do
+    reset(); Config.ReactLatch, Config.ReactLatchGap, Config.ReactDodgeAim = true, 0.5, false
+    local foeA, foeB = mkChar("foeA", 0, -6, 0, 1), mkChar("foeB", 4, -6, 0, 1)
+    PICKS, PICKN = { "block", "away", "dodge", "hold", "away", "block" }, 0
+    local r1 = tacReactPick(foeA, "Rush", "rush")
+    CLOCK = CLOCK + 1/60; local r2 = tacReactPick(foeA, "Rush", "rush")
+    CLOCK = CLOCK + 1/60; local r3 = tacReactPick(foeA, "Rush", "rush")
+    check("latch: the same move on consecutive frames gets one answer", r1 == "block" and r2 == "block" and r3 == "block" and PICKN == 1,
+        string.format("%s %s %s after %d draws", r1, r2, r3, PICKN))
+    CLOCK = CLOCK + 0.3
+    check("latch: a gap under half a second does not break it", tacReactPick(foeA, "Rush", "rush") == "block" and PICKN == 1)
+    CLOCK = CLOCK + 1/60
+    check("latch: a different move draws again", tacReactPick(foeA, "Beam", "beam") == "away" and PICKN == 2)
+    CLOCK = CLOCK + 1/60
+    check("latch: and that answer is kept in its turn", tacReactPick(foeA, "Beam", "beam") == "away" and PICKN == 2)
+    CLOCK = CLOCK + 0.6
+    check("latch: unseen for half a second, the next sighting draws again", tacReactPick(foeA, "Beam", "beam") == "dodge" and PICKN == 3)
+    CLOCK = CLOCK + 1/60
+    check("latch: the same move from somebody else is another sighting", tacReactPick(foeB, "Beam", "beam") == "hold" and PICKN == 4)
+    check("latch: sightings are counted", Life.reactLatch == 4, Life.reactLatch)
+    PICKS, PICKN = {}, 0
+    CLOCK = CLOCK + 1
+    check("latch: nothing learned falls back on the plan for the family", tacReactPick(foeB, "Grab", "grab") == "away" and tacReactPick(foeB, "Odd", nil) == "block")
+    Config.ReactLatch = false; PICKN = 0
+    tacReactPick(foeB, "Beam", "beam"); tacReactPick(foeB, "Beam", "beam")
+    check("latch: off draws on every frame, as before", PICKN == 2)
+    Config.ReactLatch = true
+end
+
+-- v93: a learned dodge has a direction
+do
+    reset(); Config.ReactDodgeAim = true
+    local keepCentre = mapArenaCentre
+    local foeA = mkChar("foeA", 0, -6, 0, 1)                        -- in front of us
+    mapArenaCentre = function() return Vector3.new(50, 0, 0) end
+    local sv, side = tacSideVec(ME.HRP, foeA.HRP)
+    check("dodge: sideways from the attacker, toward the middle", sv.X > 0.9 and sv.Z > 0 and near(sv.Magnitude, 1, 0.001) and side == "right",
+        string.format("%.2f,%.2f %s", sv.X, sv.Z, tostring(side)))
+    mapArenaCentre = function() return Vector3.new(-50, 0, 0) end
+    sv, side = tacSideVec(ME.HRP, foeA.HRP)
+    check("dodge: the other side when the middle is there", sv.X < -0.9 and sv.Z > 0 and side == "left")
+    check("dodge: no attacker, no direction", tacSideVec(ME.HRP, nil) == nil)
+    PICKS, PICKN = { "dodge", "block" }, 0; LOG = {}
+    check("dodge: latching a dodge sets where to", tacReactPick(foeA, "Beam", "beam") == "dodge" and Bot.ReactDir ~= nil and Bot.ReactDir.X < -0.9)
+    check("dodge: the log line names the side", LOG[1] ~= nil and LOG[1]:find("dodge: Beam from foeA - stepping out to the left", 1, true) ~= nil, LOG[1])
+    Bot.ReactDir = Vector3.new(0, 0, 1); CLOCK = CLOCK + 1/60; tacReactPick(foeA, "Beam", "beam")
+    check("dodge: kept for the sighting, whatever wrote over it", Bot.ReactDir.X < -0.9)
+    CLOCK = CLOCK + 1; Bot.ReactDir = Vector3.new(0, 0, 1)
+    check("dodge: a block leaves the direction alone", tacReactPick(foeA, "Beam", "beam") == "block" and Bot.ReactDir.Z == 1)
+    Config.ReactDodgeAim = false; PICKS, PICKN = { "dodge" }, 0; CLOCK = CLOCK + 1
+    tacReactPick(foeA, "Beam", "beam"); check("dodge: off is off", Bot.ReactDir.Z == 1)
+    Config.ReactDodgeAim = true; mapArenaCentre = keepCentre
+end
+
+-- v93: stunned or down, unless merely carrying something
+do
+    reset()
+    check("helpless: free to act", tacHelpless() == false and tacRooted() == false)
+    ME.stun = true; check("helpless: stunned", tacHelpless() == true and tacRooted() == true)
+    ME.holding = true; check("helpless: carrying a throwable sets Stun and is not it", tacHelpless() == false and tacRooted() == false)
+    ME.holding = nil; ME.stun = nil; ME.rag = true; check("helpless: on the ground", tacHelpless() == true and tacRooted() == true)
+    ME.rag = nil; ME.inSkill = true
+    check("helpless: in a move of our own we cannot walk but are not helpless", tacHelpless() == false and tacRooted() == true)
+    ME.inSkill = nil
+    -- the guard against somebody getting up keeps its half second
+    Config.TacBlockMin, Config.TacWakeWindow = 0.3, 0.5
+    Bot.BlockSince = CLOCK; check("keep: an ordinary block is kept 0.3 s", tacBlockKeepFor() == 0.3)
+    Bot.WakeGuardAt = CLOCK; check("keep: the wake-up guard its whole window", tacBlockKeepFor() == 0.5)
+    Bot.BlockSince = CLOCK + 2; check("keep: the next block is ordinary again", tacBlockKeepFor() == 0.3)
+    Bot.BlockSince = Bot.WakeGuardAt; Config.ReactLatch = false; check("keep: off is off", tacBlockKeepFor() == 0.3)
+    Config.ReactLatch = true
+end
+
+-- v93: the dash punch from further out
+do
+    reset(); Config.BlockChaseRange = 20
+    local dasher = mkChar("dasher", 0, -18, 0, 1)                   -- 18 studs in front, looking straight at us
+    check("chase: a dash aimed at us is seen from 18 studs", tacChaseSeen(dasher, "Chase", 18, 12) == true)
+    check("chase: an ordinary swing is not", tacChaseSeen(dasher, "Melee1", 18, 12) == false)
+    check("chase: nor a dash from beyond its slide", tacChaseSeen(dasher, "Chase", 21, 12) == false)
+    dasher.HRP.CFrame.LookVector = Vector3.new(0.7071, 0, 0.7071)   -- 45 degrees off
+    check("chase: nor a dash aimed past us", tacChaseSeen(dasher, "Chase", 18, 12) == false)
+    dasher.HRP.CFrame.LookVector = Vector3.new(0.5, 0, 0.866)       -- 30 degrees off
+    check("chase: 30 degrees off still counts", tacChaseSeen(dasher, "MeleeChase", 18, 12) == true)
+    Config.BlockChaseRange = 0; check("chase: 0 switches it off", tacChaseSeen(dasher, "Chase", 18, 12) == false)
+    Config.BlockChaseRange = 20
+    Bot.DefendVsSince, Bot.DefendVsFarAt = CLOCK, CLOCK
+    check("chase: a latch made far out is kept that far out", tacSwingKeep(12) == 20)
+    Bot.DefendVsSince = CLOCK + 1; check("chase: the next latch is an ordinary one", tacSwingKeep(12) == 12)
+    check("route: followed for 1.5 s once something was in the way", (function() Config.PathLean = true; return tacPathCommit() end)() == 1.5)
+    check("route: three seconds with the switch off", (function() Config.PathLean, Config.PathCommit = false, 3; return tacPathCommit() end)() == 3)
+    Config.PathLean = true
+end
+
+-- v93: the measurement pack
+do
+    reset(); Config.TacBlockProbe, Config.TacM1Probe = true, false
+    Bot.State = "DEFEND"
+    tacProbeBlockUp(CLOCK); CLOCK = CLOCK + 0.05; tacProbeTick(0.05)
+    check("probe: a block not yet taken is pending", Life.pbRaised == 1 and (Life.pbAccepted or 0) == 0 and Bot.ProbeBlockAt ~= nil)
+    ME.info = { Block = true }; CLOCK = CLOCK + 0.05; tacProbeTick(0.05)
+    check("probe: our own Block inside 0.2 s is an accepted block", Life.pbAccepted == 1 and Bot.ProbeBlockAt == nil and near(Life.pbDelay, 0.1, 0.001))
+    ME.info = nil; tacProbeBlockUp(CLOCK); CLOCK = CLOCK + 0.25; tacProbeTick(0.25)
+    ME.info = { Block = true }; CLOCK = CLOCK + 0.05; tacProbeTick(0.05); ME.info = nil
+    check("probe: one that shows after 0.2 s is not", Life.pbRaised == 2 and Life.pbAccepted == 1)
+    tacProbeAbsorbed(); check("probe: a hit taken on the block is counted", Life.pbAbsorbed == 1)
+    Bot.State = "ATTACK"; tacProbeTick(1.5)
+    check("probe: seconds in each state", near(Life.stSec.DEFEND, 0.4, 0.001) and near(Life.stSec.ATTACK, 1.5, 0.001))
+    tacProbeReversal("APPROACH", "DEFEND"); tacProbeReversal("APPROACH", "DEFEND"); tacProbeReversal("DEFEND", "APPROACH"); tacProbeReversal(nil, "ATTACK")
+    check("probe: reversals by the two states they fell between", Life.revPair["APPROACH>DEFEND"] == 2 and Life.revPair["DEFEND>APPROACH"] == 1 and Life.revPair["?>ATTACK"] == 1)
+    Tac.m1Step = nil; Bot.M1Active = true
+    ME.attrs.CurrentM1 = 1; tacM1Tick(); ME.inSkill = true; ME.attrs.CurrentM1 = 2; tacM1Tick(); ME.inSkill = nil
+    check("probe: swings thrown with our own InSkill set", Life.m1Swings == 2 and Life.pbSwingSkill == 1,
+        string.format("%s of %s", tostring(Life.pbSwingSkill), tostring(Life.m1Swings)))
+    local fullPct = getHPPct
+    getHPPct = function(c) if c then return fullPct(c) end return 34 end
+    LOG = {}; Bot.State = "RETREAT"; tacProbeTick(0.016); tacProbeTick(0.016)
+    check("probe: our health is logged while under half", #LOG == 1 and LOG[1]:find("health: 34% | RETREAT | no target", 1, true) ~= nil, LOG[1])
+    CLOCK = CLOCK + 2.1; tacProbeTick(0.016); check("probe: every two seconds", #LOG == 2)
+    getHPPct = fullPct; CLOCK = CLOCK + 2.1; tacProbeTick(0.016); check("probe: not above half", #LOG == 2)
+    Config.TacBlockProbe = false; tacProbeBlockUp(CLOCK); tacProbeAbsorbed(); tacProbeTick(1); tacProbeReversal("A", "B")
+    check("probe: off counts nothing", Life.pbRaised == 2 and Life.pbAbsorbed == 1 and Life.revPair["A>B"] == nil and near(Life.stSec.RETREAT, 0.064, 0.001))
+    Config.TacBlockProbe, Config.TacM1Probe = true, true
+end
+
+-- v93: what stopped a block is named on the hit line
+do
+    reset(); Config.TacBlockProbe, Config.TacLedger = true, true
+    local hitter = mkChar("hitter", 0, -6, 0, 1)
+    Tac.lastState = "ATTACK"; Tac.selfWokeAt = 0; Tac.m1StepAt = 0
+    tacBlockGate("the 0.3 s rest after the last block"); CLOCK = CLOCK + 0.1
+    LOG = {}; tacOpener(hitter, "Todo:Melee1")
+    check("gate: named on the hit line", LOG[1]:find("| block stopped by the 0.3 s rest after the last block, 0.10 s before", 1, true) ~= nil, LOG[1])
+    CLOCK = CLOCK + 1; LOG = {}; tacOpener(hitter, "Todo:Melee1")
+    check("gate: an old gate is not blamed", LOG[1]:find("block stopped", 1, true) == nil, LOG[1])
+    tacBlockGate("the rest after a dropped guard", CLOCK + 2.5); LOG = {}; tacOpener(hitter, "Todo:Melee1")
+    check("gate: a timer says how long it had to run", LOG[1]:find("block stopped by the rest after a dropped guard (2.5 s more to run), 0.00 s before", 1, true) ~= nil, LOG[1])
+    Bot.BlockActive = true; LOG = {}; tacOpener(hitter, "Todo:Melee1")
+    check("gate: nothing stopped a block that was up", LOG[1]:find("block stopped", 1, true) == nil, LOG[1])
+    Bot.BlockActive = false
+end
+
+-- v93: a frame parked in a path compute does not carry on when it comes back.
+-- computePath and navigateTo are the file's own; the compute is a coroutine yield.
+do
+    reset(); Config.FrameStaleGuard = true
+    Bot.FrameSeq, Bot.RunEpoch, Bot.PathSec, Bot.PathBusy = 0, 1, 0, false
+    local dashed, walked, errs = 0, 0, {}
+    navigateToInner = function(t, dest) computePath(dest); walked = walked + 1 end
+    local function frame()
+        local co = coroutine.create(function()
+            local ok, err = pcall(function()
+                Bot.FrameSeq = Bot.FrameSeq + 1
+                navigateTo(nil, Vector3.new(0, 0, -40))
+                dashed = dashed + 1                     -- what executeState does after navigateTo
+            end)
+            if not ok and not tacStaleCaught(err) then errs[#errs + 1] = tostring(err) end
+        end)
+        local okR, errR = coroutine.resume(co)
+        if not okR then errs[#errs + 1] = tostring(errR) end
+        return co
+    end
+    YIELD = false; frame()
+    check("stale: a compute that does not park changes nothing", dashed == 1 and walked == 1 and (Life.staleFrames or 0) == 0 and #errs == 0, errs[1])
+    Bot.PathPoints = nil
+    YIELD = true; local parked = frame()
+    check("stale: the frame is parked in the compute", coroutine.status(parked) == "suspended" and Bot.PathBusy == true and dashed == 1)
+    YIELD = false; frame()
+    check("stale: other frames run meanwhile", dashed == 2 and walked == 2 and Bot.PathBusy == true)
+    coroutine.resume(parked)
+    check("stale: back, it adopts the route it waited for", coroutine.status(parked) == "dead" and Bot.PathPoints ~= nil and Bot.PathBusy == false and walked == 3)
+    check("stale: and stops there, no dash on old numbers", dashed == 2 and Life.staleFrames == 1 and #errs == 0 and Bot.PathSec == 0, errs[1])
+    -- stopped and started again while parked
+    YIELD = true; parked = frame()
+    Bot.RunEpoch = Bot.RunEpoch + 1; Bot.PathBusy = true            -- the new run has a compute of its own in flight
+    coroutine.resume(parked)
+    check("stale: a frame of the last run touches nothing", Bot.PathBusy == true and walked == 3 and dashed == 2 and Life.staleFrames == 2 and #errs == 0, errs[1])
+    Bot.PathBusy = false
+    local realErr = pcall(function() tacEpochCheck(Bot.RunEpoch); tacFrameCheck(Bot.FrameSeq) end)
+    check("stale: no change, no marker", realErr == true)
+    check("stale: a real error is still an error", tacStaleCaught("attempt to index a nil value") == false and Life.staleFrames == 2)
+    -- switched off: the old behaviour
+    Config.FrameStaleGuard = false
+    YIELD = true; parked = frame(); YIELD = false; frame(); coroutine.resume(parked)
+    check("stale: off, the parked frame carries on as it used to", dashed == 4 and Life.staleFrames == 2 and #errs == 0, errs[1])
+    Config.FrameStaleGuard = true; YIELD = false
+end
+
+-- v93: the new part of the life line
+do
+    reset(); Config.TacBlockProbe = true
+    Life.pbRaised, Life.pbAccepted, Life.pbAbsorbed, Life.pbDelay = 12, 9, 4, 0.9
+    Life.stSec = { ATTACK = 41.26, APPROACH = 30, CCED = 22.5 }
+    Life.revPair = { ["APPROACH>DEFEND"] = 9, ["DEFEND>APPROACH"] = 7, ["ATTACK>REACT"] = 3, ["IDLE>IDLE"] = 1 }
+    Life.pbSwingSkill, Life.m1Swings, Life.flushN, Life.flushMax = 12, 84, 31, 0.014
+    Life.pathSeen, Life.pathN, Life.staleFrames, Life.reactLatch = 12, 20, 18, 7
+    local pl = tacProbeSummary()
+    check("life line: blocks raised, accepted, absorbed", pl:find("blocks raised/accepted/absorbed 12/9/4 (accepted after 100 ms);", 1, true) ~= nil, pl)
+    check("life line: seconds per state, longest first", pl:find("state s ATTACK 41.3, APPROACH 30.0, CCED 22.5;", 1, true) ~= nil, pl)
+    check("life line: the top three reversal pairs", pl:find("reversals between APPROACH>DEFEND x9, DEFEND>APPROACH x7, ATTACK>REACT x3;", 1, true) ~= nil, pl)
+    check("life line: swings and flushes", pl:find("swings in a skill 12 of 84; log flushes 31 (worst 14 ms)", 1, true) ~= nil, pl)
+    check("life line: path and frames", pl:find("| path: 12 of 20 computes with the target in sight; stale frames 18; reactions latched 7", 1, true) ~= nil, pl)
+    Life = { tac = {} }
+    check("life line: an empty life does not error", tacProbeSummary():find("blocks raised/accepted/absorbed 0/0/0 (accepted after 0 ms); state s none; reversals between none;", 1, true) ~= nil, tacProbeSummary())
+    Config.TacBlockProbe = false
+    check("life line: the probe says when it is off", tacProbeSummary():find("| probe: off | path: 0 of 0", 1, true) ~= nil, tacProbeSummary())
+    Config.TacBlockProbe = true
+end
+
+-- honest books and clean starts (v93, second half)
+reset(); Config.KillCredit, Config.KillCreditMin = true, 15
+foe = mkChar("foe", 0, -6, 0, 1)
+Bot.TargetDmg0 = 40; Life.dmg = 44
+check("kill: a death we barely touched is not our kill", tacKillCredit(foe) == false)
+Life.dmg = 70; check("kill: one we dealt real damage to is", tacKillCredit(foe) == true)
+Config.KillCredit = false; Life.dmg = 40; check("kill: off counts everything", tacKillCredit(foe) == true); Config.KillCredit = true
+local killer = mkChar("killer", 3, 3, 0, 1); Bot.Target = foe; Bot.Aggressor, Bot.AggressorAt = killer, CLOCK - 2
+check("death: booked to whoever was hitting us", tacDeathBy() == killer)
+Bot.AggressorAt = CLOCK - 20; check("death: not to an attacker from long ago", tacDeathBy() == foe)
+Bot.Target = nil; Bot.AggressorAt = CLOCK - 1; check("death: with no target left, still the attacker", tacDeathBy() == killer)
+Threat = { [foe] = 30, [killer] = 34 }; CLEARED = 0
+memPendingClear = function() CLEARED = CLEARED + 1 end; clearPath = function() CLEARED = CLEARED + 10 end
+Bot.ReactDir, Bot.ReactLatched, Bot.RecoverHold = Vector3.new(1, 0, 0), { move = "x" }, { at = 0, hp0 = 10 }
+tacLifeReset()
+check("respawn: threat, pending casts, the reaction and the route are dropped",
+    next(Threat) == nil and CLEARED == 11 and Bot.ReactDir == nil and Bot.ReactLatched == nil and Bot.RecoverHold == nil)
+-- the recover hold
+reset(); Config.RecoverHold, Config.RecoverHoldHP, Config.RecoverHoldFor, Config.RecoverHoldDist = true, 40, 20, 30
+local realHP, realHitter = getHPPct, hitterLive
+MYHP = 22; getHPPct = function(c) if c then return c.hp or 100 end return MYHP end
+hitterLive = function(c) return c.hitting == true end
+check("hold: not in force until an escape", tacRecoverHold() == false)
+tacRecoverStart(); check("hold: starts after an escape while hurt", tacRecoverHold() == true)
+local far, near, biter = mkChar("far", 0, -60, 0, 1), mkChar("near", 0, -10, 0, 1), mkChar("biter", 0, -60, 0, 1); biter.hitting = true
+check("hold: no new fight at a distance", tacRecoverBars(far, 60) == true)
+check("hold: somebody close is still fought", tacRecoverBars(near, 10) == false)
+check("hold: somebody hitting us is still fought", tacRecoverBars(biter, 60) == false)
+MYHP = 45; LOG = {}; check("hold: over once health is back", tacRecoverHold() == false and Bot.RecoverHold == nil)
+check("hold: the rate of recovery is logged", #LOG == 1 and LOG[1]:find("recover hold over") ~= nil and LOG[1]:find("22%% to 45%%") ~= nil, LOG[1])
+MYHP = 22; tacRecoverStart(); CLOCK = CLOCK + 21; check("hold: or once the time is up", tacRecoverHold() == false)
+MYHP = 80; tacRecoverStart(); check("hold: not started at good health", Bot.RecoverHold == nil)
+Config.RecoverHold = false; MYHP = 10; tacRecoverStart(); check("hold: off is off", Bot.RecoverHold == nil and tacRecoverBars(far, 60) == false)
+Config.RecoverHold = true; getHPPct, hitterLive = realHP, realHitter
+-- seeds
+reset(); Config.KnowSeedSkip = true
+MoveRules["Nue"] = { min = 0, max = 60, prio = 3, summon = true }
+MEM.global.moves["Transcend"] = { tries = 6, hits = 0 }
+MEM.global.moves["Nue"] = { tries = 19, hits = 2 }
+MEM.global.moves["Reversal Red"] = { tries = 20, hits = 2 }
+knowChance("Reversal Red", "free")
+check("seed: an ordinary move is still seeded", MEM.facts["Reversal Red"] ~= nil and MEM.facts["Reversal Red"].seeded == true)
+check("seed: a two-press move the old build only tapped is not", MEM.facts["Transcend"] == nil)
+check("seed: a summon whose damage comes late is not", MEM.facts["Nue"] == nil)
+-- seeded evidence does not close a question: real casts do
+foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100; Config.KnowProbe = true
+local okS = knowAllows(entry("Reversal Red"), foe, 6, "neutral")
+check("seed: a seeded low belief can still be probed", okS == true and Bot.KnowProbePending ~= nil)
+for i = 1, 3 do
+    local q = { move = "Reversal Red", target = foe, hp0 = 100, at = CLOCK, dist = 6 }
+    knowStamp(q, foe); knowBook(q, 100)
+end
+Life.knowProbes, Bot.KnowProbeAt = 0, 0
+check("seed: three real misses close it", knowAllows(entry("Reversal Red"), foe, 6, "neutral") == false)
+
 -- report lines do not error and say what is known
 reset()
 foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100
@@ -854,6 +1133,10 @@ lua.execute(KMOCK)
 lua.execute(core)
 lua.execute(src[a4:b4])
 lua.execute(combat)
+# v93: the file's own computePath and the navigateTo wrapper, for the parked-frame test
+a5 = src.index('function computePath(destination, goalKey)'); b5 = src.index('function followPath()')
+a6 = src.index('function navigateTo(t, destination)'); b6 = src.index('\nend\n', a6) + 5
+lua.execute(src[a5:b5]); lua.execute(src[a6:b6])
 a3 = src.index('ArenaRef = { at = 0, centre = nil }'); b3 = src.index('function mapOutOfArena(pos)'); b3 = src.index('\nend', b3) + 5
 lua.execute('''
 function debug() end
@@ -883,8 +1166,12 @@ tail = lua.eval('''(function()
         knowHeld = 11, knowWhy = { block = 6, rag = 2 }, knowProbes = 2, knowCounter = 1, knowBreak = 3, knowGround = 2, m1HeldSec = 4.4,
         fin = { down = { n = 2, net = 9 }, up = { n = 1, net = -4 } }, lateStamp = 1, p2Sent = 4, p2Cast = 5, p2Lost = 1,
         open = { ["mid-swing"] = 6, ["after a cast"] = 3, ["closing in"] = 2 }, openN = 11, wakeSwing = 2, wakeGuard = 3, wakeStunned = 0,
-        holdCasts = 1, ultWaited = 9, dashOpen = 4, dashOpenHit = 3, taken = 180, castFaced = 12, castTurned = 5 }
-    return tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary() .. tacM1ReachSummary()
+        holdCasts = 1, ultWaited = 9, dashOpen = 4, dashOpenHit = 3, taken = 180, castFaced = 12, castTurned = 5,
+        pbRaised = 12, pbAccepted = 9, pbAbsorbed = 4, pbDelay = 0.9, pbSwingSkill = 7, flushN = 31, flushMax = 0.014,
+        stSec = { ATTACK = 41.26, APPROACH = 30, CCED = 22.5 }, revPair = { ["APPROACH>DEFEND"] = 9, ["DEFEND>APPROACH"] = 7, ["ATTACK>REACT"] = 3, ["IDLE>IDLE"] = 1 },
+        pathSeen = 12, pathN = 20, staleFrames = 18, reactLatch = 7 }
+    Config.TacBlockProbe = true
+    return tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary() .. tacM1ReachSummary() .. tacProbeSummary()
 end)()''')
 import os, tempfile, importlib.util
 spec = importlib.util.spec_from_file_location('analyze_log', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'analyze_log.py'))
@@ -894,8 +1181,12 @@ with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as fh:
     tmp = fh.name
 r = al.analyse(tmp); os.unlink(tmp); S = r['S']
 want = dict(held=11, probes=2, kcounters=1, breaks=3, ground=2, late=1, p2_sent=4, p2_cast=5, p2_lost=1, openN=11, wake_swing=2, wake_guard=3,
-            hold_casts=1, dash=4, dash_hit=3, taken=180, cast_turned=5, cast_faced=12, confirm_h=4, confirm_n=5, neutral_n=8, m1_n=30, m1_h=14, combos=5, preguard=6, preguard_met=3, refused=2)
+            hold_casts=1, dash=4, dash_hit=3, taken=180, cast_turned=5, cast_faced=12, confirm_h=4, confirm_n=5, neutral_n=8, m1_n=30, m1_h=14, combos=5, preguard=6, preguard_met=3, refused=2,
+            blk_raised=12, blk_accepted=9, blk_absorbed=4, blk_delay_ms=100, swing_inskill=7, swing_probe_n=30, flushes=31, flush_worst=14,
+            path_seen=12, path_n=20, stale=18, latched=7)
 rt = [k for k, v in want.items() if S[k] != v]
 if r['opens'].get('mid-swing') != 6 or r['fins']['down'][0] != 2 or r['stun_by'].get('front-dash punch') != 1: rt.append('categories')
-print('analyser round trip: %d fields, %d wrong %s' % (len(want) + 1, len(rt), rt if rt else ''))
+if abs(r['state_sec'].get('ATTACK', 0) - 41.3) > 0.01 or r['state_sec'].get('CCED') != 22.5 or len(r['state_sec']) != 3: rt.append('state seconds')
+if r['rev_pairs'].get('APPROACH>DEFEND') != 9 or r['rev_pairs'].get('ATTACK>REACT') != 3 or len(r['rev_pairs']) != 3: rt.append('reversal pairs')
+print('analyser round trip: %d fields, %d wrong %s' % (len(want) + 3, len(rt), rt if rt else ''))
 sys.exit(1 if (fails or kfails or rt) else 0)
