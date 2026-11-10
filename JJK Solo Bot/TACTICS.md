@@ -686,6 +686,18 @@ KNOW Shut Up!: ... | from the ground 7.0 dmg x3, from the air 12.0 dmg x3
 Not built: using walls to chase or to get away. The script has a parkour
 call it uses for changing level, and that needs its own look.
 
+Looked up afterwards (web search extracts, not the pages themselves):
+
+| Question | What the sources say |
+|---|---|
+| Which attacks can be jumped over | Nothing found. No wiki page or guide lists it. Learning it per enemy move, as v98 does, is the only route for now |
+| Wall jumps | Run alongside a wall holding jump and a direction; the character runs along it and jumps off. Three in a row at 66% health or more, two from 33% to 66%, one below 33% |
+| Landing roll | Press jump just before landing from a high fall to roll forward and keep momentum. The roll is longer the higher the fall |
+| Walls in a fight | A wall jump can carry a player past an enemy to land behind them |
+| Air versions that are named | Shut Up! (slam from above), Stockpile (hammer strike, unblockable), Cursed Strikes (dropkick), Crushing Blow (air grab), Dismantle (diagonal slash), Lapse Blue MAX, Reversal Red MAX. All are among the 41 moves the air trial already covers |
+
+Sources: the game wiki's Controls and Mechanics and character pages, NamuWiki, and GameRant's wall-run guide.
+
 The experiment from v97 keeps running. Both of its arms have these changes.
 
 ## What is not known
