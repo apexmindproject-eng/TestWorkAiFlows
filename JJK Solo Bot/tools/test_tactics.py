@@ -294,6 +294,10 @@ end
 function fireRemote(svc, sig, value, extra) FIRED[#FIRED + 1] = svc .. "." .. sig end
 function buildExtra() return nil end
 function typeof(x) if type(x) == "table" and x.IsA then return "Instance" end return type(x) end
+ULT, AWAKE = 0, false
+function getUltMeter() return ULT end
+function isAwakened() return AWAKE end
+function isTargetFacingUs(c) return c.facing ~= false end
 SPECIAL = nil
 function getSpecialRule() return SPECIAL end
 function isSpecialReady() return true end
@@ -652,6 +656,89 @@ check("p2: off is off", Bot.P2Last == nil and #QUEUE == 0 and knowVerifyDelay("T
 Config.KnowSecondPress = true
 -- a move that has no second press
 knowP2Cast("Twofold Kick", "TwofoldKickService", { Name = "Twofold Kick" }); check("p2: one-press moves are left alone", Bot.P2Last == nil)
+
+-- the ledger: what we were doing when a hit got in
+reset(); Config.TacLedger, Config.TacWake, Config.TacWakeWindow = true, true, 0.5
+local atk = mkChar("atk", 0, -6, 0, 1)
+Tac.lastState = "ATTACK"; Tac.m1StepAt = CLOCK - 0.2; Tac.selfWokeAt = 0
+tacOpener(atk, "Todo:Melee1"); check("ledger: caught mid-swing", Life.open["mid-swing"] == 1 and Life.openN == 1)
+Bot.BlockActive = true; tacOpener(atk, "Todo:Melee1"); check("ledger: through a raised block from the front", Life.open["through a raised block"] == 1)
+atk.HRP.Position = Vector3.new(0, 0, 6); tacOpener(atk, "Todo:Melee1"); check("ledger: a block does not cover the back", Life.open["block up, hit from behind"] == 1)
+Bot.BlockActive = false; Tac.m1StepAt = 0; Life.lastUsedAt = CLOCK - 0.5
+tacOpener(atk, "Todo:SwiftKick"); check("ledger: punished after a cast", Life.open["after a cast"] == 1)
+Life.lastUsedAt = 0; Tac.lastState = "APPROACH"; tacOpener(atk, "Todo:Chase"); check("ledger: caught closing in", Life.open["closing in"] == 1)
+tacOpener(atk, "self:Ultra Cannon"); tacOpener(atk, "FF:ally:Blue"); check("ledger: our own recovery and friendly fire are not openers", Life.openN == 5)
+Tac.selfWokeAt = CLOCK - 0.2; tacOpener(atk, "Todo:Melee2")
+check("ledger: stunned by melee while listed as immune is flagged", Life.open["just got up"] == 1 and Life.wakeStunned == 1)
+check("ledger: career totals kept", MEM.tactics.open["mid-swing"] == 1)
+check("ledger: the life line names the worst", tacOpenerSummary():find("hits that got in: 6 %(") ~= nil, tacOpenerSummary())
+Config.TacLedger = false; tacOpener(atk, "Todo:Melee1"); check("ledger: off is off", Life.openN == 6); Config.TacLedger = true
+
+-- getting up
+reset()
+ME.rag = true; tacSelfTick(CLOCK); CLOCK = CLOCK + 0.5; ME.rag = nil; Bot.State = "ATTACK"; tacSelfTick(CLOCK)
+check("wake: our own getting up is timed", Tac.selfWokeAt == CLOCK and Tac.lastState == "ATTACK")
+foe = mkChar("foe", 0, -5, 0, 1); foe.hpv = 100; Bot.Target = foe; Bot.Dist2D = 5
+check("wake: swing through while their melee cannot stun us", tacOwnWake(foe) == true and Life.wakeSwing == 1)
+check("wake: counted once per getting up", tacOwnWake(foe) == true and Life.wakeSwing == 1)
+Bot.Dist2D = 30; check("wake: not if nobody is in reach", tacOwnWake(foe) == false); Bot.Dist2D = 5
+CLOCK = CLOCK + 0.6; check("wake: the window closes", tacOwnWake(foe) == false)
+Bot.State = "CCED"; tacSelfTick(CLOCK); check("wake: the last active state is remembered through a stun", Tac.lastState == "ATTACK")
+-- theirs
+reset()
+foe = mkChar("foe", 0, -5, 0, 1); foe.hpv = 100; foe.rag = true
+tacTrack(foe, CLOCK); CLOCK = CLOCK + 0.1; tacTrack(foe, CLOCK)
+check("wake: on the ground is still on the ground", knowState(foe) == "rag")
+foe.rag = nil; CLOCK = CLOCK + 0.1; tacTrack(foe, CLOCK); Know.stT = nil
+check("wake: just up is its own state", knowState(foe) == "wake")
+check("wake: no swings into it", knowM1Wasted(foe, "wake") == true)
+Config.KnowProbe = false
+check("wake: melee is not thrown into it", knowAllows(entry("Twofold Kick"), foe, 5, "neutral") == false)
+Config.KnowProbe = true
+check("wake: their first swing is guarded", tacTheirWake(foe, 5, CLOCK) == true and Life.wakeGuard == 1)
+check("wake: once, not every frame", tacTheirWake(foe, 5, CLOCK + 0.1) == false)
+CLOCK = CLOCK + 0.6; Know.stT = nil; check("wake: half a second later they are fair game", knowState(foe) == "free")
+Config.TacWake = false; foe.rag = true; tacTrack(foe, CLOCK); foe.rag = nil; CLOCK = CLOCK + 0.1; tacTrack(foe, CLOCK); Know.stT = nil
+check("wake: off is off", knowState(foe) == "free" and tacOwnWake(foe) == false); Config.TacWake = true
+
+-- awakening
+reset(); Config.TacAwaken, Config.TacAwakenHP, Config.TacAwakenHold = true, 70, 15
+foe = mkChar("foe", 0, -6, 0, 1); Bot.Target = foe; Bot.Dist2D = 6; ULT = 100
+check("awaken: not at full health against a free target", tacAwakenWorth(100) == false)
+check("awaken: when hurt", tacAwakenWorth(60) == true)
+foe.stun = true; check("awaken: when the target cannot answer", tacAwakenWorth(100) == true); foe.stun = nil
+CLOCK = CLOCK + 16; check("awaken: a bar held too long is spent", tacAwakenWorth(100) == true)
+ULT = 0; tacSelfTick(CLOCK); check("awaken: the wait is counted", Bot.UltFullSince == nil and Life.ultWaited >= 15.9, Life.ultWaited)
+Config.TacAwaken = false; check("awaken: off means at once", tacAwakenWorth(100) == true); Config.TacAwaken = true
+
+-- domains
+reset(); Config.KnowDomainDist = 22
+MoveRules["Infinite Void"] = { min = 0, max = 40, prio = 2 }
+foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100
+check("domain: researched as one", (knowKind("Infinite Void")) == "domain")
+local okD, _, whyD = knowAllows(entry("Infinite Void"), foe, 6, "neutral")
+check("domain: not with a free enemy in reach", okD == false and whyD:find("domain") ~= nil, whyD)
+check("domain: at a distance", knowAllows(entry("Infinite Void"), foe, 30, "neutral") == true)
+foe.rag = true; Know.stT = nil; check("domain: with the target down", knowAllows(entry("Infinite Void"), foe, 6, "neutral") == true)
+
+-- held versions
+reset(); Config.KnowHold, Config.KnowHoldDist, Config.KnowHoldTrials = true, 14, 3
+MoveRules["Ultra Cannon"] = { min = 0, max = 60, prio = 3 }
+foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100
+check("hold: moves without a held version are tapped", knowHoldFor("Twofold Kick", foe, 30) == nil and Bot.KnowHoldArm == nil)
+check("hold: not with the target in our face", knowHoldFor("Ultra Cannon", foe, 6) == nil and Bot.KnowHoldArm == "tap")
+check("hold: tried at a distance", knowHoldFor("Ultra Cannon", foe, 30) == 1.4 and Bot.KnowHoldArm == "hold" and Bot.HoldUntil > CLOCK)
+check("hold: a held cast is not judged refused while it is held", knowVerifyDelay("Ultra Cannon") > 2.5)
+pd = { move = "Ultra Cannon", target = foe, hp0 = 100, at = CLOCK, dist = 30 }
+knowStamp(pd, foe); foe.hpv = 84; knowWatch(pd, 1.6); knowBook(pd, 84)
+check("hold: the held arm is credited", MEM.facts["Ultra Cannon"].hold.hold.n == 1 and MEM.facts["Ultra Cannon"].hold.hold.d == 16)
+MEM.facts["Ultra Cannon"].hold = { tap = { n = 3, d = 30 }, hold = { n = 3, d = 15 } }
+check("hold: kept only if it deals more", knowHoldFor("Ultra Cannon", foe, 30) == nil and Bot.KnowHoldArm == "tap")
+MEM.facts["Ultra Cannon"].hold = { tap = { n = 3, d = 30 }, hold = { n = 3, d = 48 } }
+check("hold: and it is when it does", knowHoldFor("Ultra Cannon", foe, 30) == 1.4)
+foe.rag = true; check("hold: a target on the ground is room enough", knowHoldFor("Ultra Cannon", foe, 6) == 1.4); foe.rag = nil
+Config.KnowHold = false; check("hold: off is off", knowHoldFor("Ultra Cannon", foe, 30) == nil); Config.KnowHold = true
+Bot.HoldUntil, Bot.HoldCastUntil = nil, nil
 
 -- report lines do not error and say what is known
 reset()

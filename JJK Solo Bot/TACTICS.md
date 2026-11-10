@@ -1,4 +1,4 @@
-# Tactics layer (v85 to v88)
+# Tactics layer (v85 to v89)
 
 The decision core changed in v85. This file says why, what the new rules are,
 and how to tell from a log whether they work.
@@ -276,6 +276,50 @@ Switch: `KnowSecondPress`. The session log line `second press: Transcend
 hooked, Rupture hooked, Reggie hooked, DroneStrike hooked` says whether the
 cues can be heard. Where one reads `absent` the bot presses blind.
 
+## v89: how hits get in
+
+Where the stun time in the v86 log came from:
+
+| Source | Share |
+|---|---|
+| Enemy basic attacks | 47% |
+| Not identified | 18% |
+| Front-dash punches | 12% |
+| Our own recovery after a cast | 7% |
+| Skills | 16% |
+
+Basic attacks and dash punches can all be blocked from the front. So the
+question is not which move hit us but what we were doing when it did. The
+log could not say. Now it can.
+
+| Change | What it does | Switch |
+|---|---|---|
+| Hit ledger | Every hit that stuns us is written down with what we were doing: mid-swing, after a cast, closing in, block just dropped, through a raised block, hit from behind a block, just got up | `TacLedger` |
+| Getting up, ours | The wiki says a player who gets up cannot be stunned by melee for half a second. For that half second the bot swings instead of blocking | `TacWake` |
+| Getting up, theirs | For their half second the bot does not swing, guards their first attack and takes the turn. A new target state, `wake`, keeps melee casts out of that window | `TacWake` |
+| Unblockable moves | The 59 moves the wiki lists as unblockable are now dodged, not blocked. Before, only 8 were known, and a move with no reaction history was blocked whatever it was | n/a |
+| Awakening | It heals. Spent the moment the bar fills, the heal lands on full health. Now it waits for 70% health or less, a target that cannot answer, or 15 s with a full bar | `TacAwaken` |
+| Domains | 1.25 s of hand signs that any hit cancels. Opened only with the target down or 22 studs off | `Know` |
+| Held versions | Ultra Cannon, Blunt Cut, Earthquake and Granite Blast are different moves if the key is let go late. The bot always let go at once. Now it holds when the target is 14 studs off or on the ground, and keeps whichever of tap and hold has dealt more | `KnowHold` |
+| After the fourth swing | 11 of 50 refused casts were sent right after it. No cast for 0.35 s | `TacCastGate` |
+| Escape attempts | 95 tries, 19 escapes. A try made with no escape on offer locked out the next real one for 2 s. It now locks for 0.35 s, and does not start the after-escape routine | n/a |
+
+New in the log:
+
+```
+hit taken: Todo:Melee1 from 5 studs, front | we were mid-swing (ATTACK)
+| hits that got in: 14 (mid-swing 6, after a cast 3, closing in 2, block just dropped 2) | wake-up: swung through 2, guarded theirs 3, stunned while immune 0 | held casts 1, awakening waited 9s
+```
+
+How to read it next time:
+
+- `mid-swing` high: we lose trades. Block the first swing more, swing less.
+- `after a cast` high: raw casts are still being punished.
+- `closing in` high: the approach is the problem, not the fight.
+- `through a raised block` high: unblockable moves, or the block is late on the server.
+- `block up, hit from behind` high: facing the wrong enemy while guarding.
+- `stunned while immune` above zero: the wake-up research is wrong. The log also prints a `research check:` line.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
@@ -288,9 +332,12 @@ cues can be heard. Where one reads `absent` the bot presses blind.
   the falling hit comes out flat and is booked as flat.
 - Whether a counter thrown the instant a swing is seen is early enough for
   the 0.25 s windows.
-- Held versions of moves. The bot taps. The research lists the held versions
-  of Ultra Cannon, Piercing Blood, Blunt Cut, Earthquake and Granite Blast as
-  stronger or unblockable. None of that is used yet.
+- How long each held move must be held. The bot uses 1.4 s for Ultra Cannon,
+  where 1.3 s is listed, and a guess for the other three. The tap and hold
+  figures on the `KNOW` line show whether the hold did anything.
+- Piercing Blood's held version. It needs a Convergence orb, which the bot
+  does not track.
+- Whether awakening can be started while stunned. The bot tries.
 - Other two-press moves. Only the four in the v88 table are handled. The wiki
   says a second press during some wind-ups swaps the move for a weaker
   variant, so the second press is not sent anywhere it is not known to help.
@@ -305,10 +352,11 @@ cues can be heard. Where one reads `absent` the bot presses blind.
 
 `tools/test_tactics.py` runs the code against mocked game objects: 76 checks
 on kinematics, prediction, lead, contact, chaining, travel facing, reversal
-damping and the arena, and 129 on knowledge: families, target states, beliefs,
+damping and the arena, and 172 on knowledge and fight sense: families, target states, beliefs,
 seeding, the gate, probes, the recorder, timing regression, counters,
-guard-breaks, ground hits, held swings, the fourth hit, late cooldowns and
-second presses. It
+guard-breaks, ground hits, held swings, the fourth hit, late cooldowns,
+second presses, the hit ledger, getting up, awakening, domains and held
+versions. It
 needs Python with `lupa`:
 
 ```

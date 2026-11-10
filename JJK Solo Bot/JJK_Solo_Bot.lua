@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v88"
+local BUILD_TAG = "JJK-SOLO-v89"
 
 local NL = string.char(10)
 
@@ -960,7 +960,19 @@ local Config = {
     KnowReachSlack = 3,
     KnowLateVerify = 1.3,
     KnowSecondPress = true,     -- press again where a move needs it (Transcend, Rupture, Littering, Drone Strike)
-    KnowP2Trials = 3,           -- tries of each delay before the best one is kept       -- seconds before judging a cast refused, for moves seen to start their cooldown late
+    KnowP2Trials = 3,
+    -- Fight sense (v89).
+    TacLedger = true,           -- write down what we were doing each time a hit got in
+    TacWake = true,             -- getting up: swing through theirs, guard against ours
+    TacWakeWindow = 0.5,        -- seconds of immunity to melee stun after getting up (researched)
+    TacAwaken = true,           -- awaken when hurt, when the target cannot answer, or after TacAwakenHold
+    TacAwakenHP = 70,
+    TacAwakenHold = 15,
+    TacAfterFourth = 0.35,      -- no cast this soon after the fourth swing (11 of 50 refusals were there)
+    KnowDomainDist = 22,        -- a domain is only opened with the target down or this far off
+    KnowHold = true,            -- try the held version of moves that have one, where there is room to
+    KnowHoldDist = 14,
+    KnowHoldTrials = 3,           -- tries of each delay before the best one is kept       -- seconds before judging a cast refused, for moves seen to start their cooldown late
     -- The fourth basic hit: "down" (falling: unblockable, reaches the ground),
     -- "up" (rising: launches, longest time down), "flat", "off", or "auto",
     -- which tries each and keeps what pays (damage dealt minus taken after).
@@ -3011,6 +3023,8 @@ function memLifeStart()
     Bot.FinMode, Bot.FinPending, Bot.KnowProbePending = nil, nil, nil
     Life.lateStamp = 0
     Life.p2Cast, Life.p2Sent, Life.p2Lost = 0, 0, 0
+    Life.open, Life.openN, Life.wakeSwing, Life.wakeGuard, Life.wakeStunned, Life.holdCasts, Life.ultWaited = {}, 0, 0, 0, 0, 0, 0
+    Bot.UltFullSince, Bot.HoldUntil, Bot.StunWho = nil, nil, nil
     Bot.P2Last, Bot.KnowLastPending = nil, nil
     Bot.RefusedN = {}
     Life.dmg = 0
@@ -3136,6 +3150,7 @@ function memNoteStunStart()
             end
         end
         if who then
+            Bot.StunWho = who
             local set = who:GetAttribute("Moveset") or "?"
 
 
@@ -3186,6 +3201,8 @@ function memNoteStunStart()
                 tick() - (Bot.LastHurtAt or 0), tostring(inOwnMove()), tostring(isRagdolled()), castTxt))
         end
     end
+    tacOpener(Bot.StunWho, key)
+    Bot.StunWho = nil
     Life.stunBy[key] = (Life.stunBy[key] or 0) + 1
 
 
@@ -3359,7 +3376,7 @@ function memLifeEnd()
         Life.stunnedSelf or 0, tostring(Bot.CamProbe))
     tail = tail .. " | discounted " .. tostring(Life.discounted or "no")
     knowLifeReport()
-    tail = tail .. tacLifeSummary() .. knowLifeSummary()
+    tail = tail .. tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary()
     debug(string.format(
         "LIFE END: %.0f dmg in %.0fs (%.1f dmg/s, %d moves, %.0f%% engaged, %d blocks, %.0fs stunned) | %s | stunned by: %s | ff: %d held (holds %d/%d, freed %d, sidesteps %d), %.0f dmg + %d stuns in ally lanes | refused %d (rolled back %d), burst %d/%d, kite %.0fs, retreat %.0fs, revs %d, shared %.0f, fps %.0f (worst %.0f ms) | avg %.0f best %.0f over %d lives | samples %d clean / %d shared / %d dirty | fair %.0f | react %d judged / %d crowd / %d retests",
         Life.dmg, dur, Life.dmg / math.max(1, dur), Life.moves,
@@ -4333,6 +4350,11 @@ function memBestReaction(move, fallback, kind)
         local rec = row and row[pref]
         if not rec or (rec.tries or 0) < (Config.ReactMinSamples or 3) then return pref end
         fallback = pref
+    end
+    -- nothing learned about this move yet: the plan for its family stands,
+    -- unless the plan is to block something that cannot be blocked
+    if Unblockable[move] and fallback == "block" then
+        fallback = (kind == "grab" or kind == "aoe") and "away" or "dodge"
     end
     if not row then return fallback end
 
@@ -6678,9 +6700,14 @@ function tacTrack(c, now)
     local p = h.Position
     local r = Tac.track[c]
     if not r then
-        r = { pos = p, vel = Vector3.new(0, 0, 0), at = now }
+        r = { pos = p, vel = Vector3.new(0, 0, 0), at = now, rag = isRagdolled(c) }
         Tac.track[c] = r
         return r
+    end
+    do
+        local rg = isRagdolled(c)
+        if r.rag and not rg then r.wokeAt = now end
+        r.rag = rg
     end
     local dt = now - r.at
     if dt >= 0.03 then
@@ -6754,6 +6781,7 @@ function tacM1Tick()
     local me = getChar()
     if not me then return end
     tacFinisherBook()
+    tacSelfTick(tick())
     if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
     local r = MEM.tactics.m1
     if not r then r = { n = 0, h = 0, d = 0 }; MEM.tactics.m1 = r end
@@ -7058,21 +7086,21 @@ MoveFacts = {
 }
 
 Know = {
-    STATES = { "free", "block", "stun", "rag", "swing", "air" },
+    STATES = { "free", "block", "stun", "rag", "wake", "swing", "air" },
     -- chance to land by family and by what the target is doing: starting
     -- beliefs, not rules. Twelve measured casts outweigh one of these 3:1.
     PRIOR = {
-        melee      = { free = 0.35, block = 0.08, stun = 0.85, rag = 0.10, swing = 0.35, air = 0.20 },
-        rush       = { free = 0.40, block = 0.10, stun = 0.85, rag = 0.10, swing = 0.38, air = 0.22 },
-        projectile = { free = 0.30, block = 0.08, stun = 0.75, rag = 0.12, swing = 0.42, air = 0.22 },
-        beam       = { free = 0.35, block = 0.10, stun = 0.80, rag = 0.20, swing = 0.45, air = 0.28 },
-        aoe_self   = { free = 0.35, block = 0.15, stun = 0.85, rag = 0.35, swing = 0.45, air = 0.20 },
-        aoe_point  = { free = 0.25, block = 0.12, stun = 0.75, rag = 0.35, swing = 0.38, air = 0.15 },
-        grab       = { free = 0.38, block = 0.45, stun = 0.80, rag = 0.08, swing = 0.25, air = 0.12 },
-        counter    = { free = 0.03, block = 0.02, stun = 0.01, rag = 0.01, swing = 0.60, air = 0.03 },
-        pull       = { free = 0.35, block = 0.15, stun = 0.75, rag = 0.12, swing = 0.40, air = 0.30 },
-        summon     = { free = 0.30, block = 0.10, stun = 0.70, rag = 0.25, swing = 0.40, air = 0.20 },
-        other      = { free = 0.30, block = 0.10, stun = 0.75, rag = 0.15, swing = 0.35, air = 0.20 },
+        melee      = { free = 0.35, block = 0.08, stun = 0.85, rag = 0.10, wake = 0.12, swing = 0.35, air = 0.20 },
+        rush       = { free = 0.40, block = 0.10, stun = 0.85, rag = 0.10, wake = 0.15, swing = 0.38, air = 0.22 },
+        projectile = { free = 0.30, block = 0.08, stun = 0.75, rag = 0.12, wake = 0.28, swing = 0.42, air = 0.22 },
+        beam       = { free = 0.35, block = 0.10, stun = 0.80, rag = 0.20, wake = 0.32, swing = 0.45, air = 0.28 },
+        aoe_self   = { free = 0.35, block = 0.15, stun = 0.85, rag = 0.35, wake = 0.28, swing = 0.45, air = 0.20 },
+        aoe_point  = { free = 0.25, block = 0.12, stun = 0.75, rag = 0.35, wake = 0.25, swing = 0.38, air = 0.15 },
+        grab       = { free = 0.38, block = 0.45, stun = 0.80, rag = 0.08, wake = 0.30, swing = 0.25, air = 0.12 },
+        counter    = { free = 0.03, block = 0.02, stun = 0.01, rag = 0.01, wake = 0.03, swing = 0.60, air = 0.03 },
+        pull       = { free = 0.35, block = 0.15, stun = 0.75, rag = 0.12, wake = 0.30, swing = 0.40, air = 0.30 },
+        summon     = { free = 0.30, block = 0.10, stun = 0.70, rag = 0.25, wake = 0.28, swing = 0.40, air = 0.20 },
+        other      = { free = 0.30, block = 0.10, stun = 0.75, rag = 0.15, wake = 0.20, swing = 0.35, air = 0.20 },
     },
     -- families that are not thrown at somebody to hurt them
     PASSIVE = { buff = true, stance = true, mobility = true, domain = true },
@@ -7126,6 +7154,10 @@ end
 function knowStateRaw(t)
     if isRagdolled(t) then return "rag" end
     if isStunned(t) then return "stun" end
+    do  -- just got up: half a second in which melee does not stun them
+        local r = Tac.track[t]
+        if Config.TacWake and r and r.wokeAt and (tick() - r.wokeAt) < (Config.TacWakeWindow or 0.5) then return "wake" end
+    end
     if knowBlocking(t) then return "block" end
     local th, h = getHRP(t), getHRP()
     if th and h then
@@ -7201,6 +7233,7 @@ function knowAllows(entry, t, d2d, ctx)
     if not Config.Know or not entry or not t then return true, 1, nil end
     local rule = entry.rule or DefaultRule
     local kind, f = knowKind(entry.name, rule)
+    if kind == "domain" then return knowDomainSafe(t, d2d) end
     if Know.PASSIVE[kind] then return true, 1, nil end
     local now = tick()
     -- a counter does nothing unless somebody is hitting us: it is thrown by
@@ -7289,6 +7322,8 @@ function knowStamp(p, t)
     p.ts = knowState(t)
     p.myPos = h and h.Position or nil
     Bot.KnowLastPending = p
+    if Bot.KnowHoldName == p.move then p.holdArm = Bot.KnowHoldArm end
+    Bot.KnowHoldName = nil
     p.tDist = p.dist
     -- our own basic attack still in flight would be booked as this move's hit
     p.dirty = ((tick() - (Tac.m1StepAt or 0)) < 0.45 and Bot.M1Active) and true or false
@@ -7373,6 +7408,11 @@ function knowBook(p, hp1)
         end
     end
     if p.moved then o.mv = (o.mv or 0) + p.moved; o.mvN = (o.mvN or 0) + 1 end
+    if p.holdArm and type(o.hold) == "table" and type(o.hold[p.holdArm]) == "table" then
+        local arm = o.hold[p.holdArm]
+        arm.n = arm.n + 1
+        arm.d = arm.d + math.max(dmg, 0)
+    end
     if p.p2arm and type(o.p2) == "table" and type(o.p2[p.p2arm]) == "table" then
         local arm = o.p2[p.p2arm]
         arm.n = arm.n + 1
@@ -7419,6 +7459,9 @@ function knowVerifyDelay(name)
     local o = type(MEM.facts) == "table" and MEM.facts[name] or nil
     local spec = Config.Know and Config.KnowSecondPress and type(Know.P2) == "table" and Know.P2[senseMoveKey(name)] or nil
     if spec then return spec.verify or 1.4 end
+    if Bot.HoldCastName == name and tick() < (Bot.HoldCastUntil or 0) then
+        return (Bot.HoldCastUntil - tick()) + 1.2      -- a held cast starts its cooldown when it is let go
+    end
     if Config.Know and o and (o.late or 0) >= 2 then return Config.KnowLateVerify or 1.3 end
     return Config.CastVerifyDelay or 0.4
 end
@@ -7461,6 +7504,11 @@ function knowLifeReport()
         if (o.mvN or 0) > 0 then extra = extra .. string.format(" | carries us %.0f studs", (o.mv or 0) / o.mvN) end
         if (o.hn or 0) > 0 then
             extra = extra .. string.format(" | after a hit: down %d, held %d of %d", o.rg or 0, o.st or 0, o.hn)
+        end
+        if type(o.hold) == "table" and ((o.hold.tap and o.hold.tap.n or 0) + (o.hold.hold and o.hold.hold.n or 0)) > 0 then
+            local tp, hd = o.hold.tap or { n = 0, d = 0 }, o.hold.hold or { n = 0, d = 0 }
+            extra = extra .. string.format(" | tapped %.1f dmg x%d, held %.1f dmg x%d",
+                tp.n > 0 and tp.d / tp.n or 0, tp.n, hd.n > 0 and hd.d / hd.n or 0, hd.n)
         end
         local spec2 = type(Know.P2) == "table" and Know.P2[senseMoveKey(name)] or nil
         if spec2 and type(o.p2) == "table" then
@@ -7584,6 +7632,189 @@ function tacFinisherBook()
         r.net = r.net + net
     end
     debugEvery("finisher", 1, string.format("finisher: %s paid %+.0f over the next %.0f s", fp.mode, net, Config.TacFinisherWindow or 4))
+end
+
+
+-- ============================================================================
+--  FIGHT SENSE (v89) -- how hits get in, and the moments that decide a fight
+--
+--  The v86 log says where the stun time comes from: 47% basic attacks, 12%
+--  front-dash punches, 18% unidentified, 7% our own recovery after a cast.
+--  It does not say what we were doing when each of those landed, and that
+--  is the thing to fix next. So every hit that stuns us is written down
+--  with what we were doing at the time (the ledger), and three rules from
+--  the research are applied to the moments around a knockdown.
+-- ============================================================================
+
+-- What we were doing when a hit got through. One word per hit, counted per
+-- life and for the career; the life's line names the worst three.
+function tacOpener(who, key)
+    if not Config.TacLedger or type(key) ~= "string" then return end
+    if key:find("^self:") or key:find("^FF:") then return end
+    local now = tick()
+    local h, wh = getHRP(), who and getHRP(who)
+    local st = Tac.lastState or Bot.State or "?"
+    local dist, side = nil, "?"
+    if h and wh then
+        local to = wh.Position - h.Position
+        local flat = Vector3.new(to.X, 0, to.Z)
+        dist = flat.Magnitude
+        if dist > 0.1 then
+            local look = h.CFrame.LookVector
+            -- a guard covers 170 degrees in front: cos(85) = 0.087
+            side = ((flat / dist):Dot(Vector3.new(look.X, 0, look.Z)) >= 0.087) and "front" or "behind"
+        end
+    end
+    local melee = key:find(":Melee%d") ~= nil or key:find(":Hit%d") ~= nil or key:find(":Down$") ~= nil or key:find(":Up$") ~= nil
+    local doing
+    if Bot.BlockActive then
+        doing = (side == "behind") and "block up, hit from behind" or "through a raised block"
+    elseif (now - (Tac.selfWokeAt or 0)) < 0.6 then
+        doing = "just got up"
+        -- the research says half a second of immunity to melee stun on getting up
+        if melee and (now - (Tac.selfWokeAt or 0)) < (Config.TacWakeWindow or 0.5) then
+            Life.wakeStunned = (Life.wakeStunned or 0) + 1
+            debugEvery("wakecheck", 5, string.format("research check: stunned by a basic attack %.2f s after getting up (listed as immune for 0.5 s)",
+                now - (Tac.selfWokeAt or 0)))
+        end
+    elseif (now - (Life.lastUsedAt or 0)) < 1.2 then
+        doing = "after a cast"
+    elseif (now - (Tac.m1StepAt or 0)) < 0.5 and st == "ATTACK" then
+        doing = "mid-swing"
+    elseif (now - (Bot.BlockReleasedAt or 0)) < 0.35 then
+        doing = "block just dropped"
+    elseif st == "APPROACH" or st == "APPROACH_FAR" or st == "CHASE" or st == "FLANK" then
+        doing = "closing in"
+    elseif st == "RETREAT" or st == "TEAMKITE" then
+        doing = "backing off"
+    elseif st == "ATTACK" then
+        doing = "in reach, not swinging"
+    else
+        doing = "standing (" .. tostring(st) .. ")"
+    end
+    if type(Life.open) ~= "table" then Life.open = {} end
+    Life.open[doing] = (Life.open[doing] or 0) + 1
+    Life.openN = (Life.openN or 0) + 1
+    if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
+    if type(MEM.tactics.open) ~= "table" then MEM.tactics.open = {} end
+    MEM.tactics.open[doing] = (MEM.tactics.open[doing] or 0) + 1
+    debugEvery("opener", 0.7, string.format("hit taken: %s from %s studs, %s | we were %s (%s)%s",
+        key, dist and string.format("%.0f", dist) or "?", side, doing, tostring(st),
+        (now < (Bot.PreGuardRestUntil or 0) and not Bot.BlockActive) and " | a predicted block had just run out" or ""))
+end
+
+function tacOpenerSummary()
+    local rows = {}
+    for k, v in pairs(Life.open or {}) do rows[#rows + 1] = { k = k, v = v } end
+    table.sort(rows, function(a, b) if a.v == b.v then return a.k < b.k end return a.v > b.v end)
+    local parts = {}
+    for i = 1, math.min(4, #rows) do parts[#parts + 1] = string.format("%s %d", rows[i].k, rows[i].v) end
+    return string.format(" | hits that got in: %d (%s) | wake-up: swung through %d, guarded theirs %d, stunned while immune %d | held casts %d, awakening waited %.0fs",
+        Life.openN or 0, (#parts > 0) and table.concat(parts, ", ") or "none",
+        Life.wakeSwing or 0, Life.wakeGuard or 0, Life.wakeStunned or 0, Life.holdCasts or 0, Life.ultWaited or 0)
+end
+
+-- Getting up. The research: a player who gets up from a knockdown cannot be
+-- stunned by melee for about half a second. Two consequences.
+--   Ours:   for that half second their basic attacks do not stop ours, so
+--           swing instead of blocking.
+--   Theirs: for that half second our basic attacks do not stop theirs, so
+--           do not swing; expect theirs, block it and take the turn.
+function tacSelfTick(now)
+    local rg = isRagdolled()
+    if Tac.selfRag and not rg then Tac.selfWokeAt, Tac.selfWakeUsed = now, false end
+    Tac.selfRag = rg
+    local st = Bot.State
+    if st and st ~= "CCED" and st ~= "DEAD" then Tac.lastState = st end
+    if getUltMeter() < 100 or isAwakened() then
+        if Bot.UltFullSince then Life.ultWaited = (Life.ultWaited or 0) + (now - Bot.UltFullSince) end
+        Bot.UltFullSince = nil
+    end
+end
+
+function tacOwnWake(t)
+    if not Config.TacWake or not t then return false end
+    if (tick() - (Tac.selfWokeAt or 0)) > (Config.TacWakeWindow or 0.5) then return false end
+    if (Bot.Dist2D or 99) > (Config.M1Range or 8) + 3 or isRagdolled(t) then return false end
+    if not Tac.selfWakeUsed then
+        Tac.selfWakeUsed = true
+        Life.wakeSwing = (Life.wakeSwing or 0) + 1
+        debugEvery("wakeswing", 2, "wake-up: swinging through, their basic attacks cannot stop ours for half a second")
+    end
+    return true
+end
+
+function tacTheirWake(t, d2d, now)
+    if not Config.TacWake or not t or Bot.BlockActive then return false end
+    if (d2d or 99) > 10 or (now - (Bot.WakeGuardAt or 0)) < 1.5 then return false end
+    if type(isTargetFacingUs) == "function" and not isTargetFacingUs(t) then return false end
+    Bot.WakeGuardAt = now
+    Life.wakeGuard = (Life.wakeGuard or 0) + 1
+    debugEvery("wakeguard", 2, string.format("wake-up: %s is getting up at %.0f studs, guarding the first swing", tostring(t.Name), d2d or 0))
+    return true
+end
+
+-- Awakening heals and cannot be hit during its opening. Spent the moment
+-- the bar fills, the heal is wasted on full health. Worth it when hurt, when
+-- the target cannot answer, or when the bar has been full long enough that
+-- dying with it unspent is the bigger risk.
+function tacAwakenWorth(hp)
+    if not Config.TacAwaken then return true end
+    local now = tick()
+    Bot.UltFullSince = Bot.UltFullSince or now
+    if (hp or 100) <= (Config.TacAwakenHP or 70) then return true end
+    local t = Bot.Target
+    if t and (isStunned(t) or isRagdolled(t)) and (Bot.Dist2D or 99) <= 20 then return true end
+    if (now - Bot.UltFullSince) >= (Config.TacAwakenHold or 15) then return true end
+    return false
+end
+
+-- A domain is 1.25 s of hand signs that any hit cancels.
+function knowDomainSafe(t, d2d)
+    if not t then return true, 1, nil end
+    if isStunned(t) or isRagdolled(t) then return true, 1, nil end
+    if (d2d or 0) >= (Config.KnowDomainDist or 22) then return true, 1, nil end
+    return false, 0, "domain with a free enemy in reach of the hand signs"
+end
+
+-- Held versions. The game sends Deactivated when the key is let go, and
+-- several moves are a different, stronger move if it is let go late (Ultra
+-- Cannon has its own "Albatros" effects for it, Blunt Cut a "Charge"). The
+-- bot let go after 0.1 s every time. Holding costs time standing still, so
+-- it is only tried with the target at a distance or on the ground, and tap
+-- and hold are compared by the damage each has dealt.
+Know.HOLD = {
+    UltraCannon  = { t = 1.4 },     -- listed: 1.3 s, becomes an unblockable beam that reaches the ground
+    BluntCut     = { t = 0.9 },     -- listed: 9 tapped, 14 held
+    Earthquake   = { t = 1.0 },     -- listed: 12.5 tapped and blockable, 25 held and unblockable
+    GraniteBlast = { t = 0.8 },
+}
+
+function knowHoldFor(name, t, d2d)
+    Bot.KnowHoldName, Bot.KnowHoldArm = nil, nil
+    if not Config.Know or not Config.KnowHold or not name then return nil end
+    local spec = Know.HOLD[senseMoveKey(name)]
+    if not spec then return nil end
+    if type(MEM.facts) ~= "table" then MEM.facts = {} end
+    local o = MEM.facts[name]
+    if not o then o = { n = 0, s = {} }; MEM.facts[name] = o end
+    if type(o.hold) ~= "table" then o.hold = { tap = { n = 0, d = 0 }, hold = { n = 0, d = 0 } } end
+    local safe = t ~= nil and ((d2d or 0) >= (Config.KnowHoldDist or 14) or isRagdolled(t))
+    local arm = "tap"
+    if safe then
+        local tp, hd = o.hold.tap, o.hold.hold
+        if hd.n < (Config.KnowHoldTrials or 3) then arm = "hold"
+        elseif tp.n < (Config.KnowHoldTrials or 3) then arm = "tap"
+        elseif hd.d / hd.n > tp.d / tp.n then arm = "hold" end
+    end
+    Bot.KnowHoldName, Bot.KnowHoldArm = name, arm
+    if arm ~= "hold" then return nil end
+    Bot.HoldUntil = tick() + spec.t
+    Bot.HoldCastName, Bot.HoldCastUntil = name, tick() + spec.t + 0.2
+    Life.holdCasts = (Life.holdCasts or 0) + 1
+    debugEvery("hold:" .. tostring(name), 2, string.format("holding %s for %.1f s (target %s)", tostring(name), spec.t,
+        isRagdolled(t) and "on the ground" or string.format("%.0f studs off", d2d or 0)))
+    return spec.t
 end
 
 
@@ -7755,7 +7986,7 @@ end
 
 
 local function tickM1(dt)
-    if not Bot.M1Active or not Config.Enabled
+    if not Bot.M1Active or not Config.Enabled or tick() < (Bot.HoldUntil or 0)
        or (Config.TacBlockKeep and Bot.BlockActive and Bot.BlockHeld) then
         m1Accum = 0
         return
@@ -7796,8 +8027,17 @@ local function useSkill(serviceName)
     -- are certain refusals. Whether blocking is one is not known (casts
     -- straight out of a block were accepted in the logs), so the block state
     -- goes into the refusal line instead of into the gate.
+    if tick() < (Bot.HoldUntil or 0) then return false end
     if Config.TacCastGate and not (MoveRules[m.value.Name] or DefaultRule).escape then
         if isStunned() or isRagdolled() then
+            Life.tacGated = (Life.tacGated or 0) + 1
+            return false
+        end
+        -- the fourth swing has just gone out: the server refuses a cast for a
+        -- moment after it
+        local meG = getChar()
+        if meG and meG:GetAttribute("CurrentM1") == 5
+           and (tick() - (Tac.m1StepAt or 0)) < (Config.TacAfterFourth or 0.35) then
             Life.tacGated = (Life.tacGated or 0) + 1
             return false
         end
@@ -7874,9 +8114,9 @@ local function useSkill(serviceName)
         tostring((Bot.CastCtx and (tick() - (Bot.CastCtxAt or 0)) < 0.15) and Bot.CastCtx or "neutral"))
     local extra = buildExtra(moveValue.Name)
     fireRemote(serviceName, "Activated", moveValue, extra)
-
-
-    task.delay(0.1, function()
+    -- let go late where the held version is the better move (see Know.HOLD)
+    local holdFor = knowHoldFor(moveValue.Name, Bot.Target, Bot.Dist2D)
+    task.delay(holdFor or 0.1, function()
         fireRemote(serviceName, "Deactivated", moveValue, extra)
     end)
 
@@ -8248,7 +8488,7 @@ end
 function tryBurst()
     if not Config.UseBurst then return false end
     local now = tick()
-    if now - (Bot.BurstAt or 0) < (Config.BurstCooldown or 2) then return false end
+    if now - (Bot.BurstAt or 0) < (Bot.BurstQuick and 0.35 or (Config.BurstCooldown or 2)) then return false end
     if not (isStunned() or isRagdolled()) then return false end
     local c, i = getChar(), getInfo()
     if not c or not i then return false end
@@ -8283,10 +8523,16 @@ function tryBurst()
     local dir = dashDirFor(away)
     Bot.BurstAt = now
     Life.bursts = (Life.bursts or 0) + 1
+    -- the meter says whether an escape is on offer (the character's Burst
+    -- attribute, as the game's own bar reads it). Knockback alone lets the
+    -- request through but the server turns it down: try again soon, and do
+    -- not behave as if we had escaped.
+    local real = (c:GetAttribute("Burst") and not i:GetAttribute("Burst")) or (fe ~= nil and fe.Value == true)
+    Bot.BurstQuick = not real
 
 
 
-    if (Config.PostBurstRecover or 0) > 0 and (from.Position - h.Position).Magnitude <= (Config.BurstRecoverRange or 8)
+    if real and (Config.PostBurstRecover or 0) > 0 and (from.Position - h.Position).Magnitude <= (Config.BurstRecoverRange or 8)
        and getHPPct() < (Config.BurstRecoverHP or 70) then
         local u = away.Unit
         local a = math.rad((math.random() * 2 - 1) * (Config.BurstRecoverJitter or 35))
@@ -8674,6 +8920,11 @@ Unblockable = {
     LuckyVolley = true,
     WorldSlash = true,
 }
+-- v89: the researched tags. A move listed as unblockable is dodged, not
+-- blocked; counters and buffs are not attacks and are left out.
+for key, f in pairs(MoveFacts) do
+    if f.ub == true and f.k ~= "counter" and f.k ~= "buff" and f.k ~= "mobility" and f.k ~= "stance" then Unblockable[key] = true end
+end
 
 
 
@@ -12308,7 +12559,7 @@ local function shouldAwakenNow(hp)
     if set and HoardUlt[set] then
         return hp < Config.UltimateHP or countNearbyEnemies(20) >= 3
     end
-    return true
+    return tacAwakenWorth(hp)
 end
 
 
@@ -12769,7 +13020,7 @@ end
 function knowM1Wasted(t, state, dt)
     if not Config.Know or not Config.KnowM1Hold or not t then return false end
     local wasted = false
-    if state == "rag" then
+    if state == "rag" or state == "wake" then
         wasted = true
     elseif state == "block" then
         wasted = (tick() - (Bot.LastDodge or 0)) > (Config.KnowFlankWindow or 0.9)
@@ -14717,11 +14968,11 @@ local function updateState()
                 tick() - (Bot.BurstAt or 0), Bot.State == "DEFEND" and "guard" or "away",
                 tostring(who and who.Name or "?"), Bot.Dist2D or 0))
         end
-    elseif (canGuard or keepVs) and senseSwingerNear(Config.BlockMeleeRange or 12) then
+    elseif (canGuard or keepVs) and not tacOwnWake(t) and senseSwingerNear(Config.BlockMeleeRange or 12) then
         if canGuard then Bot.DefendKeepVs = Bot.DefendVs end
         Bot.State = "DEFEND"
         stopM1()
-    elseif canGuard and tacIncoming() then
+    elseif canGuard and not tacOwnWake(t) and tacIncoming() then
         Bot.DefendKeepVs = Bot.DefendVs
         Bot.State = "DEFEND"
         stopM1()
@@ -15863,7 +16114,9 @@ local function executeState()
         local skillGap = inMelee and Config.SkillGapClose or Config.SkillDelay
         Bot.TacConf = tacConfirmed(t)
         Bot.KnowSt = Config.Know and knowState(t) or "free"
-        if Bot.KnowSt == "rag" and knowTryState(t, d2d, "rag", "ground") then
+        if Bot.KnowSt == "wake" and tacTheirWake(t, d2d, now) then
+            doBlock(Config.TacWakeWindow or 0.5)
+        elseif Bot.KnowSt == "rag" and knowTryState(t, d2d, "rag", "ground") then
             -- something that reaches a body on the ground
         elseif Bot.KnowSt == "block" and knowTryState(t, d2d, "block", "break") then
             -- something a guard does not stop
@@ -18928,6 +19181,12 @@ do
               on = function(v) announce(v and "knowledge: up to three test casts a life where nothing is known" or "knowledge: no test casts") end },
             { key = "KnowSecondPress", label = "Press twice where needed",
               on = function(v) announce(v and "knowledge: two-press moves get their second press" or "knowledge: every move is tapped once") end },
+            { key = "KnowHold",    label = "Hold where it pays",
+              on = function(v) announce(v and "knowledge: held versions are tried at a distance and kept if they deal more" or "knowledge: every move is let go at once") end },
+            { key = "TacWake",     label = "Wake-up rules",
+              on = function(v) announce(v and "tactics: swing through on getting up, guard when they get up" or "tactics: no special handling of getting up") end },
+            { key = "TacAwaken",   label = "Awaken when it counts",
+              on = function(v) announce(v and "tactics: awakening waits for low health, a helpless target or 15 s" or "tactics: awakening the moment the bar fills") end },
             { fn = function()
                   local order = { "auto", "down", "up", "flat", "off" }
                   local cur = Config.TacFinisher or "auto"
@@ -19384,7 +19643,7 @@ do
     end
 end
 
-announce("The Eye HUD on v88 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v89 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 
