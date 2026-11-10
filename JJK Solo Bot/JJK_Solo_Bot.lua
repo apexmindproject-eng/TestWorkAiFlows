@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v95"
+local BUILD_TAG = "JJK-SOLO-v96"
 
 local NL = string.char(10)
 
@@ -1026,12 +1026,20 @@ local Config = {
     -- second; three basic swings in that second are worth 4 and start a
     -- string. A move that carries us to the target is "close" whatever the
     -- distance it was thrown from (Sacrilege: 0 of 5 raw, 10 of 10 chained).
-    KnowContactClose = true,
+    KnowContactClose = false,   -- off in v96: the "missed casts get punished" reading behind it was a measuring error (see TacSelfStun)
     KnowCounterMinP = 0.5,      -- a counter is thrown only if it works half the time; a block absorbs two hits in three (counters: 11 of 28)
-    SpecialSafeDist = 14,       -- no special inside this distance of a target that can answer (27 hits followed 71 specials)
+    SpecialSafeDist = 0,        -- off in v96, for the same reason as KnowContactClose       -- no special inside this distance of a target that can answer (27 hits followed 71 specials)
     TacWakeBlock = true,        -- getting up beside an enemy: block first (119 career hits landed as we got up)
     TacWakeBlockFor = 0.45,
-    KnowCloseDist = 14,
+    -- v96. The game sets Stun on us for the length of our own moves. The
+    -- script counted that as being stunned by whoever stood nearest: in the
+    -- v95 logs 261 of 322 "hits after a cast" began within 0.4 s of the cast
+    -- (median 0.09 s), which no opponent can do. So "time stunned" (43% in
+    -- every build) was mostly our own animations, and the hit ledger's
+    -- biggest row was mostly not hits.
+    TacSelfStun = true,         -- a stun that starts right after our own cast, with no damage taken, is our own move
+    TacSelfStunWindow = 0.5,
+    KnowCloseDist = 9,          -- 14 before v96: the higher bar now applies only where a swing could be thrown instead
     -- Blocks work when they go up (94 of 143 accepted blocks took a hit), and
     -- the rules below kept them down for 119 of the hits that got in.
     GuardWhenLow = true,        -- a swing in reach is blocked under RetreatHP too (54 hits got in with the guard switched off there)
@@ -3022,6 +3030,11 @@ function memRateTick(dt, dmgOut, hasTarget, inReach, dmgIn)
 
 
         if not Life.wasStunned then Life.stunSelf = false; memNoteStunStart() end
+        -- an enemy got through while we were in a move of our own
+        if Life.stunSelf and Config.TacSelfStun and tacSelfStunBroken() then
+            Life.stunSelf = false
+            memNoteStunStart()
+        end
         if Life.stunSelf then
             Life.stunnedSelf = (Life.stunnedSelf or 0) + (dt or 0.016)
         else
@@ -3193,6 +3206,12 @@ end
 function memNoteStunStart()
     Life.stunBy = Life.stunBy or {}
     local key
+    if tacSelfStun() then
+        Life.stunSelf = true
+        key = "self:" .. tostring(Life.lastUsed or "?")
+        Life.stunBy[key] = (Life.stunBy[key] or 0) + 1
+        return
+    end
     local lane = Bot.AllyLane
     if lane and lane.ally then
         key = "FF:" .. tostring(lane.ally) .. ":" .. tostring(lane.move)
@@ -8224,6 +8243,7 @@ function tacProbeTick(dt)
     local now = tick()
     local st = tostring(Bot.State or "?")
     if st == "REACT" then st = "REACT:" .. tostring(Bot.Reacting or "?") end
+    if st == "CCED" and Life.stunSelf then st = "CCED:own move" end
     if type(Life.stSec) ~= "table" then Life.stSec = {} end
     Life.stSec[st] = (Life.stSec[st] or 0) + (dt or 0.016)
     -- did the server take the last block?
@@ -8462,6 +8482,21 @@ function tacWakeBlock(now)
     Life.wakeBlock = (Life.wakeBlock or 0) + 1
     debugEvery("wakeblock", 1.5, string.format("wake-up: getting up %.0f studs from %s, blocking first", bestD, tostring(best.Name)))
     return true
+end
+
+-- ------------------------------------------------------------------ our own moves are not stuns (v96)
+function tacSelfStun()
+    if not Config.TacSelfStun or isRagdolled() then return false end
+    local now = tick()
+    local acted = math.max(Life.lastUsedAt or 0, Bot.LastSpecial or 0)
+    if (now - acted) > (Config.TacSelfStunWindow or 0.5) then return false end
+    if (Bot.FrameDmgIn or 0) > 0 or (now - (Bot.LastHurtAt or 0)) < 0.3 then return false end
+    return true
+end
+
+-- Hit during a move of our own: from here on it is an enemy's stun.
+function tacSelfStunBroken()
+    return (Bot.FrameDmgIn or 0) > 0 or isRagdolled()
 end
 
 -- ------------------------------------------------------------------ openers (v90)
@@ -20448,7 +20483,7 @@ do
     end
 end
 
-announce("The Eye HUD on v95 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v96 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 

@@ -1170,6 +1170,25 @@ Config.TacWakeBlock = false; check("wake block: off is off", tacWakeBlock(CLOCK)
 ME.rag = true; tacSelfTick(CLOCK); ME.rag = nil; Bot.PreGuardUntil = 0; CLOCK = CLOCK + 0.5; tacSelfTick(CLOCK)
 check("wake block: fires on getting up", Bot.PreGuardVs == beside and Bot.PreGuardUntil > CLOCK)
 
+-- v96: our own moves are not enemy stuns
+reset(); Config.TacSelfStun, Config.TacSelfStunWindow = true, 0.5
+Life.lastUsedAt = CLOCK - 0.1; Bot.LastHurtAt = 0; Bot.FrameDmgIn = 0
+check("self stun: a stun right after our own cast, no damage, is our own move", tacSelfStun() == true)
+Bot.FrameDmgIn = 6; check("self stun: not if we took damage this frame", tacSelfStun() == false); Bot.FrameDmgIn = 0
+Bot.LastHurtAt = CLOCK - 0.1; check("self stun: not if we were just hurt", tacSelfStun() == false); Bot.LastHurtAt = 0
+ME.rag = true; check("self stun: not if we are on the ground", tacSelfStun() == false); ME.rag = nil
+Life.lastUsedAt = CLOCK - 2; check("self stun: not long after a cast", tacSelfStun() == false)
+Bot.LastSpecial = CLOCK - 0.2; check("self stun: a special counts as our own move too", tacSelfStun() == true)
+check("self stun: unbroken while nothing hits us", tacSelfStunBroken() == false)
+Bot.FrameDmgIn = 4; check("self stun: broken by a hit", tacSelfStunBroken() == true); Bot.FrameDmgIn = 0
+Config.TacSelfStun = false; check("self stun: off is off", tacSelfStun() == false); Config.TacSelfStun = true
+-- with the contact rule off, a rush from outside swing reach is a gap closer again
+reset(); Config.KnowMinPClose, Config.KnowCloseDist, Config.KnowContactClose, Config.KnowProbe = 0.45, 9, false, false
+foe = mkChar("foe", 0, -13, 0, 1); foe.hpv = 100
+check("v96: a rush from 13 studs is allowed again", knowAllows(entry("Sacrilege"), foe, 13, "neutral") == true)
+check("v96: in swing reach the higher bar still holds", knowAllows(entry("Sacrilege"), foe, 6, "neutral") == false)
+Config.KnowProbe = true
+
 -- report lines do not error and say what is known
 reset()
 foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100

@@ -1,4 +1,4 @@
-# Tactics layer (v85 to v95)
+# Tactics layer (v85 to v96)
 
 The decision core changed in v85. This file says why, what the new rules are,
 and how to tell from a log whether they work.
@@ -553,6 +553,50 @@ is the better opener, and v95 holds raw casts to a higher bar there.
 Reacting to enemy skills took 282 s of 1,720 in v94: backing away 104 s,
 dodging 87 s, blocking 47 s, grabbed 28 s, holding 16 s. Left alone for now.
 
+## v96: a measuring error, corrected
+
+Three v95 logs, 19 lives, 37 minutes: 10 kills and 19 deaths, 1.00 damage a
+second, 0.69 dealt for each 1 taken. No better than v93.
+
+Looking at why "time stunned" had not moved in six builds turned up the reason:
+a large part of it was never enemy stuns.
+
+| Check on the v95 logs | Result |
+|---|---|
+| "Hits after a cast" that could be tied to the cast before them | 322 |
+| Of those, starting within 0.4 s of the cast | 261 |
+| Median time from our cast to the "hit" | 0.09 s |
+
+No opponent punishes a cast in 0.09 s. The game sets `Stun` on us for the
+length of our own moves, and the script booked that as a stun by whoever
+stood nearest. The reviewer of the learning memory had seen the same thing
+from the other side: 489 "stuns" within 1.5 s of 508 casts.
+
+What this means for earlier sections of this file:
+
+- **Time stunned, 40% to 46% in every build**: mostly our own skill
+  animations. The real figure is not known yet.
+- **The hit ledger's biggest row, "after a cast" (49% to 59%)**: mostly not hits.
+- **"Nearly every missed raw cast is punished" (v94)**: wrong. It was read off that row.
+- **"27 hits followed 71 specials" (v95)**: the same error.
+- **The gate counts in v94** ("a move of our own", "a punish window of ours"):
+  inflated by the same events.
+
+What still stands, because it was measured another way: swings by distance,
+blocks raised, accepted and absorbed, casts landing by target state, counters
+landing 11 of 28, the last-hit results, route calculations, one-frame blocks.
+
+| Change | Why | Switch |
+|---|---|---|
+| A stun that starts within 0.5 s of our own cast, with no damage taken, is booked as our own move. If a hit lands during it, it becomes an enemy stun from that moment | The instrument | `TacSelfStun` |
+| State seconds split `CCED` from `CCED:own move` | So the next log gives real time stunned | n/a |
+| The higher bar for raw casts applies inside 9 studs only, where a swing could be thrown instead. A rush from further out is a gap closer again | The v95 rule rested on the wrong reading. The arithmetic for swing reach still holds | `KnowCloseDist`, `KnowContactClose` |
+| Specials are allowed up close again | Same | `SpecialSafeDist` |
+
+Kept from v94 and v95: the guard at low health and in a punish window, the
+shorter rests, spacing, the counter bar, the block on getting up. None of
+them depends on the bad row.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
@@ -585,7 +629,7 @@ dodging 87 s, blocking 47 s, grabbed 28 s, holding 16 s. Left alone for now.
 
 `tools/test_tactics.py` runs the code against mocked game objects: 76 checks
 on kinematics, prediction, lead, contact, chaining, travel facing, reversal
-damping and the arena, and 325 on knowledge and fight sense: families, target states, beliefs,
+damping and the arena, and 336 on knowledge and fight sense: families, target states, beliefs,
 seeding, the gate, probes, the recorder, timing regression, counters,
 guard-breaks, ground hits, held swings, the fourth hit, late cooldowns,
 second presses, the hit ledger, getting up, awakening, domains, held
