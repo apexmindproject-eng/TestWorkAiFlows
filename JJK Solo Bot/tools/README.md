@@ -36,3 +36,23 @@ catalogue in section 18 of the reference:
 python3 -I gen_facts.py ../JJK_Solo_Bot.lua ../research facts.lua catalogue.md
 ```
 
+## Reading a log
+
+```
+python3 -I analyze_log.py <log.txt> [more logs...]
+```
+
+Prints kills and deaths, hit rates by kind of cast, where stun time came from,
+what the bot was doing when hits got in, refusals by move, finishers, second
+presses and every `KNOW` line. Older logs simply lack the newer sections.
+
+## Checking the script
+
+```
+python3 -I lint_globals.py ../JJK_Solo_Bot.lua
+python3 test_tactics.py ../JJK_Solo_Bot.lua
+```
+
+`lint_globals.py` lists names that are read as globals and never assigned,
+which is how a call to a missing function shows up. It needs `luaparser`.
+

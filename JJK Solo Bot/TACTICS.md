@@ -1,4 +1,4 @@
-# Tactics layer (v85 to v89)
+# Tactics layer (v85 to v90)
 
 The decision core changed in v85. This file says why, what the new rules are,
 and how to tell from a log whether they work.
@@ -320,6 +320,30 @@ How to read it next time:
 - `block up, hit from behind` high: facing the wrong enemy while guarding.
 - `stunned while immune` above zero: the wake-up research is wrong. The log also prints a `research check:` line.
 
+## v90: openers, targets, tools
+
+| Change | Why | Switch |
+|---|---|---|
+| Open with the front-dash punch | It is 12% of the stuns we take and the way opponents start strings on us. The bot only used it to run down somebody fleeing. It now opens with it from 11 to 18 studs: inside half the slide the punch knocks down, which starts nothing. Never into a guard, at a body on the ground or at somebody getting up | `TacDashOpen` |
+| The dash request now carries its direction | The 1.85 client sends `Chase(airborne, "Front")`. The bot sent one argument | n/a |
+| Awakened enemies are worth less as targets | An awakened moveset deals two to five times the damage of a base one. While we are in base form the score of an awakened enemy drops by 16, about half of what being attacked by them adds | `TacAwakeWeight` |
+| Escapes go to the side | 64 of 95 escape tries went straight back, along the line of the attacker's next dash. They now go sideways, toward the middle of the arena | `TacEscapeSide` |
+
+The life line gains `dash punches 4 (3 landed) | took 180 dmg`. Damage taken
+was not in the line before, so damage dealt for each 1 taken can now be read
+from one line.
+
+Two tools were added for the next round:
+
+- `tools/analyze_log.py <log>` prints the tables in this file from a log:
+  kills and deaths, hit rates by kind of cast, where stun time came from, what
+  we were doing when hits got in, refusals by move, finishers, second presses,
+  every `KNOW` line. The test suite checks that the line the bot writes is the
+  line the tool reads.
+- `tools/lint_globals.py <script>` lists names the script reads but never
+  defines. On 19,900 lines it finds two, both guarded executor functions.
+  No call to a function that does not exist.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
@@ -352,11 +376,11 @@ How to read it next time:
 
 `tools/test_tactics.py` runs the code against mocked game objects: 76 checks
 on kinematics, prediction, lead, contact, chaining, travel facing, reversal
-damping and the arena, and 172 on knowledge and fight sense: families, target states, beliefs,
+damping and the arena, and 187 on knowledge and fight sense: families, target states, beliefs,
 seeding, the gate, probes, the recorder, timing regression, counters,
 guard-breaks, ground hits, held swings, the fourth hit, late cooldowns,
-second presses, the hit ledger, getting up, awakening, domains and held
-versions. It
+second presses, the hit ledger, getting up, awakening, domains, held
+versions, dash openers and escape direction. It
 needs Python with `lupa`:
 
 ```

@@ -740,6 +740,39 @@ foe.rag = true; check("hold: a target on the ground is room enough", knowHoldFor
 Config.KnowHold = false; check("hold: off is off", knowHoldFor("Ultra Cannon", foe, 30) == nil); Config.KnowHold = true
 Bot.HoldUntil, Bot.HoldCastUntil = nil, nil
 
+-- opening with the dash punch
+reset(); Config.TacDashOpen, Config.TacDashMin, Config.TacDashMax, Config.TacDashCooldown = true, 11, 18, 6.2
+foe = mkChar("foe", 0, -14, 0, 1); foe.hpv = 100; Bot.DistY = 0; Bot.Dist2D = 14
+check("dash: opens from the middle of its reach", tacDashOpen(foe, 14, CLOCK) == true)
+check("dash: not from so close that it knocks down", tacDashOpen(foe, 8, CLOCK) == false)
+check("dash: not from out of reach", tacDashOpen(foe, 25, CLOCK) == false)
+Bot.LastChase = CLOCK - 3; check("dash: not while it is on cooldown", tacDashOpen(foe, 14, CLOCK) == false); Bot.LastChase = 0
+foe.info = { Block = true }; Know.stT = nil; check("dash: not into a guard", tacDashOpen(foe, 14, CLOCK) == false)
+foe.info = nil; foe.rag = true; Know.stT = nil; check("dash: not at a body on the ground", tacDashOpen(foe, 14, CLOCK) == false)
+foe.rag = nil; Know.stT = nil; foe.iframes = true; check("dash: not at somebody who cannot be hit", tacDashOpen(foe, 14, CLOCK) == false); foe.iframes = nil
+Bot.DistY = 9; check("dash: not up or down a level", tacDashOpen(foe, 14, CLOCK) == false); Bot.DistY = 0
+tacDashOpened(foe, CLOCK); check("dash: counted", Life.dashOpen == 1 and Bot.DashOpen ~= nil)
+CLOCK = CLOCK + 0.1; tacDashOpenTick(CLOCK); check("dash: too early to judge", Bot.DashOpen ~= nil)
+foe.HRP.Position = Vector3.new(0, 0, -5); foe.stun = true; CLOCK = CLOCK + 0.3; tacDashOpenTick(CLOCK)
+check("dash: a stunned target beside us is a landed punch", Life.dashOpenHit == 1 and Bot.DashOpen == nil)
+tacDashOpened(foe, CLOCK); foe.stun = nil; CLOCK = CLOCK + 1.2; tacDashOpenTick(CLOCK)
+check("dash: a miss is just a miss", Life.dashOpenHit == 1 and Bot.DashOpen == nil and tacOpenSummary():find("dash punches 2 %(1 landed%)") ~= nil)
+
+-- escaping to the side
+reset(); Config.TacEscapeSide = true
+local realCentre, realDir = mapArenaCentre, dashDirFor
+dashDirFor = function(v) return v end
+local hrp = { Position = Vector3.new(0, 0, 0) }
+local from = { Position = Vector3.new(0, 0, -6) }           -- attacker in front of us
+mapArenaCentre = function() return Vector3.new(50, 0, 0) end
+local v1 = tacEscapeDir(hrp, from, "Back")
+check("escape: sideways, toward the middle", v1.X > 0.5 and v1.Z > 0, string.format("%.2f,%.2f", v1.X, v1.Z))
+mapArenaCentre = function() return Vector3.new(-50, 0, 0) end
+local v2 = tacEscapeDir(hrp, from, "Back")
+check("escape: the other side when the middle is there", v2.X < -0.5 and v2.Z > 0)
+Config.TacEscapeSide = false; check("escape: off keeps the old direction", tacEscapeDir(hrp, from, "Back") == "Back")
+Config.TacEscapeSide = true; mapArenaCentre, dashDirFor = realCentre, realDir
+
 -- report lines do not error and say what is known
 reset()
 foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100
@@ -781,4 +814,27 @@ print('knowledge: %d checks, %d failed' % (kn, len(kfails)))
 for f in kfails: print('  FAIL:', f)
 print('knowledge summary:', kline)
 for l in list(klog.values())[:3]: print('  ', l)
-sys.exit(1 if (fails or kfails) else 0)
+# round trip: the life line the bot writes must be the line the analyser reads
+tail = lua.eval('''(function()
+    Life = { tac = { confirm = { n = 5, h = 4, d = 40 }, neutral = { n = 8, h = 2, d = 18 }, punish = { n = 2, h = 1, d = 9 } },
+        tacCombo = 5, tacGuard = 6, tacGuardHit = 3, tacPunish = 1, tacLead = 2, tacGated = 4, m1Swings = 30, m1Hits = 14, m1Dmg = 46,
+        moveN = 100, moveBack = 3, tacDamped = 7, flipBy = { ["APPROACH/path"] = 5 }, tacBlockKept = 2,
+        knowHeld = 11, knowWhy = { block = 6, rag = 2 }, knowProbes = 2, knowCounter = 1, knowBreak = 3, knowGround = 2, m1HeldSec = 4.4,
+        fin = { down = { n = 2, net = 9 }, up = { n = 1, net = -4 } }, lateStamp = 1, p2Sent = 4, p2Cast = 5, p2Lost = 1,
+        open = { ["mid-swing"] = 6, ["after a cast"] = 3, ["closing in"] = 2 }, openN = 11, wakeSwing = 2, wakeGuard = 3, wakeStunned = 0,
+        holdCasts = 1, ultWaited = 9, dashOpen = 4, dashOpenHit = 3, taken = 180 }
+    return tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary()
+end)()''')
+import os, tempfile, importlib.util
+spec = importlib.util.spec_from_file_location('analyze_log', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'analyze_log.py'))
+al = importlib.util.module_from_spec(spec); spec.loader.exec_module(al)
+with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as fh:
+    fh.write('[1] LIFE END: 200 dmg in 100s (2.0 dmg/s, 15 moves, 90% engaged, 5 blocks, 20s stunned) | Toji | stunned by: Todo:Melee1 x3, Todo:Chase x1 | ff: 0 | refused 2 (rolled back 2), burst 3/1, kite 0s' + tail + '\n')
+    tmp = fh.name
+r = al.analyse(tmp); os.unlink(tmp); S = r['S']
+want = dict(held=11, probes=2, kcounters=1, breaks=3, ground=2, late=1, p2_sent=4, p2_cast=5, p2_lost=1, openN=11, wake_swing=2, wake_guard=3,
+            hold_casts=1, dash=4, dash_hit=3, taken=180, confirm_h=4, confirm_n=5, neutral_n=8, m1_n=30, m1_h=14, combos=5, preguard=6, preguard_met=3, refused=2)
+rt = [k for k, v in want.items() if S[k] != v]
+if r['opens'].get('mid-swing') != 6 or r['fins']['down'][0] != 2 or r['stun_by'].get('front-dash punch') != 1: rt.append('categories')
+print('analyser round trip: %d fields, %d wrong %s' % (len(want) + 1, len(rt), rt if rt else ''))
+sys.exit(1 if (fails or kfails or rt) else 0)

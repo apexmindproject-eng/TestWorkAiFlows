@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v89"
+local BUILD_TAG = "JJK-SOLO-v90"
 
 local NL = string.char(10)
 
@@ -972,7 +972,14 @@ local Config = {
     KnowDomainDist = 22,        -- a domain is only opened with the target down or this far off
     KnowHold = true,            -- try the held version of moves that have one, where there is room to
     KnowHoldDist = 14,
-    KnowHoldTrials = 3,           -- tries of each delay before the best one is kept       -- seconds before judging a cast refused, for moves seen to start their cooldown late
+    KnowHoldTrials = 3,
+    -- Openers and target choice (v90).
+    TacDashOpen = true,         -- open with the front-dash punch, as opponents do
+    TacDashMin = 11,            -- inside half the slide the punch knocks down instead of stunning
+    TacDashMax = 18,
+    TacDashCooldown = 6.2,      -- the game's own cooldown is 6 s
+    TacEscapeSide = true,       -- escape a knockdown to the side, toward the middle of the arena
+    TacAwakeWeight = 16,        -- how much less an awakened enemy is worth as a target while we are not           -- tries of each delay before the best one is kept       -- seconds before judging a cast refused, for moves seen to start their cooldown late
     -- The fourth basic hit: "down" (falling: unblockable, reaches the ground),
     -- "up" (rising: launches, longest time down), "flat", "off", or "auto",
     -- which tries each and keeps what pays (damage dealt minus taken after).
@@ -3025,6 +3032,8 @@ function memLifeStart()
     Life.p2Cast, Life.p2Sent, Life.p2Lost = 0, 0, 0
     Life.open, Life.openN, Life.wakeSwing, Life.wakeGuard, Life.wakeStunned, Life.holdCasts, Life.ultWaited = {}, 0, 0, 0, 0, 0, 0
     Bot.UltFullSince, Bot.HoldUntil, Bot.StunWho = nil, nil, nil
+    Life.dashOpen, Life.dashOpenHit = 0, 0
+    Bot.DashOpen = nil
     Bot.P2Last, Bot.KnowLastPending = nil, nil
     Bot.RefusedN = {}
     Life.dmg = 0
@@ -3376,7 +3385,7 @@ function memLifeEnd()
         Life.stunnedSelf or 0, tostring(Bot.CamProbe))
     tail = tail .. " | discounted " .. tostring(Life.discounted or "no")
     knowLifeReport()
-    tail = tail .. tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary()
+    tail = tail .. tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary()
     debug(string.format(
         "LIFE END: %.0f dmg in %.0fs (%.1f dmg/s, %d moves, %.0f%% engaged, %d blocks, %.0fs stunned) | %s | stunned by: %s | ff: %d held (holds %d/%d, freed %d, sidesteps %d), %.0f dmg + %d stuns in ally lanes | refused %d (rolled back %d), burst %d/%d, kite %.0fs, retreat %.0fs, revs %d, shared %.0f, fps %.0f (worst %.0f ms) | avg %.0f best %.0f over %d lives | samples %d clean / %d shared / %d dirty | fair %.0f | react %d judged / %d crowd / %d retests",
         Life.dmg, dur, Life.dmg / math.max(1, dur), Life.moves,
@@ -6782,6 +6791,7 @@ function tacM1Tick()
     if not me then return end
     tacFinisherBook()
     tacSelfTick(tick())
+    tacDashOpenTick(tick())
     if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
     local r = MEM.tactics.m1
     if not r then r = { n = 0, h = 0, d = 0 }; MEM.tactics.m1 = r end
@@ -7818,6 +7828,74 @@ function knowHoldFor(name, t, d2d)
 end
 
 
+-- ------------------------------------------------------------------ openers (v90)
+-- The front-dash punch: a 20-stud slide into a jab that stuns, on a 6 s
+-- cooldown. It is 12% of the stuns we take and it is how opponents start
+-- their strings on us. The bot only used it to run down somebody fleeing.
+-- Now it opens with it: from far enough that the punch stuns (inside half
+-- the slide it knocks down instead, and a knockdown starts nothing), and
+-- not into a guard, which costs us extra recovery.
+function tacDashOpen(t, d2d, now)
+    if not Config.TacDashOpen or not t or not d2d then return false end
+    if d2d < (Config.TacDashMin or 11) or d2d > (Config.TacDashMax or 18) then return false end
+    if now - (Bot.LastChase or 0) < (Config.TacDashCooldown or 6.2) then return false end
+    if math.abs(Bot.DistY or 0) > 5 then return false end
+    local st = knowState(t)
+    if st == "block" or st == "rag" or st == "wake" or st == "air" then return false end
+    if hasIFrames(t) then return false end
+    return true
+end
+
+function tacDashOpened(t, now)
+    Bot.DashOpen = { t = t, at = now }
+    Life.dashOpen = (Life.dashOpen or 0) + 1
+    debugEvery("dashopen", 1.5, string.format("opening with a dash punch from %.0f studs", Bot.Dist2D or 0))
+end
+
+-- Did it land? The target is stunned and beside us within a second.
+function tacDashOpenTick(now)
+    local d = Bot.DashOpen
+    if not d then return end
+    local el = now - d.at
+    local t = d.t
+    if not (t and t.Parent) or el > 1.1 then Bot.DashOpen = nil return end
+    if el < 0.2 then return end
+    local h, th = getHRP(), getHRP(t)
+    if h and th and isStunned(t) and not isRagdolled(t)
+       and Vector3.new(th.Position.X - h.Position.X, 0, th.Position.Z - h.Position.Z).Magnitude <= 9 then
+        Life.dashOpenHit = (Life.dashOpenHit or 0) + 1
+        if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
+        MEM.tactics.dashHit = (MEM.tactics.dashHit or 0) + 1
+        Bot.DashOpen = nil
+    end
+end
+
+-- Escaping a knockdown straight backwards leaves us on the line of their
+-- next dash. Step out to the side instead, and of the two sides take the
+-- one that leads back toward the middle of the arena, not into a wall.
+function tacEscapeDir(h, from, fallback)
+    if not Config.TacEscapeSide or not (h and from) then return fallback end
+    local away = Vector3.new(h.Position.X - from.Position.X, 0, h.Position.Z - from.Position.Z)
+    if away.Magnitude < 0.1 then return fallback end
+    away = away.Unit
+    local left = Vector3.new(-away.Z, 0, away.X)
+    local pick = left
+    local centre = type(mapArenaCentre) == "function" and mapArenaCentre() or nil
+    if centre then
+        local toC = Vector3.new(centre.X - h.Position.X, 0, centre.Z - h.Position.Z)
+        if toC.Magnitude > 1 and toC:Dot(left) < 0 then pick = left * -1 end
+    elseif math.random() < 0.5 then
+        pick = left * -1
+    end
+    -- a little away as well as across
+    return dashDirFor(pick + away * 0.35)
+end
+
+function tacOpenSummary()
+    return string.format(" | dash punches %d (%d landed) | took %.0f dmg", Life.dashOpen or 0, Life.dashOpenHit or 0, Life.taken or 0)
+end
+
+
 local function getAimPoint()
     local h = getHRP()
     local t = Bot.Target
@@ -8228,7 +8306,7 @@ local function useChase()
     if not svc then return false end
 
     Bot.LastChase = tick()
-    local ok = fireRemote(svc, "Chase", isAirborne())
+    local ok = fireRemote(svc, "Chase", isAirborne(), "Front")
     if ok and Config.DebugDash then
         debug("chase fired (air=" .. tostring(isAirborne()) .. ")")
     end
@@ -8520,7 +8598,7 @@ function tryBurst()
     if not from then return false end
     local away = Vector3.new(h.Position.X - from.Position.X, 0, h.Position.Z - from.Position.Z)
     if away.Magnitude < 0.1 then away = Vector3.new(-h.CFrame.LookVector.X, 0, -h.CFrame.LookVector.Z) end
-    local dir = dashDirFor(away)
+    local dir = tacEscapeDir(h, from, dashDirFor(away))
     Bot.BurstAt = now
     Life.bursts = (Life.bursts or 0) + 1
     -- the meter says whether an escape is on offer (the character's Burst
@@ -13639,6 +13717,7 @@ function scoreCandidate(c, myPos)
     terms.crowd = math.clamp(friends / 3, 0, 1)
     terms.matchup = memMatchupPenalty(c)
     terms.vuln = ((isStunned(c) or isRagdolled(c)) and d2d <= 30) and 1 or 0
+    terms.awake = (c:GetAttribute("InUlt") and not isAwakened()) and 1 or 0
 
     local score =
           W.threat * terms.threat
@@ -13649,6 +13728,7 @@ function scoreCandidate(c, myPos)
         - W.crowd  * terms.crowd
         - (W.matchup or 0) * terms.matchup
         + (Config.TacVulnWeight or 0) * terms.vuln
+        - (Config.TacAwakeWeight or 0) * terms.awake
 
     if c == Bot.Target then
         score = score + W.commit
@@ -16032,10 +16112,12 @@ local function executeState()
             return
         end
 
+        if tacDashOpen(t, d2d, now) and hasLineOfSight(t) and not Bot.Leashed and useChase() then
+            tacDashOpened(t, now)
+            return
+        end
         trySpecial(t, d2d)
         tryUseSkill(t, d)
-
-
         if d2d > Config.CloseDashMin and hasLineOfSight(t) and not Bot.Leashed then
             dashToward()
         end
@@ -19166,6 +19248,20 @@ do
             { key = "TacMoveDamp",   label = "Steady footing",
               on = function(v) announce(v and "movement: reversals must persist before they are obeyed" or "movement: every direction change obeyed at once") end },
             { page = "know", label = "Move knowledge" },
+            { page = "sense", label = "Fight sense" },
+        }
+        -- The moments that decide a fight (v89, v90).
+        PAGES.sense = {
+            { back = true },
+            { key = "TacDashOpen", label = "Open with a dash punch",
+              on = function(v) announce(v and "tactics: the front-dash punch opens the fight from 11 to 18 studs" or "tactics: the dash punch is only used to run somebody down") end },
+            { key = "TacWake",     label = "Wake-up rules",
+              on = function(v) announce(v and "tactics: swing through on getting up, guard when they get up" or "tactics: no special handling of getting up") end },
+            { key = "TacAwaken",   label = "Awaken when it counts",
+              on = function(v) announce(v and "tactics: awakening waits for low health, a helpless target or 15 s" or "tactics: awakening the moment the bar fills") end },
+            { key = "TacEscapeSide", label = "Escape to the side",
+              on = function(v) announce(v and "tactics: knockdown escapes go sideways, toward the middle" or "tactics: knockdown escapes go straight back") end },
+            { key = "TacLedger",   label = "Log how hits get in" },
         }
         -- What each move is for (v87): researched facts, corrected by what
         -- the machine measures on its own casts. See the KNOW lines in the log.
@@ -19183,10 +19279,6 @@ do
               on = function(v) announce(v and "knowledge: two-press moves get their second press" or "knowledge: every move is tapped once") end },
             { key = "KnowHold",    label = "Hold where it pays",
               on = function(v) announce(v and "knowledge: held versions are tried at a distance and kept if they deal more" or "knowledge: every move is let go at once") end },
-            { key = "TacWake",     label = "Wake-up rules",
-              on = function(v) announce(v and "tactics: swing through on getting up, guard when they get up" or "tactics: no special handling of getting up") end },
-            { key = "TacAwaken",   label = "Awaken when it counts",
-              on = function(v) announce(v and "tactics: awakening waits for low health, a helpless target or 15 s" or "tactics: awakening the moment the bar fills") end },
             { fn = function()
                   local order = { "auto", "down", "up", "flat", "off" }
                   local cur = Config.TacFinisher or "auto"
@@ -19643,7 +19735,7 @@ do
     end
 end
 
-announce("The Eye HUD on v89 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v90 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 
