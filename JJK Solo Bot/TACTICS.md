@@ -1,4 +1,4 @@
-# Tactics layer (v85 to v99)
+# Tactics layer (v85 to v100)
 
 The decision core changed in v85. This file says why, what the new rules are,
 and how to tell from a log whether they work.
@@ -735,6 +735,65 @@ hit taken: Todo:Melee1 from 5 studs, behind | we were ... | they had just jumped
 `tools/analyze_log.py` prints the totals and, per move of ours, how often a
 jump made it miss. Switch for all of it: `TacWatchJumps`.
 
+## v100: the first experiment decided, and what watching the others showed
+
+Two v99 logs, 28 lives, 37.5 minutes: 10 kills and 28 deaths, 0.52 dealt for
+each 1 taken. Worse than v96. Part of that is the experiment's losing arm,
+part is two things v98 added.
+
+### The experiment
+
+| Arm | Lives | Kills | Damage dealt for each 1 taken |
+|---|---|---|---|
+| A, v93 rules | 14 | 8 | 0.57 |
+| B, v94 to v96 rules | 13 | 2 | 0.49 |
+
+Same sessions, same opponents, lives alternating. The rules added in v94 to
+v96 lose on both measures, which agrees with the build-by-build trend. The
+v93 values are the defaults again: no guard under 25% health, the guard off
+for a whole punish window, 3 s and 0.3 s rests, no spacing step, no higher
+bar for raw casts up close, counters at the 20% bar, no block on getting up.
+The result is kept in the memory file under `abDone`.
+
+### What v98 got wrong
+
+| Measured in v99 | Value | Change |
+|---|---|---|
+| Jumps made as a reaction | 2,653 in 37 minutes, 127 s spent hopping | One jump per sighting, then guard |
+| Health lost per reaction, career | block 1.9, away 2.2, jump 2.6, hold 2.8, dodge 2.9 | "Jump" is no longer tried at random against every enemy move. It is used only for moves that watching the others has shown go under a jump |
+| Air casts tried, and how many left the ground | 101, 7 | Off (`KnowAir`). The game does not let us jump in most of the moments a cast goes out, so 94 casts were only delayed. The 7 that worked dealt 1.9 against 2.8 from the ground |
+| Vaults, and how many got behind | 32, 14 | Kept. It does clear a player |
+| Baits, and how many guards dropped | 16, 6 | Kept |
+
+### How the others jump
+
+| Seen in 37.5 minutes | Count |
+|---|---|
+| Jumps by players near us | 511 |
+| With a move or swing of ours in flight | 79 |
+| Of those, where ours missed | 52 |
+| Our basic swing: jumped, missed | 14, 10 |
+| Leaving | 120 |
+| Coming in | 116 |
+| On the spot | 191 |
+| Over us to our back | 1 |
+| Hits on us by somebody who had jumped in the 1.3 s before | 87 of 489 |
+
+Players jump about fourteen times a minute, and a jump makes our basic swing
+miss seven times in ten. Four of our moves have five jumps booked so far:
+Brute Force (missed 4 of 5), Cleaving Whirlwind (3 of 5), Ratio Point (3 of
+5), Blunt Cut (2 of 5). Jumping over us to take the back happened once.
+
+### The next experiment
+
+Lives now alternate between "no vault or bait" and "vault and bait". Same
+`EXPERIMENT:` line, same switch (`ABTest`).
+
+What we were doing when a hit got in, counted from every hit line (the life
+line names only each life's top four, which undercounted): closing in 27%,
+after a cast 24%, standing 17%, through a raised block 13%, just got up 8%,
+of 489.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
@@ -771,7 +830,7 @@ jump made it miss. Switch for all of it: `TacWatchJumps`.
 
 `tools/test_tactics.py` runs the code against mocked game objects: 76 checks
 on kinematics, prediction, lead, contact, chaining, travel facing, reversal
-damping and the arena, and 379 on knowledge and fight sense: families, target states, beliefs,
+damping and the arena, and 383 on knowledge and fight sense: families, target states, beliefs,
 seeding, the gate, probes, the recorder, timing regression, counters,
 guard-breaks, ground hits, held swings, the fourth hit, late cooldowns,
 second presses, the hit ledger, getting up, awakening, domains, held

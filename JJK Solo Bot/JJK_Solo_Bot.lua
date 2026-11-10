@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v99"
+local BUILD_TAG = "JJK-SOLO-v100"
 
 local NL = string.char(10)
 
@@ -994,7 +994,7 @@ local Config = {
     TacFaceCastHold = 0.6,
     TacM1Probe = true,          -- learn the real reach of a basic attack from which swings land
     TacM1Slack = 1.0,           -- swing on the approach only inside the reach plus this
-    TacM1Lead = 0.1,            -- ... or if the gap will have closed this many seconds from now        -- how much less an awakened enemy is worth as a target while we are not           -- tries of each delay before the best one is kept       -- seconds before judging a cast refused, for moves seen to start their cooldown late
+    TacM1Lead = 0.2,   -- v100: the v93 value. Over 14 and 13 lives the v93 rules made 8 kills and 0.57 dealt per 1 taken, the later ones 2 kills and 0.49
     -- v93, from the design review of v92. The v86 log has more blocks than
     -- swings in nine lives of ten (385 against 160), and chaining needs three
     -- landed swings, so that caps everything v85 to v92 added. The first two
@@ -1020,16 +1020,16 @@ local Config = {
     -- 155 of 263 hits that got in came within 1.2 s of a cast of ours: 269
     -- raw casts, 96 landed, and nearly every miss was punished. Up close a
     -- raw cast now needs a better chance than at range.
-    KnowMinPClose = 0.45,       -- chance a raw cast needs inside KnowCloseDist of a target that can answer
+    KnowMinPClose = 0,   -- v100: the v93 value. Over 14 and 13 lives the v93 rules made 8 kills and 0.57 dealt per 1 taken, the later ones 2 kills and 0.49
     -- v95, from the career totals after the v94 log: 676 raw casts landed 34%
     -- for 6.7 damage, so a raw cast is worth 2.3 damage and takes about a
     -- second; three basic swings in that second are worth 4 and start a
     -- string. A move that carries us to the target is "close" whatever the
     -- distance it was thrown from (Sacrilege: 0 of 5 raw, 10 of 10 chained).
     KnowContactClose = false,   -- off in v96: the "missed casts get punished" reading behind it was a measuring error (see TacSelfStun)
-    KnowCounterMinP = 0.5,      -- a counter is thrown only if it works half the time; a block absorbs two hits in three (counters: 11 of 28)
+    KnowCounterMinP = 0.2,   -- v100: the v93 value. Over 14 and 13 lives the v93 rules made 8 kills and 0.57 dealt per 1 taken, the later ones 2 kills and 0.49
     SpecialSafeDist = 0,        -- off in v96, for the same reason as KnowContactClose       -- no special inside this distance of a target that can answer (27 hits followed 71 specials)
-    TacWakeBlock = true,        -- getting up beside an enemy: block first (119 career hits landed as we got up)
+    TacWakeBlock = false,   -- v100: the v93 value. Over 14 and 13 lives the v93 rules made 8 kills and 0.57 dealt per 1 taken, the later ones 2 kills and 0.49
     TacWakeBlockFor = 0.45,
     -- v96. The game sets Stun on us for the length of our own moves. The
     -- script counted that as being stunned by whoever stood nearest: in the
@@ -1058,7 +1058,7 @@ local Config = {
     TacBaitDist = 12,           -- ... to here, inside dash-punch reach, and wait for it to drop
     TacBaitFor = 4,
     ReactJump = true,           -- jumping is one of the reactions tried against rushes, beams, pulls and blasts, and kept where it works
-    KnowAir = true,             -- moves that have an air version: jump first sometimes, keep whichever of ground and air deals more
+    KnowAir = false,   -- off in v100: of 101 tries 7 left the ground, the rest only delayed the cast; those 7 dealt 1.9 against 2.8 from the ground
     KnowAirTrials = 3,
     -- v99. Nobody has written down which attacks a jump avoids, but every
     -- player in the server shows it: when one of them jumps with a move of
@@ -1071,9 +1071,9 @@ local Config = {
     KnowCloseDist = 9,          -- 14 before v96: the higher bar now applies only where a swing could be thrown instead
     -- Blocks work when they go up (94 of 143 accepted blocks took a hit), and
     -- the rules below kept them down for 119 of the hits that got in.
-    GuardWhenLow = true,        -- a swing in reach is blocked under RetreatHP too (54 hits got in with the guard switched off there)
-    PunishGuardLock = 0.6,      -- a punish window only switches the guard off this long, not for all of it (34 hits)
-    TacSpacing = true,          -- fight from where swings land: step in past TacSpaceIn, no swings past the good reach + 3
+    GuardWhenLow = false,   -- v100: the v93 value. Over 14 and 13 lives the v93 rules made 8 kills and 0.57 dealt per 1 taken, the later ones 2 kills and 0.49
+    PunishGuardLock = 99,   -- v100: the v93 value. Over 14 and 13 lives the v93 rules made 8 kills and 0.57 dealt per 1 taken, the later ones 2 kills and 0.49
+    TacSpacing = false,   -- v100: the v93 value. Over 14 and 13 lives the v93 rules made 8 kills and 0.57 dealt per 1 taken, the later ones 2 kills and 0.49
     TacSpaceTo = 4.5,           -- swings from 4 to 6 studs landed 38 of 42; from 6 to 8, 12 of 27; from 12 up, 2 of 28         -- a move's learned weight is pulled toward the middle until it has this many casts
     FrameStaleGuard = true,     -- a frame that comes back from a path compute after others have run stops there
     -- The fourth basic hit: "down" (falling: unblockable, reaches the ground),
@@ -1277,7 +1277,7 @@ local Config = {
     AdoptSwinger = true,
     AdoptSwingerWindow = 1.5,
     AdoptSwingerRange = 12,
-    DefendDropRest = 1,         -- 3 before v94: 27 hits got in during this rest
+    DefendDropRest = 3,   -- v100: the v93 value. Over 14 and 13 lives the v93 rules made 8 kills and 0.57 dealt per 1 taken, the later ones 2 kills and 0.49
 
     DefendGangedGrace = 1.0,
     SwingIncludeChase = true,
@@ -1339,7 +1339,7 @@ local Config = {
     SwingCastMin = 0.4,
     SwingPunishWindow = 1.5,
 
-    DefendCapRest = 0.15,       -- 0.3 before v94: 28 hits got in during this rest
+    DefendCapRest = 0.3,   -- v100: the v93 value. Over 14 and 13 lives the v93 rules made 8 kills and 0.57 dealt per 1 taken, the later ones 2 kills and 0.49
 
     DefendUnderRetreat = true,
     DefendKeepMax = 1.0,
@@ -4482,10 +4482,10 @@ ReactOptions = {
 
 
     grab    = { "away", "dodge" },
-    pull    = { "block", "away", "dodge", "jump" },
-    beam    = { "dodge", "block", "away", "jump" },
-    rush    = { "block", "dodge", "away", "jump" },
-    aoe     = { "away", "dodge", "block", "jump" },
+    pull    = { "block", "away", "dodge" },
+    beam    = { "dodge", "block", "away" },
+    rush    = { "block", "dodge", "away" },
+    aoe     = { "away", "dodge", "block" },
     counter = { "hold", "away" },
 }
 
@@ -8172,6 +8172,12 @@ function tacReactPick(t, move, kind)
     -- written every frame of the sighting: a projectile in between may have
     -- pointed the dodge somewhere else
     if L.dir then Bot.ReactDir = L.dir end
+    -- one jump per sighting, then guard: v99 hopped for as long as the move
+    -- was in sight, 2,653 jumps in 37 minutes
+    if L.pick == "jump" then
+        if L.jumped and (now - L.at) > 0.45 then return "block" end
+        if not L.jumped then L.jumped = true; tacJump() end
+    end
     return L.pick
 end
 
@@ -8559,13 +8565,13 @@ function tacSelfStunBroken()
 end
 
 -- ------------------------------------------------------------------ the bot's own experiment (v97)
--- Arm A plays by the v93 values of every rule changed in v94 to v96, arm B
--- by the current ones. Everything else is the same in both.
+-- The first experiment (v97 to v99) set the v93 rules against the rules
+-- added in v94 to v96, and the v93 rules won; they are the defaults again.
+-- This one asks whether vaulting and baiting a held guard pays.
+Know.ABName = "guardplay"
 Know.AB = {
-    A = { name = "v93 rules", set = { GuardWhenLow = false, PunishGuardLock = 99, DefendDropRest = 3, DefendCapRest = 0.3,
-            TacSpacing = false, KnowMinPClose = 0, TacM1Lead = 0.2, KnowCounterMinP = 0.2, TacWakeBlock = false } },
-    B = { name = "v96 rules", set = { GuardWhenLow = true, PunishGuardLock = 0.6, DefendDropRest = 1, DefendCapRest = 0.15,
-            TacSpacing = true, KnowMinPClose = 0.45, TacM1Lead = 0.1, KnowCounterMinP = 0.5, TacWakeBlock = true } },
+    A = { name = "no vault or bait", set = { TacGuardPlay = false } },
+    B = { name = "vault and bait", set = { TacGuardPlay = true } },
 }
 
 function tacABApply(arm)
@@ -8581,6 +8587,14 @@ function tacABStart()
         return
     end
     if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
+    -- a new question: the finished experiment is put away under its name
+    if MEM.tactics.abName ~= Know.ABName then
+        if type(MEM.tactics.ab) == "table" then
+            if type(MEM.tactics.abDone) ~= "table" then MEM.tactics.abDone = {} end
+            MEM.tactics.abDone[tostring(MEM.tactics.abName or "rules")] = MEM.tactics.ab
+        end
+        MEM.tactics.ab, MEM.tactics.abName = nil, Know.ABName
+    end
     if type(MEM.tactics.ab) ~= "table" then MEM.tactics.ab = {} end
     local ab = MEM.tactics.ab
     for _, a in ipairs({ "A", "B" }) do
@@ -16905,7 +16919,6 @@ local function executeState()
 
         if r == "jump" then
             -- straight up, on the spot: a sweep or a ground line passes under
-            if not Bot.ReactHelpless then tacJump() end
             faceTarget(t, true)
             if Bot.ReactMove then memReactStart(Bot.ReactMove, "jump") end
             return
@@ -20863,7 +20876,7 @@ do
     end
 end
 
-announce("The Eye HUD on v99 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v100 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 

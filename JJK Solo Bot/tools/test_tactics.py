@@ -1191,14 +1191,16 @@ Config.KnowProbe = true
 
 -- v97: the bot's own experiment
 reset(); Config.ABTest = true; Tac.abArm = nil; Bot.Kills = 0
-tacABStart(); check("experiment: the first life takes one arm", Life.abArm == "A" and Config.TacSpacing == false and Config.PunishGuardLock == 99)
+MEM.tactics = { ab = { A = { lives = 14, dmg = 1, taken = 1, dur = 1, kills = 8 }, B = { lives = 13, dmg = 1, taken = 1, dur = 1, kills = 2 } } }
+tacABStart(); check("experiment: the first life takes one arm", Life.abArm == "A" and Config.TacGuardPlay == false)
+check("experiment: the finished one is put away under its name", MEM.tactics.abDone.rules.A.kills == 8 and MEM.tactics.abName == "guardplay" and MEM.tactics.ab.A.lives == 0)
 Life.dmg, Life.taken, Life.startAt = 80, 100, CLOCK - 100; Bot.Kills = 1; LOG = {}; tacABEnd()
 check("experiment: the life is booked to its arm", MEM.tactics.ab.A.lives == 1 and MEM.tactics.ab.A.kills == 1 and MEM.tactics.ab.A.dmg == 80)
-check("experiment: both arms are reported", #LOG == 1 and LOG[1]:find("EXPERIMENT: A v93 rules: 1 lives, 0.80 dealt") ~= nil and LOG[1]:find("B v96 rules: 0 lives") ~= nil, LOG[1])
-tacABStart(); check("experiment: the next life takes the other", Life.abArm == "B" and Config.TacSpacing == true and Config.PunishGuardLock == 0.6)
+check("experiment: both arms are reported", #LOG == 1 and LOG[1]:find("EXPERIMENT: A no vault or bait: 1 lives, 0.80 dealt") ~= nil and LOG[1]:find("B vault and bait: 0 lives") ~= nil, LOG[1])
+tacABStart(); check("experiment: the next life takes the other", Life.abArm == "B" and Config.TacGuardPlay == true)
 Life.dmg, Life.taken, Life.startAt = 60, 100, CLOCK - 50; tacABEnd()
 tacABStart(); check("experiment: level again, the one not played last", Life.abArm == "A")
-Config.ABTest = false; tacABStart(); check("experiment: off leaves the current rules in force", Life.abArm == nil and Config.TacSpacing == true)
+Config.ABTest = false; tacABStart(); check("experiment: off leaves the current rules in force", Life.abArm == nil and Config.TacGuardPlay == true)
 Config.ABTest = true
 -- why a block was not taken
 reset(); Life.pbRef = {}
@@ -1284,6 +1286,16 @@ CLOCK = CLOCK + 3; Life.lastUsedAt = 0; jumper.HRP.Position = Vector3.new(0, 0, 
 jumper.HRP.Position = Vector3.new(0, 0, -34); CLOCK = CLOCK + 1; tacEnemyJumpResolve(CLOCK); check("their jumps: jumping while leaving", Life.ejAway == 1)
 check("their jumps: the life line", tacEnemyJumpSummary():find("their jumps: 7 seen, 1 over us %(1 then hit us%), 5 with a move of ours in flight %(4 made it miss%)") ~= nil, tacEnemyJumpSummary())
 Config.TacWatchJumps = false; r1 = rec(30); tacEnemyJump(jumper, r1, CLOCK + 5); check("their jumps: watching off", Life.ejSeen == 7); Config.TacWatchJumps = true
+
+-- v100: one jump per sighting, then guard
+reset(); Config.ReactJump, Config.ReactJumpLearned, Config.ReactLatch, Config.ReactLatchGap = true, true, true, 0.5
+HUM.FloorMaterial, HUM.Jump = "Ground", false; Bot.ReactLatched = nil
+MEM.tactics = { jumpable = { SwiftKick = { n = 5, miss = 4 } } }
+memBestReaction = function() return "block" end; DangerPlan = { rush = "block" }
+foe = mkChar("foe", 0, -6, 0, 1)
+check("one jump: the first frame jumps", tacReactPick(foe, "SwiftKick", "rush") == "jump" and HUM.Jump == true and Life.reactJumps == 1)
+HUM.Jump = false; CLOCK = CLOCK + 0.1; check("one jump: not again on the next frame", tacReactPick(foe, "SwiftKick", "rush") == "jump" and HUM.Jump == false and Life.reactJumps == 1)
+CLOCK = CLOCK + 0.4; check("one jump: then it guards", tacReactPick(foe, "SwiftKick", "rush") == "block" and Life.reactJumps == 1)
 
 -- report lines do not error and say what is known
 reset()

@@ -83,6 +83,8 @@ def analyse(path):
     holds = [(num(a), int(b)) for a, b in re.findall(r'DEFEND held ([\d.]+) s, swings (\d+)', txt)]
     know = {}
     for name, rest in re.findall(r'KNOW (.+?): ([^\n]*)', txt): know[name] = rest
+    full = collections.Counter(re.sub(r'\s*\(.*$', '', d).strip() for d in re.findall(r'hit taken: [^|]*\| we were ([^|\n]*)', txt))
+    if full: opens = full
     out.update(S=S, chars=chars, opens=opens, fins=fins, stun_by=stun_by, held_why=held_why, holds=holds, know=know,
                refused_by=collections.Counter(re.findall(r'refused: (.+?) \(no stamp moved', txt)),
                checks=re.findall(r'research check: [^\n]*', txt), probes=re.findall(r'probe result: [^\n]*', txt),
