@@ -794,6 +794,48 @@ line names only each life's top four, which undercounted): closing in 27%,
 after a cast 24%, standing 17%, through a raised block 13%, just got up 8%,
 of 489.
 
+## Where it stands after v100
+
+One v100 log, 19 lives, 26 minutes.
+
+| Measure | v86 | v93 | v99 | v100 |
+|---|---|---|---|---|
+| Kills per life | 0.40 | 0.62 | 0.36 | 0.63 |
+| Damage per second | 0.90 | 1.25 | 0.98 | 1.33 |
+| Damage dealt for each 1 taken | n/a | 0.79 | 0.52 | 0.72 |
+| Chained casts that landed | 80% | 71% | 82% | 85% |
+| Basic swings per minute | 9.9 | 10.5 | 10.2 | 12.9 |
+| Blocks of 0.1 s or less | 62% | 22% | 14% | 13% |
+| Time stunned by enemies | not measured | not measured | 36% | 32% |
+
+Going back to the v93 rules and fixing the two v98 mistakes put it level with
+v93 again, with the highest damage per second so far. It still loses more
+fights than it wins: 12 kills, 19 deaths.
+
+The second experiment, 12 lives a side so far, too few to call:
+
+| Arm | Kills per life | Damage dealt for each 1 taken | Seconds per life |
+|---|---|---|---|
+| No vault or bait | 0.67 | 0.70 | 104 |
+| Vault and bait | 0.75 | 0.85 | 73 |
+
+Moves a jump has been seen to avoid, five or more jumps each: Roach Swarm,
+Brute Force and Appetizer 4 of 5, Cleaving Whirlwind 5 of 7, Pressing
+Charges and Ratio Point 3 of 5. Blunt Cut 3 of 6 and No Escape 1 of 6 do
+not qualify.
+
+What the work since v85 established, in order of how sure it is:
+
+1. Measured by a fair comparison: the v94 to v96 rule changes hurt.
+2. Measured directly: one-frame blocks are gone; route calculations halved;
+   a cast chained off a confirmed hit lands about 80% against 35% raw; swings
+   land from 2 to 6 studs and not beyond 8; the game counts our own moves as
+   stuns; a jump makes a basic swing miss 7 times in 10; a vault does clear a
+   player.
+3. Not settled: whether vault and bait pay; why a third of blocks are not
+   taken beyond "we were swinging or casting"; how to stop losing the
+   approach, which is where 28% of hits land.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
