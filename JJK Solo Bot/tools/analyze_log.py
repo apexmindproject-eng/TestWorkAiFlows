@@ -57,6 +57,8 @@ def analyse(path):
                 pm = re.match(r'\s*(.+?) (\d+)$', part)
                 if pm: opens[pm.group(1)] += int(pm.group(2))
             S['wake_swing'] += int(mm.group(3)); S['wake_guard'] += int(mm.group(4)); S['wake_stunned'] += int(mm.group(5)); S['hold_casts'] += int(mm.group(6))
+        mm = re.search(r'swings by distance: ([^;]*); reach taken as ([\d.]+) studs \((\w+)\) \| casts turned onto the target (\d+) of (\d+)', L)
+        if mm: out['m1bands'] = mm.group(1); out['m1reach'] = '%s studs (%s)' % (mm.group(2), mm.group(3)); S['cast_turned'] += int(mm.group(4)); S['cast_faced'] += int(mm.group(5))
         mm = re.search(r'dash punches (\d+) \((\d+) landed\)(?: \| took ([\d.]+) dmg)?', L)
         if mm: S['dash'] += int(mm.group(1)); S['dash_hit'] += int(mm.group(2)); S['taken'] += num(mm.group(3))
     holds = [(num(a), int(b)) for a, b in re.findall(r'DEFEND held ([\d.]+) s, swings (\d+)', txt)]
@@ -99,6 +101,8 @@ def report(r):
         print('  second presses %d of %d (%d lost to a stun) | held casts %d | refusals that were not %d' % (S['p2_sent'], S['p2_cast'], S['p2_lost'], S['hold_casts'], S['late']))
         print('  finishers: ' + (', '.join('%s x%d (net %+.1f each)' % (k, v[0], v[1] / v[0]) for k, v in r['fins'].items() if v[0]) or 'none'))
         print('  dash punches %d (%d landed) | wake-up: swung through %d, guarded theirs %d, stunned while immune %d' % (S['dash'], S['dash_hit'], S['wake_swing'], S['wake_guard'], S['wake_stunned']))
+        if r.get('m1bands'): print('  swings by distance (career): %s | reach taken as %s' % (r['m1bands'], r['m1reach']))
+        if S['cast_faced']: print('  casts that had to be turned onto the target: %d of %d' % (S['cast_turned'], S['cast_faced']))
     for title, c in (('Where stun time came from', r['stun_by']), ('What we were doing when a hit got in', r['opens']), ('Refused casts by move', r['refused_by']), ('Refusals that were not', r['late'])):
         if c:
             tot = sum(c.values()); print('\n%s' % title)
@@ -111,6 +115,32 @@ def report(r):
             print('\n%s' % title)
             for l in lst[:12]: print('  ' + l[:200])
 
+def compare(rs):
+    """One row per measure, one column per log, in the order given."""
+    def cols(f): return [f(r) for r in rs]
+    def rate(a, b): return lambda r: pct(r['S'][a], r['S'][b])
+    rows = [('Build', cols(lambda r: r['build'])),
+            ('Lives, minutes', cols(lambda r: '%d, %.0f' % (r['lives'], r['S']['dur'] / 60))),
+            ('Kills per life', cols(lambda r: '%.2f' % (r['kills'] / r['lives']) if r['lives'] else 'n/a')),
+            ('Damage per second', cols(lambda r: '%.2f' % (r['S']['dmg'] / (r['S']['dur'] or 1)))),
+            ('Dealt for each 1 taken', cols(lambda r: '%.2f' % (r['S']['dmg'] / r['S']['taken']) if r['S']['taken'] else 'n/a')),
+            ('Time stunned', cols(lambda r: pct(r['S']['stunned'], r['S']['dur']))),
+            ('Raw casts landed', cols(rate('neutral_h', 'neutral_n'))),
+            ('Chained casts landed', cols(rate('confirm_h', 'confirm_n'))),
+            ('Chained casts per minute', cols(lambda r: '%.1f' % (60.0 * r['S']['confirm_n'] / (r['S']['dur'] or 1)))),
+            ('Basic attacks landed', cols(rate('m1_h', 'm1_n'))),
+            ('Casts refused', cols(lambda r: pct(r['S']['refused'], r['S']['moves'] + r['S']['refused']))),
+            ('Predicted blocks met a swing', cols(rate('preguard_met', 'preguard'))),
+            ('Escapes of tries', cols(rate('escapes', 'bursts'))),
+            ('Blocks of 0.1 s or less', cols(lambda r: pct(sum(1 for a, _ in r['holds'] if a <= 0.1), len(r['holds'])))),
+            ('Dash punches landed', cols(rate('dash_hit', 'dash'))),
+            ('Second presses sent', cols(rate('p2_sent', 'p2_cast')))]
+    w0 = max(len(a) for a, _ in rows); wc = max(12, max(len(str(c)) for _, cs in rows for c in cs))
+    print('=' * 78); print('BEFORE AND AFTER (logs in the order given)')
+    for a, cs in rows: print('  %-*s  %s' % (w0, a, '  '.join('%*s' % (wc, c) for c in cs)))
+
 if __name__ == '__main__':
     if len(sys.argv) < 2: sys.exit(__doc__)
-    for p in sys.argv[1:]: report(analyse(p))
+    rs = [analyse(p) for p in sys.argv[1:]]
+    for r in rs: report(r)
+    if len(rs) > 1: compare(rs)

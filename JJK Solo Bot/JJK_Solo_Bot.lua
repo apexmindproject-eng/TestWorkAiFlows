@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v90"
+local BUILD_TAG = "JJK-SOLO-v91"
 
 local NL = string.char(10)
 
@@ -979,7 +979,16 @@ local Config = {
     TacDashMax = 18,
     TacDashCooldown = 6.2,      -- the game's own cooldown is 6 s
     TacEscapeSide = true,       -- escape a knockdown to the side, toward the middle of the arena
-    TacAwakeWeight = 16,        -- how much less an awakened enemy is worth as a target while we are not           -- tries of each delay before the best one is kept       -- seconds before judging a cast refused, for moves seen to start their cooldown late
+    TacAwakeWeight = 16,
+    -- v91. Against the v85 log, v86 landed fewer raw casts (32% to 21%) and
+    -- fewer basic attacks (44% to 31%). v86 made the body face the way the
+    -- feet go while covering ground, and a cast thrown on the approach then
+    -- left along the path instead of at the target.
+    TacFaceCast = true,         -- turn onto the target for every cast and stay on it through the wind-up
+    TacFaceCastHold = 0.6,
+    TacM1Probe = true,          -- learn the real reach of a basic attack from which swings land
+    TacM1Slack = 1.0,           -- swing on the approach only inside the reach plus this
+    TacM1Lead = 0.2,            -- ... or if the gap will have closed this many seconds from now        -- how much less an awakened enemy is worth as a target while we are not           -- tries of each delay before the best one is kept       -- seconds before judging a cast refused, for moves seen to start their cooldown late
     -- The fourth basic hit: "down" (falling: unblockable, reaches the ground),
     -- "up" (rising: launches, longest time down), "flat", "off", or "auto",
     -- which tries each and keeps what pays (damage dealt minus taken after).
@@ -3033,6 +3042,8 @@ function memLifeStart()
     Life.open, Life.openN, Life.wakeSwing, Life.wakeGuard, Life.wakeStunned, Life.holdCasts, Life.ultWaited = {}, 0, 0, 0, 0, 0, 0
     Bot.UltFullSince, Bot.HoldUntil, Bot.StunWho = nil, nil, nil
     Life.dashOpen, Life.dashOpenHit = 0, 0
+    Life.castFaced, Life.castTurned = 0, 0
+    Bot.FaceCastUntil = nil
     Bot.DashOpen = nil
     Bot.P2Last, Bot.KnowLastPending = nil, nil
     Bot.RefusedN = {}
@@ -3385,7 +3396,8 @@ function memLifeEnd()
         Life.stunnedSelf or 0, tostring(Bot.CamProbe))
     tail = tail .. " | discounted " .. tostring(Life.discounted or "no")
     knowLifeReport()
-    tail = tail .. tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary()
+    tacSessionLine()
+    tail = tail .. tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary() .. tacM1ReachSummary()
     debug(string.format(
         "LIFE END: %.0f dmg in %.0fs (%.1f dmg/s, %d moves, %.0f%% engaged, %d blocks, %.0fs stunned) | %s | stunned by: %s | ff: %d held (holds %d/%d, freed %d, sidesteps %d), %.0f dmg + %d stuns in ally lanes | refused %d (rolled back %d), burst %d/%d, kite %.0fs, retreat %.0fs, revs %d, shared %.0f, fps %.0f (worst %.0f ms) | avg %.0f best %.0f over %d lives | samples %d clean / %d shared / %d dirty | fair %.0f | react %d judged / %d crowd / %d retests",
         Life.dmg, dur, Life.dmg / math.max(1, dur), Life.moves,
@@ -6792,6 +6804,7 @@ function tacM1Tick()
     tacFinisherBook()
     tacSelfTick(tick())
     tacDashOpenTick(tick())
+    tacM1Resolve(tick())
     if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
     local r = MEM.tactics.m1
     if not r then r = { n = 0, h = 0, d = 0 }; MEM.tactics.m1 = r end
@@ -6801,6 +6814,7 @@ function tacM1Tick()
         if type(step) == "number" and Bot.M1Active then
             Life.m1Swings = (Life.m1Swings or 0) + 1
             r.n = r.n + 1
+            if step >= 2 then tacM1Swing(tick()) end
         end
         Tac.m1Step = step
         Tac.m1StepAt = tick()
@@ -6845,6 +6859,7 @@ end
 -- Returns a flat unit vector, or nil when the body belongs on the target.
 function tacTravelDir()
     if not Config.TacFaceTravel or not Bot.WalkActive then return nil end
+    if tick() < (Bot.FaceCastUntil or 0) then return nil end        -- a cast is going out: stay on the target
     local st = Bot.State
     local d = Bot.Dist2D or 999
     local travelling = st == "APPROACH_FAR" or st == "CHASE" or st == "IDLE" or st == "LEVEL"
@@ -7586,7 +7601,9 @@ function tacFinisher()
     if not mode or mode == "off" then return nil end
     local me, hum, t = getChar(), getHum(), Bot.Target
     local now = tick()
-    if not (me and hum and t) or me:GetAttribute("CurrentM1") ~= 4 then     -- 4: three are out, the fourth is next
+    local len, variants = tacStringLen()
+    if not variants then return nil end                 -- this character's last hit comes one way only
+    if not (me and hum and t) or me:GetAttribute("CurrentM1") ~= len then   -- the last hit of the string is next
         if Bot.FinMode and (now - (Bot.FinAt or 0)) > 1.5 then Bot.FinMode = nil end
         return nil
     end
@@ -7621,10 +7638,11 @@ function tacFinisherStep(prev, step)
         local g = now - (Tac.m1StepAt or now)
         if g > 0.1 and g < 0.9 then Tac.m1Gap = Tac.m1Gap and (Tac.m1Gap * 0.7 + g * 0.3) or g end
     end
-    if prev == 4 and step == 5 and Bot.FinMode and (now - (Bot.FinAt or 0)) < 1.5 then
+    local len = tacStringLen()
+    if prev == len and step == len + 1 and Bot.FinMode and (now - (Bot.FinAt or 0)) < 1.5 then
         Bot.FinPending = { mode = Bot.FinGot or Bot.FinMode, at = now, d0 = Life.dmg or 0, t0 = Life.taken or 0 }
     end
-    if prev == 4 then Bot.FinMode, Bot.FinGot = nil, nil end
+    if prev == len then Bot.FinMode, Bot.FinGot = nil, nil end
 end
 
 function tacFinisherBook()
@@ -7827,6 +7845,128 @@ function knowHoldFor(name, t, d2d)
     return spec.t
 end
 
+
+-- ------------------------------------------------------------------ strings and sessions (v91)
+-- Not every basic string is four hits. The research lists True Cannon's as
+-- three, and Head of the Hei's fourth as having no slam and no launcher.
+-- Everything that counts swings asks here how long this character's string
+-- is; the second value says whether the last hit has variants at all.
+Know.M1LEN = { Ryu = 3 }
+Know.NOFIN = { Naoya = true }
+function tacStringLen()
+    local me = getChar()
+    local set = me and me:GetAttribute("Moveset") or nil
+    return (set and Know.M1LEN[set]) or 4, not (set and Know.NOFIN[set])
+end
+
+-- One line after every life: is this session going better or worse? Kills
+-- and deaths, damage dealt for each 1 taken, time stunned, and the life just
+-- ended set against the lives before it.
+function tacSessionLine()
+    local se = Tac.session
+    if not se then
+        se = { lives = 0, dmg = 0, taken = 0, dur = 0, stunned = 0, k0 = Bot.Kills or 0 }
+        Tac.session = se
+    end
+    local dur = Life.startAt and (tick() - Life.startAt) or 0
+    local before = (se.taken > 0) and (se.dmg / se.taken) or nil
+    local mine = (Life.dmg or 0) / math.max(1, Life.taken or 0)
+    se.lives = se.lives + 1
+    se.dmg = se.dmg + (Life.dmg or 0)
+    se.taken = se.taken + (Life.taken or 0)
+    se.dur = se.dur + dur
+    se.stunned = se.stunned + (Life.stunned or 0)
+    local trend = "first life of the session"
+    if before then
+        if mine > before * 1.15 then trend = "this life better than the session before it"
+        elseif mine < before * 0.85 then trend = "this life worse than the session before it"
+        else trend = "this life about level with the session before it" end
+    end
+    debug(string.format("SESSION: %d kills, %d lives in %.0f min | dealt %.2f for each 1 taken (this life %.2f) | stunned %.0f%% of the time (this life %.0f%%) | %s",
+        (Bot.Kills or 0) - se.k0, se.lives, se.dur / 60, se.dmg / math.max(1, se.taken), mine,
+        100 * se.stunned / math.max(1, se.dur), 100 * (Life.stunned or 0) / math.max(1, dur), trend))
+end
+
+-- ------------------------------------------------------------------ reach of a basic attack (v91)
+-- The bot swung from 11 studs out on the approach. A swing that meets air
+-- still moves the string along, so the fourth hit and its two-second lockout
+-- were often spent before the target was in reach. How far a basic attack
+-- really reaches is not written anywhere, so every swing is booked by the
+-- distance it was thrown from and whether damage followed.
+Tac.m1Pending = {}
+function tacM1Swing(now)
+    if not Config.TacM1Probe then return end
+    local t = Bot.Target
+    if not (t and t.Parent) or not Bot.Dist2D then return end
+    table.insert(Tac.m1Pending, { at = now, d = Bot.Dist2D, t = t, hp = getHP(t), st = knowState(t) })
+end
+
+function tacM1Resolve(now)
+    local list = Tac.m1Pending
+    for i = #list, 1, -1 do
+        local p = list[i]
+        if now - p.at >= 0.4 then
+            table.remove(list, i)
+            -- a skill of ours in the air would be booked as the swing's damage
+            if p.t.Parent and (now - (Bot.LastSkill or 0)) > 1.0 and p.st ~= "block" and p.st ~= "rag" then
+                local hit = (p.hp or 0) - (getHP(p.t) or 0) > 0.5
+                if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
+                if type(MEM.tactics.m1r) ~= "table" then MEM.tactics.m1r = {} end
+                local key = tostring(math.min(math.floor(p.d / 2) * 2, 12))
+                local b = MEM.tactics.m1r[key]
+                if type(b) ~= "table" then b = { n = 0, h = 0 }; MEM.tactics.m1r[key] = b end
+                b.n = b.n + 1
+                if hit then b.h = b.h + 1 end
+            end
+        end
+    end
+end
+
+-- The furthest two-stud band in which swings still land one time in four.
+function tacM1Reach()
+    local r = type(MEM.tactics) == "table" and MEM.tactics.m1r or nil
+    local best = nil
+    if Config.TacM1Probe and type(r) == "table" then
+        for lo = 0, 12, 2 do
+            local b = r[tostring(lo)]
+            if type(b) == "table" and b.n >= 8 and b.h / b.n >= 0.25 then best = lo + 2 end
+        end
+    end
+    return best or Config.M1Range or 7, best ~= nil
+end
+
+function tacM1InReach(t, d2d)
+    if not t or not d2d then return false end
+    local reach = (tacM1Reach()) + (Config.TacM1Slack or 1.0)
+    if d2d <= reach then return true end
+    if d2d > reach + 5 then return false end
+    -- closing: will the gap be shut by the time the swing comes out?
+    local h, th = getHRP(), getHRP(t)
+    if not (h and th) then return false end
+    local to = Vector3.new(th.Position.X - h.Position.X, 0, th.Position.Z - h.Position.Z)
+    if to.Magnitude < 0.1 then return true end
+    local dir = to.Unit
+    local own = h.AssemblyLinearVelocity
+    local closing = (own and Vector3.new(own.X, 0, own.Z):Dot(dir) or 0) - tacVelocity(t):Dot(dir)
+    return d2d - closing * (Config.TacM1Lead or 0.2) <= reach
+end
+
+function tacM1ReachSummary()
+    local r = type(MEM.tactics) == "table" and MEM.tactics.m1r or nil
+    local parts = {}
+    if type(r) == "table" then
+        for lo = 0, 12, 2 do
+            local b = r[tostring(lo)]
+            if type(b) == "table" and b.n > 0 then
+                parts[#parts + 1] = string.format("%s %d/%d", lo >= 12 and "12+" or string.format("%d-%d", lo, lo + 2), b.h, b.n)
+            end
+        end
+    end
+    local reach, learned = tacM1Reach()
+    return string.format(" | swings by distance: %s; reach taken as %.0f studs%s | casts turned onto the target %d of %d",
+        (#parts > 0) and table.concat(parts, ", ") or "none yet", reach, learned and " (measured)" or " (default)",
+        Life.castTurned or 0, Life.castFaced or 0)
+end
 
 -- ------------------------------------------------------------------ openers (v90)
 -- The front-dash punch: a 20-stud slide into a jab that stuns, on a 6 s
@@ -8114,7 +8254,7 @@ local function useSkill(serviceName)
         -- the fourth swing has just gone out: the server refuses a cast for a
         -- moment after it
         local meG = getChar()
-        if meG and meG:GetAttribute("CurrentM1") == 5
+        if meG and meG:GetAttribute("CurrentM1") == (tacStringLen()) + 1
            and (tick() - (Tac.m1StepAt or 0)) < (Config.TacAfterFourth or 0.35) then
             Life.tacGated = (Life.tacGated or 0) + 1
             return false
@@ -8180,6 +8320,25 @@ local function useSkill(serviceName)
                     Life.tacLead = (Life.tacLead or 0) + 1
                 end
             end
+        end
+    end
+    -- Face what is being thrown at. Since v86 the body follows the feet while
+    -- covering ground; without this a cast on the approach leaves along the
+    -- path. The turn is instant, and the body then stays on the target
+    -- through the wind-up instead of swinging back to the path.
+    if Config.TacFaceCast and Bot.Target then
+        local hF, thF = getHRP(), getHRP(Bot.Target)
+        if hF and thF then
+            local flat = Vector3.new(thF.Position.X, hF.Position.Y, thF.Position.Z)
+            local to = flat - hF.Position
+            if to.Magnitude > 1 then
+                Life.castFaced = (Life.castFaced or 0) + 1
+                if hF.CFrame.LookVector:Dot(to.Unit) < 0.87 then Life.castTurned = (Life.castTurned or 0) + 1 end
+                if tick() >= (Bot.FaceLeadUntil or 0) then
+                    pcall(function() hF.CFrame = CFrame.lookAt(hF.Position, flat) end)
+                end
+            end
+            Bot.FaceCastUntil = tick() + (Config.TacFaceCastHold or 0.6)
         end
     end
     local castInfo = string.format("m1=%s dash=%s blk=%s/%.2f tstun=%s trag=%s d=%.0f ctx=%s",
@@ -12295,7 +12454,7 @@ local function bodyLockStep()
     local pos = h.Position
     local flat = Vector3.new(th.Position.X, pos.Y, th.Position.Z)
     local d = (flat - pos).Magnitude
-    if d < 0.5 or d > Config.BodyLockRange then releaseBody() return end
+    if d < 0.5 or (d > Config.BodyLockRange and tick() >= (Bot.FaceCastUntil or 0)) then releaseBody() return end
 
 
 
@@ -12746,7 +12905,7 @@ function tacComboExtend(t, d2d)
     -- string is three basic hits, then the skill, then three more; the
     -- fourth hit puts the target down and ends it. Out of arm's reach there
     -- is no string to wait for.
-    if type(step) == "number" and step >= 2 and step < (Config.TacComboStep or 4)
+    if type(step) == "number" and step >= 2 and step < math.min(Config.TacComboStep or 4, (tacStringLen()))
        and d2d <= (Config.M1Range or 8) + 2 and held < (Config.TacComboPatience or 1.6) then return false end
     -- a third of the chained casts were refused, most of them thrown the
     -- instant our second hit began: let that swing finish landing first
@@ -13104,7 +13263,7 @@ function knowM1Wasted(t, state, dt)
         wasted = (tick() - (Bot.LastDodge or 0)) > (Config.KnowFlankWindow or 0.9)
         -- three swings already out: the falling fourth goes through
         local me = getChar()
-        if wasted and me and me:GetAttribute("CurrentM1") == 4 and Config.TacFinisher ~= "off" then wasted = false end
+        if wasted and me and me:GetAttribute("CurrentM1") == (tacStringLen()) and Config.TacFinisher ~= "off" then wasted = false end
     end
     if wasted then Life.m1HeldSec = (Life.m1HeldSec or 0) + (dt or 0.016) end
     return wasted
@@ -16122,7 +16281,8 @@ local function executeState()
             dashToward()
         end
 
-        if d2d <= Config.M1Range + 4 and math.abs(dy) <= Config.MaxVertical then
+        -- only once the swing can reach: a swing at air still spends the string
+        if tacM1InReach(t, d2d) and math.abs(dy) <= Config.MaxVertical then
             startM1()
         end
 
@@ -19735,7 +19895,7 @@ do
     end
 end
 
-announce("The Eye HUD on v90 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v91 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 

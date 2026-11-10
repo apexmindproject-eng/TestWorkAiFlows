@@ -773,6 +773,62 @@ check("escape: the other side when the middle is there", v2.X < -0.5 and v2.Z > 
 Config.TacEscapeSide = false; check("escape: off keeps the old direction", tacEscapeDir(hrp, from, "Back") == "Back")
 Config.TacEscapeSide = true; mapArenaCentre, dashDirFor = realCentre, realDir
 
+-- strings are not four hits for everybody
+reset()
+check("string: four hits unless told otherwise", (tacStringLen()) == 4 and select(2, tacStringLen()) == true)
+ME.attrs.Moveset = "Ryu"; check("string: True Cannon's is three", (tacStringLen()) == 3)
+foe = mkChar("foe", 0, -5, 0, 1); foe.hpv = 100; foe.stun = true; foe.hp = 90
+USABLE = { entry("Twofold Kick") }; Bot.Target = foe; Bot.DistY = 0
+Bot.ConfirmSince = CLOCK - 0.3; Tac.m1StepAt = CLOCK - 0.3
+ME.attrs.CurrentM1 = 2; check("string: one out of three, wait", tacComboExtend(foe, 5) == false)
+ME.attrs.CurrentM1 = 3; check("string: two out of three, cast before the last", tacComboExtend(foe, 5) == true)
+Config.TacFinisher = "down"; HUM.FloorMaterial, HUM.Jump = "Ground", false; Tac.m1Gap = 0.35
+ME.attrs.CurrentM1 = 3; Tac.m1StepAt = CLOCK - 0.25; Bot.FinMode = nil
+check("string: the last hit of a three-hit string is the third", tacFinisher() == "hold" and Bot.FinMode == "down")
+tacFinisherStep(3, 4); check("string: and it is booked when the counter moves past it", Bot.FinPending ~= nil)
+ME.attrs.Moveset = "Naoya"; ME.attrs.CurrentM1 = 4; Tac.m1StepAt = CLOCK - 0.25; Bot.FinMode, Bot.FinPending = nil, nil; HUM.Jump = false
+check("string: no jump for a last hit that comes one way only", tacFinisher() == nil and HUM.Jump == false and Bot.FinMode == nil)
+ME.attrs.Moveset = nil; Config.TacFinisher = "auto"
+
+-- the session line
+reset(); Tac.session = nil; Bot.Kills = 2
+Life.startAt = CLOCK - 100; Life.dmg, Life.taken, Life.stunned = 120, 100, 30
+LOG = {}; tacSessionLine()
+check("session: first life", #LOG == 1 and LOG[1]:find("SESSION: 0 kills, 1 lives") ~= nil and LOG[1]:find("dealt 1.20 for each 1 taken") ~= nil, LOG[1])
+Bot.Kills = 3; Life.startAt = CLOCK - 50; Life.dmg, Life.taken, Life.stunned = 200, 80, 5
+LOG = {}; tacSessionLine()
+check("session: running totals and the trend", LOG[1]:find("SESSION: 1 kills, 2 lives") ~= nil and LOG[1]:find("dealt 1.78 for each 1 taken %(this life 2.50%)") ~= nil
+    and LOG[1]:find("better than the session before it") ~= nil, LOG[1])
+
+-- the reach of a basic attack, measured
+reset(); Config.TacM1Probe, Config.TacM1Slack, Config.TacM1Lead, Config.M1Range = true, 1.0, 0.2, 7
+Tac.m1Pending = {}
+foe = mkChar("foe", 0, -5, 0, 1); foe.hpv = 100; Bot.Target = foe
+check("reach: the default until measured", (tacM1Reach()) == 7 and select(2, tacM1Reach()) == false)
+local function swing(dist, lands)
+    Bot.Dist2D = dist; foe.hpv = 100; Know.stT = nil
+    tacM1Swing(CLOCK); if lands then foe.hpv = 96 end
+    CLOCK = CLOCK + 0.45; tacM1Resolve(CLOCK)
+end
+Bot.LastSkill = 0
+for i = 1, 10 do swing(3, true) end
+for i = 1, 10 do swing(5, i <= 6) end
+for i = 1, 10 do swing(7, i <= 1) end
+for i = 1, 10 do swing(10, false) end
+check("reach: booked by distance", MEM.tactics.m1r["2"].n == 10 and MEM.tactics.m1r["4"].h == 6 and MEM.tactics.m1r["10"].h == 0)
+check("reach: the furthest band that still lands one in four", (tacM1Reach()) == 6 and select(2, tacM1Reach()) == true)
+check("reach: swing inside it", tacM1InReach(foe, 6.5) == true)
+check("reach: not from where swings meet air", tacM1InReach(foe, 9) == false)
+ME.HRP.AssemblyLinearVelocity = Vector3.new(0, 0, -20); foe.HRP.Position = Vector3.new(0, 0, -9)
+check("reach: unless the gap is closing fast enough", tacM1InReach(foe, 9) == true)
+ME.HRP.AssemblyLinearVelocity = nil
+Bot.LastSkill = CLOCK; local before = MEM.tactics.m1r["2"].n; swing(3, true)
+check("reach: a swing with a skill in the air is not booked", MEM.tactics.m1r["2"].n == before)
+Bot.LastSkill = 0; foe.info = { Block = true }; swing(3, false); foe.info = nil
+check("reach: a blocked swing says nothing about reach", MEM.tactics.m1r["2"].n == before)
+check("reach: the life line shows the bands", tacM1ReachSummary():find("swings by distance: 2%-4 10/10, 4%-6 6/10, 6%-8 1/10, 10%-12 0/10; reach taken as 6 studs %(measured%)") ~= nil, tacM1ReachSummary())
+Config.TacM1Probe = false; check("reach: off uses the default", (tacM1Reach()) == 7); Config.TacM1Probe = true
+
 -- report lines do not error and say what is known
 reset()
 foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100
@@ -822,8 +878,8 @@ tail = lua.eval('''(function()
         knowHeld = 11, knowWhy = { block = 6, rag = 2 }, knowProbes = 2, knowCounter = 1, knowBreak = 3, knowGround = 2, m1HeldSec = 4.4,
         fin = { down = { n = 2, net = 9 }, up = { n = 1, net = -4 } }, lateStamp = 1, p2Sent = 4, p2Cast = 5, p2Lost = 1,
         open = { ["mid-swing"] = 6, ["after a cast"] = 3, ["closing in"] = 2 }, openN = 11, wakeSwing = 2, wakeGuard = 3, wakeStunned = 0,
-        holdCasts = 1, ultWaited = 9, dashOpen = 4, dashOpenHit = 3, taken = 180 }
-    return tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary()
+        holdCasts = 1, ultWaited = 9, dashOpen = 4, dashOpenHit = 3, taken = 180, castFaced = 12, castTurned = 5 }
+    return tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary() .. tacM1ReachSummary()
 end)()''')
 import os, tempfile, importlib.util
 spec = importlib.util.spec_from_file_location('analyze_log', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'analyze_log.py'))
@@ -833,7 +889,7 @@ with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as fh:
     tmp = fh.name
 r = al.analyse(tmp); os.unlink(tmp); S = r['S']
 want = dict(held=11, probes=2, kcounters=1, breaks=3, ground=2, late=1, p2_sent=4, p2_cast=5, p2_lost=1, openN=11, wake_swing=2, wake_guard=3,
-            hold_casts=1, dash=4, dash_hit=3, taken=180, confirm_h=4, confirm_n=5, neutral_n=8, m1_n=30, m1_h=14, combos=5, preguard=6, preguard_met=3, refused=2)
+            hold_casts=1, dash=4, dash_hit=3, taken=180, cast_turned=5, cast_faced=12, confirm_h=4, confirm_n=5, neutral_n=8, m1_n=30, m1_h=14, combos=5, preguard=6, preguard_met=3, refused=2)
 rt = [k for k, v in want.items() if S[k] != v]
 if r['opens'].get('mid-swing') != 6 or r['fins']['down'][0] != 2 or r['stun_by'].get('front-dash punch') != 1: rt.append('categories')
 print('analyser round trip: %d fields, %d wrong %s' % (len(want) + 1, len(rt), rt if rt else ''))

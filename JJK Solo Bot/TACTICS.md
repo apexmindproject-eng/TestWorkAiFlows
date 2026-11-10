@@ -1,4 +1,4 @@
-# Tactics layer (v85 to v90)
+# Tactics layer (v85 to v91)
 
 The decision core changed in v85. This file says why, what the new rules are,
 and how to tell from a log whether they work.
@@ -344,6 +344,49 @@ Two tools were added for the next round:
   defines. On 19,900 lines it finds two, both guarded executor functions.
   No call to a function that does not exist.
 
+## v91: a regression found, and the reach of a basic attack
+
+Putting the v85 and v86 logs side by side with the new analyser:
+
+| Measure | v85 | v86 |
+|---|---|---|
+| Lives, minutes | 18, 38 | 10, 16 |
+| Kills per life | 0.83 | 0.40 |
+| Damage per second | 1.20 | 0.90 |
+| Raw casts that landed | 32% | 21% |
+| Basic attacks that landed | 44% | 31% |
+| Backward share of travel | 60% on the far approach | 4% |
+
+v86 fixed the walking and made the fighting worse. Ten lives is a small
+sample, but both drops are too large to be chance alone, and v86 contains a
+cause. It made the body face the way the feet go while covering ground.
+Before it, the body was always on the target inside 50 studs, so every cast
+left toward the target. After it, a cast thrown on the approach left along
+the path. The lead-aim turned the body only for moving targets and long
+moves.
+
+| Change | What it does | Switch |
+|---|---|---|
+| Face what is thrown at | Every cast turns the body onto the target at once, and the body stays on the target for 0.6 s instead of swinging back to the path. This holds at any range | `TacFaceCast` |
+| Swing only in reach | On the approach the bot swung from 11 studs. A swing at air still moves the string along, so the fourth hit and its 2 s lockout were often spent before contact. It now swings inside the reach plus one stud, or when the gap will have closed in 0.2 s | `TacM1Slack` |
+| Measure the reach | Every swing is booked by the distance it was thrown from and whether damage followed. The reach is the furthest 2-stud band where one swing in four still lands, once that band has eight swings. Until then it is 7 studs | `TacM1Probe` |
+| Strings are not four hits for everybody | The research lists True Cannon's string as three hits and Head of the Hei's last hit as having no slam or launcher. Chaining, the last-hit choice and the after-string pause now ask how long this character's string is | n/a |
+| Session line | After every life: kills, lives, damage dealt for each 1 taken, time stunned, and whether the life just ended was better or worse than the session before it | n/a |
+
+New in the log:
+
+```
+SESSION: 3 kills, 5 lives in 9 min | dealt 1.12 for each 1 taken (this life 1.40) | stunned 34% of the time (this life 28%) | this life better than the session before it
+| swings by distance: 2-4 10/10, 4-6 6/10, 6-8 1/10, 10-12 0/10; reach taken as 6 studs (measured) | casts turned onto the target 5 of 12
+```
+
+`casts turned onto the target 5 of 12` means five of twelve casts would have
+left more than 30 degrees off the target without the turn. If that number is
+high and raw casts land more often than 21%, the regression is confirmed and
+fixed.
+
+`tools/analyze_log.py old.txt new.txt` prints the before-and-after table.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
@@ -376,11 +419,12 @@ Two tools were added for the next round:
 
 `tools/test_tactics.py` runs the code against mocked game objects: 76 checks
 on kinematics, prediction, lead, contact, chaining, travel facing, reversal
-damping and the arena, and 187 on knowledge and fight sense: families, target states, beliefs,
+damping and the arena, and 206 on knowledge and fight sense: families, target states, beliefs,
 seeding, the gate, probes, the recorder, timing regression, counters,
 guard-breaks, ground hits, held swings, the fourth hit, late cooldowns,
 second presses, the hit ledger, getting up, awakening, domains, held
-versions, dash openers and escape direction. It
+versions, dash openers, escape direction, string lengths, the session line
+and the measured reach of a basic attack. It
 needs Python with `lupa`:
 
 ```
