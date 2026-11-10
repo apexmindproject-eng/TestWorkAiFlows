@@ -5,6 +5,7 @@ a = src.index('Tac = { track = setmetatable'); b = src.index('local function get
 core = src[a:b]
 a2 = src.index('function tacConfirmed(t)'); b2 = src.index('function trySpecial(t, d2d)')
 combat = src[a2:b2]
+a4 = src.index('Know.P2 = {'); b4 = src.index('-- ------------------------------------------------------------------ knowledge, acting on it')
 MOCK = r'''
 math.clamp = function(x, lo, hi) if x < lo then return lo elseif x > hi then return hi end return x end
 local V = {}
@@ -40,7 +41,7 @@ ME = { Name = "me", Parent = true, HRP = { Position = Vector3.new(0, 0, 0), CFra
 function ME:GetAttribute(k) return self.attrs[k] end
 function getChar() return ME end
 function getHRP(c) c = c or ME; return c.HRP end
-function isAlive(c) return not c.dead end
+function isAlive(c) c = c or ME; return not c.dead end
 function isStunned(c) c = c or ME; return c.stun == true end
 function isRagdolled(c) c = c or ME; return c.rag == true end
 function hasIFrames(c) return c.iframes == true end
@@ -281,6 +282,18 @@ function senseBlocking(c) return c.blockAnim == true end
 function senseMeleeSwing(c) return c.swing == true end
 function getDist2D(a, b) return math.sqrt((a.X - b.X) ^ 2 + (a.Z - b.Z) ^ 2) end
 DangerByService = { FakeGrab = "grab", FakeAoe = "aoe" }
+QUEUE, FIRED = {}, {}
+task = { delay = function(d, f) QUEUE[#QUEUE + 1] = { at = CLOCK + d, f = f } end,
+         spawn = function(f) SPAWNED = f end, wait = function() end }
+function runQueue(dt)
+    CLOCK = CLOCK + dt
+    local keep = {}
+    for _, q in ipairs(QUEUE) do if q.at <= CLOCK + 1e-9 then q.f() else keep[#keep + 1] = q end end
+    QUEUE = keep
+end
+function fireRemote(svc, sig, value, extra) FIRED[#FIRED + 1] = svc .. "." .. sig end
+function buildExtra() return nil end
+function typeof(x) if type(x) == "table" and x.IsA then return "Instance" end return type(x) end
 SPECIAL = nil
 function getSpecialRule() return SPECIAL end
 function isSpecialReady() return true end
@@ -596,6 +609,50 @@ check("late: once is not a habit", knowVerifyDelay("Heat Emission") == 0.4)
 knowLateStamp("Heat Emission", "HeatService")
 check("late: twice, and it is given longer", knowVerifyDelay("Heat Emission") == 1.3)
 
+-- the second press
+reset(); QUEUE, FIRED = {}, {}
+Config.KnowSecondPress, Config.KnowP2Trials, Config.Enabled = true, 3, true
+ME.IsA = function() return true end
+foe = mkChar("foe", 0, -8, 0, 1); foe.hpv = 100; Bot.Target = foe
+check("p2: two-press moves are judged late, not refused early", knowVerifyDelay("Transcend") == 1.4 and knowVerifyDelay("Drone Strike") == 2.8)
+check("p2: ordinary moves are not", knowVerifyDelay("Twofold Kick") == 0.4)
+Know.p2Hooked = { TranscendService = true }
+pd = { move = "Transcend", target = foe, hp0 = 100, at = CLOCK, dist = 8 }
+knowStamp(pd, foe)
+knowP2Cast("Transcend", "TranscendService", { Name = "Transcend" })
+check("p2: armed on the cast, nothing pressed yet", Bot.P2Last ~= nil and #QUEUE == 0 and Life.p2Cast == 1)
+local other = mkChar("other", 9, 9, 0, 1); other.IsA = function() return true end
+knowP2Event("TranscendService", "Startup", other); check("p2: somebody else's crouch is not our cue", #QUEUE == 0)
+knowP2Event("RuptureService", "Startup", ME); check("p2: another move's cue is not ours", #QUEUE == 0)
+knowP2Event("TranscendService", "Startup", ME)
+check("p2: our crouch schedules the press, first delay first", #QUEUE == 1 and pd.p2arm == 1 and near(QUEUE[1].at - CLOCK, 0.2, 0.001))
+runQueue(0.1); check("p2: not before its time", #FIRED == 0)
+runQueue(0.11); check("p2: pressed again", FIRED[1] == "TranscendService.Activated" and Life.p2Sent == 1)
+knowP2Event("TranscendService", "Startup", ME); check("p2: once per cast", #QUEUE == 1)   -- only the release is queued
+foe.hpv = 88; knowWatch(pd, 0.5); knowBook(pd, 88)
+check("p2: the delay is credited with the damage", MEM.facts["Transcend"].p2[1].n == 1 and MEM.facts["Transcend"].p2[1].d == 12)
+check("p2: the next cast tries the next delay", knowP2Pick("Transcend", Know.P2.Transcend) == 2)
+MEM.facts["Transcend"].p2 = { { n = 3, d = 6 }, { n = 3, d = 36 }, { n = 3, d = 0 } }
+check("p2: after the trials the best delay is kept", knowP2Pick("Transcend", Know.P2.Transcend) == 2)
+-- knocked out of it before the second press
+reset(); QUEUE, FIRED = {}, {}; Bot.Target = foe; Know.p2Hooked = { TranscendService = true }
+knowP2Cast("Transcend", "TranscendService", { Name = "Transcend" }); knowP2Event("TranscendService", "Startup", ME)
+ME.stun = true; runQueue(0.6)
+check("p2: a stun before the press is counted, nothing is sent", #FIRED == 0 and Life.p2Lost == 1)
+ME.stun = nil
+-- no hook: press blind
+reset(); QUEUE, FIRED = {}, {}; Bot.Target = foe; Know.p2Hooked = {}
+knowP2Cast("Rupture", "RuptureService", { Name = "Rupture" })
+check("p2: without the cue it presses blind", #QUEUE == 1)
+runQueue(0.5); check("p2: blind press sent", FIRED[1] == "RuptureService.Activated")
+-- switched off
+reset(); QUEUE, FIRED = {}, {}; Config.KnowSecondPress = false
+knowP2Cast("Transcend", "TranscendService", { Name = "Transcend" })
+check("p2: off is off", Bot.P2Last == nil and #QUEUE == 0 and knowVerifyDelay("Transcend") == 0.4)
+Config.KnowSecondPress = true
+-- a move that has no second press
+knowP2Cast("Twofold Kick", "TwofoldKickService", { Name = "Twofold Kick" }); check("p2: one-press moves are left alone", Bot.P2Last == nil)
+
 -- report lines do not error and say what is known
 reset()
 foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100
@@ -614,6 +671,7 @@ lua = LuaRuntime(unpack_returned_tuples=True)
 lua.execute(MOCK)
 lua.execute(KMOCK)
 lua.execute(core)
+lua.execute(src[a4:b4])
 lua.execute(combat)
 a3 = src.index('ArenaRef = { at = 0, centre = nil }'); b3 = src.index('function mapOutOfArena(pos)'); b3 = src.index('\nend', b3) + 5
 lua.execute('''

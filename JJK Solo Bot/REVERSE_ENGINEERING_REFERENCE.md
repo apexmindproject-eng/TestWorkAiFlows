@@ -3904,6 +3904,10 @@ What it adds to §1 to §17: the server-side facts the client dump cannot show. 
 | Dash cooldowns: front 6 s, side and back 2 s | `DashRequest` enforces 2 s client-side for side and back dashes; the front dash goes through the moveset service as `Chase` |
 | You cannot attack or dash while blocking | `DashRequest` returns early on `Info.Block`, `Info.Stun` and `Ragdoll > 0` |
 | Cooldowns | `Moveset/<move>` attributes `ReadyAt` and `LastUse` are set by the server (§5); the bot now logs the difference next to the listed value |
+| Transcend needs a second press or the user just stands up | `TranscendController` handles `Startup(char)` (trail on the blade for 0.6 s, crouch sound), then `Dash` and `Hit`. The service has only `Activated` and `Effects`, so the second press is a second `Activated` |
+| Rupture ends in a timed second press | `RuptureController.SkillCheck(char, obj)` clones `Utils.Toji.ISOHUseTwice` onto the blade with a 0.5 s lifetime and removes it when `obj`'s `Start` attribute changes |
+| Littering needs a second press with an enemy near the receipts | `ReggieController` handles `LitteringStart`, `LitteringLand(part)` and `LitteringActivate(part)`: the receipt is a part in the world and the activation happens at its CFrame |
+| Drone Strike needs a second press to detonate | `DroneStrikeController.Aim(char, value, remote)`: while `value`'s `Fired` attribute is unset the client sends `remote:FireServer(ControlModule:GetMoveVector())` every frame and draws the mark at `HumanoidRootPart.CFrame * value:GetAttribute("Aim")`. `Press` only plays a sound |
 
 ### 18.3 Move catalogue
 

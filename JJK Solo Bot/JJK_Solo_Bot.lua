@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v87"
+local BUILD_TAG = "JJK-SOLO-v88"
 
 local NL = string.char(10)
 
@@ -958,7 +958,9 @@ local Config = {
     KnowFlankWindow = 0.9,      -- ... except for this long after a side dash (a guard covers the front only)
     KnowPullMin = 12,
     KnowReachSlack = 3,
-    KnowLateVerify = 1.3,       -- seconds before judging a cast refused, for moves seen to start their cooldown late
+    KnowLateVerify = 1.3,
+    KnowSecondPress = true,     -- press again where a move needs it (Transcend, Rupture, Littering, Drone Strike)
+    KnowP2Trials = 3,           -- tries of each delay before the best one is kept       -- seconds before judging a cast refused, for moves seen to start their cooldown late
     -- The fourth basic hit: "down" (falling: unblockable, reaches the ground),
     -- "up" (rising: launches, longest time down), "flat", "off", or "auto",
     -- which tries each and keeps what pays (damage dealt minus taken after).
@@ -3008,6 +3010,8 @@ function memLifeStart()
     Life.knowHeld, Life.knowProbes, Life.knowCounter, Life.knowBreak, Life.knowGround, Life.m1HeldSec = 0, 0, 0, 0, 0, 0
     Bot.FinMode, Bot.FinPending, Bot.KnowProbePending = nil, nil, nil
     Life.lateStamp = 0
+    Life.p2Cast, Life.p2Sent, Life.p2Lost = 0, 0, 0
+    Bot.P2Last, Bot.KnowLastPending = nil, nil
     Bot.RefusedN = {}
     Life.dmg = 0
     Life.taken = 0
@@ -7284,6 +7288,7 @@ function knowStamp(p, t)
     local h, th = getHRP(), getHRP(t)
     p.ts = knowState(t)
     p.myPos = h and h.Position or nil
+    Bot.KnowLastPending = p
     p.tDist = p.dist
     -- our own basic attack still in flight would be booked as this move's hit
     p.dirty = ((tick() - (Tac.m1StepAt or 0)) < 0.45 and Bot.M1Active) and true or false
@@ -7368,6 +7373,11 @@ function knowBook(p, hp1)
         end
     end
     if p.moved then o.mv = (o.mv or 0) + p.moved; o.mvN = (o.mvN or 0) + 1 end
+    if p.p2arm and type(o.p2) == "table" and type(o.p2[p.p2arm]) == "table" then
+        local arm = o.p2[p.p2arm]
+        arm.n = arm.n + 1
+        arm.d = arm.d + math.max(dmg, 0)
+    end
     if type(Life.know) ~= "table" then Life.know = {} end
     local l = Life.know[p.move]
     if not l then l = { n = 0, h = 0 }; Life.know[p.move] = l end
@@ -7407,6 +7417,8 @@ end
 -- out of the books, which is why such moves looked like they never landed.
 function knowVerifyDelay(name)
     local o = type(MEM.facts) == "table" and MEM.facts[name] or nil
+    local spec = Config.Know and Config.KnowSecondPress and type(Know.P2) == "table" and Know.P2[senseMoveKey(name)] or nil
+    if spec then return spec.verify or 1.4 end
     if Config.Know and o and (o.late or 0) >= 2 then return Config.KnowLateVerify or 1.3 end
     return Config.CastVerifyDelay or 0.4
 end
@@ -7450,6 +7462,15 @@ function knowLifeReport()
         if (o.hn or 0) > 0 then
             extra = extra .. string.format(" | after a hit: down %d, held %d of %d", o.rg or 0, o.st or 0, o.hn)
         end
+        local spec2 = type(Know.P2) == "table" and Know.P2[senseMoveKey(name)] or nil
+        if spec2 and type(o.p2) == "table" then
+            local arms = {}
+            for i, dl in ipairs(spec2.delays) do
+                local a = o.p2[i]
+                if type(a) == "table" and a.n > 0 then arms[#arms + 1] = string.format("%.2f s: %.1f dmg x%d", dl, a.d / a.n, a.n) end
+            end
+            if #arms > 0 then extra = extra .. " | second press at " .. table.concat(arms, ", ") end
+        end
         debug(string.format("KNOW %s: %s (%s%s%s) | this life %d/%d | career %s%s",
             name, kind, src,
             (f and f.ub ~= nil) and (f.ub and ", unblockable" or ", blockable") or "",
@@ -7468,9 +7489,10 @@ function knowLifeSummary()
         local r = type(Life.fin) == "table" and Life.fin[m] or nil
         if r and r.n > 0 then table.insert(fin, string.format("%s x%d (net %+.0f)", m, r.n, r.net)) end
     end
-    return string.format(" | knowledge: %d casts withheld (mostly %s x%d), %d probes, %d counters, %d guard-breaks, %d ground hits, M1 held off %.0fs, finishers %s, %d refusals that were not",
+    return string.format(" | knowledge: %d casts withheld (mostly %s x%d), %d probes, %d counters, %d guard-breaks, %d ground hits, M1 held off %.0fs, finishers %s, %d refusals that were not, second presses %d of %d (%d lost to a stun)",
         Life.knowHeld or 0, top, topN, Life.knowProbes or 0, Life.knowCounter or 0, Life.knowBreak or 0,
-        Life.knowGround or 0, Life.m1HeldSec or 0, (#fin > 0) and table.concat(fin, ", ") or "none", Life.lateStamp or 0)
+        Life.knowGround or 0, Life.m1HeldSec or 0, (#fin > 0) and table.concat(fin, ", ") or "none", Life.lateStamp or 0,
+        Life.p2Sent or 0, Life.p2Cast or 0, Life.p2Lost or 0)
 end
 
 -- ------------------------------------------------------------------ the fourth hit
@@ -7867,6 +7889,7 @@ local function useSkill(serviceName)
     Bot.UsedSkillsThisLife[serviceName] = tick()
     local castAt = tick()
     memRecordUse(moveValue.Name, Bot.Target, Bot.Dist2D)
+    knowP2Cast(moveValue.Name, serviceName, moveValue)
 
 
 
@@ -12494,6 +12517,168 @@ function tacIncoming()
     debugEvery("preguard", 0.8, string.format("guard: %s closing at %.0f studs/s from %.0f studs, contact in %.2f s - block up%s",
         best.Name, bestClosing, bestDist, bestTtc, best ~= tgt and " (not our target)" or ""))
     return true
+end
+
+-- ------------------------------------------------------------------ the second press
+-- Some moves are two presses, and tapped once they do nothing: the career
+-- memory has Transcend at 0 of 6. The game's own controllers show where the
+-- second press belongs:
+--   Transcend    the user crouches (Effects "Startup"); press again to strike
+--   Rupture      Effects "SkillCheck" flashes Utils.Toji.ISOHUseTwice on the
+--                blade for 0.5 s: the timed second press
+--   Littering    ReggieService Effects "LitteringLand" hands over the receipt
+--                part; the second press sets it off, so wait for the target
+--   Drone Strike Effects "Aim" hands over a value and a remote: the aim is
+--                steered with a move vector, the second press fires
+-- How long after the cue to press is not written anywhere, so each move has
+-- three delays to try and keeps the one that deals the most.
+Know.P2 = {
+    Transcend   = { on = "Startup", delays = { 0.2, 0.35, 0.5 }, verify = 1.4 },
+    Rupture     = { on = "SkillCheck", delays = { 0.08, 0.2, 0.32 }, verify = 1.4 },
+    Littering   = { svc = "ReggieService", on = "LitteringLand", near = 10, wait = 5, delays = { 0.1 }, verify = 1.4 },
+    DroneStrike = { svc = "DroneStrikeService", on = "Aim", drone = true, delays = { 0 }, verify = 2.8 },
+}
+Know.p2Hooked = {}
+
+function knowP2Pick(name, spec)
+    if type(MEM.facts) ~= "table" then MEM.facts = {} end
+    local o = MEM.facts[name]
+    if not o then o = { n = 0, s = {} }; MEM.facts[name] = o end
+    if type(o.p2) ~= "table" then o.p2 = {} end
+    local best, bestV, least, leastN = 1, -math.huge, nil, math.huge
+    for i = 1, #spec.delays do
+        local a = o.p2[i]
+        if type(a) ~= "table" then a = { n = 0, d = 0 }; o.p2[i] = a end
+        if a.n < (Config.KnowP2Trials or 3) and a.n < leastN then least, leastN = i, a.n end
+        if a.n > 0 and a.d / a.n > bestV then best, bestV = i, a.d / a.n end
+    end
+    return least or best
+end
+
+function knowP2Press(rec, why)
+    if not rec or rec.pressed then return false end
+    if not Config.Enabled or (tick() - rec.at) > 8 then return false end
+    if not isAlive() or isStunned() or isRagdolled() then
+        Life.p2Lost = (Life.p2Lost or 0) + 1        -- knocked out of it before the second press
+        return false
+    end
+    rec.pressed = true
+    local extra = buildExtra(rec.name)
+    fireRemote(rec.service, "Activated", rec.value, extra)
+    task.delay(0.1, function() fireRemote(rec.service, "Deactivated", rec.value, extra) end)
+    Life.p2Sent = (Life.p2Sent or 0) + 1
+    debugEvery("p2:" .. tostring(rec.name), 1, string.format("second press: %s (%s, %.2f s after the cast)",
+        tostring(rec.name), tostring(why), tick() - rec.at))
+    return true
+end
+
+function knowP2Schedule(rec, base, why)
+    if rec.sent then return end
+    rec.sent = true
+    local arm = knowP2Pick(rec.name, rec.spec)
+    if rec.pend and rec.pend.move == rec.name then rec.pend.p2arm = arm end
+    local d = (base or 0) + (rec.spec.delays[arm] or 0)
+    task.delay(d, function() knowP2Press(rec, why or string.format("%.2f s after the cue", d)) end)
+end
+
+-- Called by useSkill right after a cast.
+function knowP2Cast(name, service, moveValue)
+    if not Config.Know or not Config.KnowSecondPress then return end
+    local key = senseMoveKey(name)
+    local spec = Know.P2[key]
+    if not spec then return end
+    local rec = { name = name, key = key, spec = spec, service = service, value = moveValue, at = tick(), pend = Bot.KnowLastPending }
+    Bot.P2Last = rec
+    Life.p2Cast = (Life.p2Cast or 0) + 1
+    -- nothing will announce the moment (the hook did not take): press blind
+    if not Know.p2Hooked[spec.svc or service] then
+        if spec.drone then
+            task.delay(1.2, function() knowP2Press(rec, "blind") end)
+        else
+            knowP2Schedule(rec, spec.near and 1.0 or 0.15, "blind")
+        end
+    end
+end
+
+-- Littering: set the receipts off when the target is standing on them.
+function knowP2WhenNear(rec, part)
+    if rec.sent then return end
+    rec.sent = true
+    task.spawn(function()
+        local t0 = tick()
+        while tick() - t0 < (rec.spec.wait or 5) do
+            if rec.pressed or not Config.Enabled then return end
+            local th = Bot.Target and getHRP(Bot.Target)
+            local okP, pos = pcall(function() return part.Position end)
+            if not okP then break end
+            if th and (th.Position - pos).Magnitude <= (rec.spec.near or 10) then
+                task.wait(rec.spec.delays[1] or 0.1)
+                knowP2Press(rec, "target on it")
+                return
+            end
+            task.wait(0.05)
+        end
+        knowP2Press(rec, "nobody came")
+    end)
+end
+
+-- Drone Strike: the server moves an aim mark by the move vector it is sent
+-- and reports the mark as the value's Aim attribute, relative to our body.
+-- Steer the mark onto the target, then press. If steering makes the gap
+-- grow, the axes are the other way round: turn it about and carry on.
+function knowDroneSteer(rec, vb, remote)
+    if rec.sent or typeof(remote) ~= "Instance" then return end
+    rec.sent = true
+    task.spawn(function()
+        local t0, sign, prevErr, worse = tick(), 1, nil, 0
+        while remote.Parent and tick() - t0 < 2.5 do
+            if rec.pressed or not Config.Enabled then return end
+            local okF, fired = pcall(function() return vb:GetAttribute("Fired") end)
+            if okF and fired then return end
+            local h, th = getHRP(), Bot.Target and getHRP(Bot.Target)
+            if not (h and th) then break end
+            local rel = h.CFrame:PointToObjectSpace(th.Position)
+            local okA, aim = pcall(function() return vb:GetAttribute("Aim") end)
+            local ap = nil
+            if okA and typeof(aim) == "CFrame" then ap = aim.Position elseif okA and typeof(aim) == "Vector3" then ap = aim end
+            local mv, err = Vector3.new(0, 0, -1), nil
+            if ap then
+                local e = Vector3.new(rel.X - ap.X, 0, rel.Z - ap.Z)
+                err = e.Magnitude
+                if err > 0.5 then mv = e.Unit * sign end
+                if prevErr and err > prevErr + 0.2 then worse = worse + 1 else worse = 0 end
+                if worse >= 6 then sign, worse = -sign, 0 end
+                prevErr = err
+            end
+            pcall(function() remote:FireServer(mv) end)
+            local el = tick() - t0
+            if (err and err < 4 and el > 0.25) or el > 1.6 then
+                knowP2Press(rec, err and string.format("aim %.0f studs off the target", err) or "aim not readable")
+                return
+            end
+            task.wait()
+        end
+        knowP2Press(rec, "aim ran out")
+    end)
+end
+
+-- Called from the Effects hooks.
+function knowP2Event(serviceName, key, a1, a2, a3)
+    local rec = Bot.P2Last
+    if not rec or rec.pressed or (tick() - rec.at) > 6 then return end
+    local spec = rec.spec
+    if (spec.svc or rec.service) ~= serviceName or spec.on ~= key then return end
+    if spec.drone then
+        if a1 == getChar() then knowDroneSteer(rec, a2, a3) end
+        return
+    end
+    if spec.near then
+        if typeof(a1) == "Instance" and a1:IsA("BasePart") then knowP2WhenNear(rec, a1) end
+        return
+    end
+    -- the first argument is the caster: somebody else's Transcend is not ours
+    if typeof(a1) == "Instance" and a1 ~= getChar() then return end
+    knowP2Schedule(rec, 0)
 end
 
 -- ------------------------------------------------------------------ knowledge, acting on it
@@ -17589,6 +17774,28 @@ do
     end)
 end
 
+-- The cues for a second press (see Know.P2) arrive on the same Effects
+-- signals the game's own controllers listen to.
+do
+    local function hookFx(serviceName)
+        local svc = getService(serviceName)
+        local fx = svc and svc.Effects
+        if type(fx) ~= "table" or type(fx.Connect) ~= "function" then return false end
+        local ok = pcall(function()
+            fx:Connect(function(key, ...) pcall(knowP2Event, serviceName, key, ...) end)
+        end)
+        if ok then Know.p2Hooked[serviceName] = true end
+        return ok
+    end
+    task.delay(4.5, function()
+        local said = {}
+        for _, name in ipairs({ "TranscendService", "RuptureService", "ReggieService", "DroneStrikeService" }) do
+            said[#said + 1] = (string.gsub(name, "Service", "")) .. " " .. (hookFx(name) and "hooked" or "absent")
+        end
+        debug("second press: " .. table.concat(said, ", "))
+    end)
+end
+
 task.spawn(function()
     while task.wait(0.2) do
         pcall(autoRespawnTick)
@@ -18719,6 +18926,8 @@ do
               on = function(v) announce(v and "knowledge: no basic attacks into a guard or at a body on the ground" or "knowledge: basic attacks never held") end },
             { key = "KnowProbe",   label = "Probe the unknown",
               on = function(v) announce(v and "knowledge: up to three test casts a life where nothing is known" or "knowledge: no test casts") end },
+            { key = "KnowSecondPress", label = "Press twice where needed",
+              on = function(v) announce(v and "knowledge: two-press moves get their second press" or "knowledge: every move is tapped once") end },
             { fn = function()
                   local order = { "auto", "down", "up", "flat", "off" }
                   local cur = Config.TacFinisher or "auto"
@@ -19175,7 +19384,7 @@ do
     end
 end
 
-announce("The Eye HUD on v87 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v88 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 

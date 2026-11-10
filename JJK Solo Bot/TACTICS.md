@@ -1,4 +1,4 @@
-# Tactics layer (v85 to v87)
+# Tactics layer (v85 to v88)
 
 The decision core changed in v85. This file says why, what the new rules are,
 and how to tell from a log whether they work.
@@ -244,6 +244,38 @@ What to look for in the next log:
 | Blocks of 0.1 s or less | 62% | well under half |
 | Casts refused | 28% | lower once late starters are known |
 
+## v88: the second press
+
+Some moves are two presses. Tapped once they do nothing, and the bot only
+ever tapped. The career memory has Transcend at 0 of 6.
+
+The wiki says which moves, and the game's own controllers say where the
+second press belongs:
+
+| Move | Cue in the game files | What the bot does |
+|---|---|---|
+| Transcend | `TranscendService` Effects `Startup`: the user crouches | Presses again after the cue. Without it the user just stands up |
+| Rupture | `RuptureService` Effects `SkillCheck`: flashes `Utils.Toji.ISOHUseTwice` on the blade for 0.5 s | Presses again inside the flash. A missed check makes the target block and push us away |
+| Littering | `ReggieService` Effects `LitteringLand` hands over the receipt part | Waits until the target is within 10 studs of the receipt, then presses. After 5 s it presses anyway |
+| Drone Strike | `DroneStrikeService` Effects `Aim` hands over a value and a remote | Steers the aim mark onto the target with the move vector, then presses. If steering makes the gap grow it turns the axes round |
+
+How long after the cue to press is not written anywhere. Transcend and
+Rupture each have three delays to try. Each is tried three times, then the
+one that dealt the most damage is kept. The `KNOW` line shows the standing:
+
+```
+KNOW Transcend: rush (researched, unblockable, hits the ground) | ... | second press at 0.20 s: 4.0 dmg x3, 0.35 s: 12.0 dmg x3
+```
+
+The `LIFE END` line gains `second presses 4 of 5 (1 lost to a stun)`.
+
+These moves are also given 1.4 s before a cast is judged refused, 2.8 s for
+Drone Strike, because their cooldown starts when the move finishes.
+
+Switch: `KnowSecondPress`. The session log line `second press: Transcend
+hooked, Rupture hooked, Reggie hooked, DroneStrike hooked` says whether the
+cues can be heard. Where one reads `absent` the bot presses blind.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
@@ -256,10 +288,15 @@ What to look for in the next log:
   the falling hit comes out flat and is booked as flat.
 - Whether a counter thrown the instant a swing is seen is early enough for
   the 0.25 s windows.
-- Held and two-press versions of moves. The bot taps. The research lists the
-  held versions of Ultra Cannon, Piercing Blood, Blunt Cut, Earthquake and
-  Granite Blast as stronger or unblockable, and Transcend as needing a second
-  press. None of that is used yet.
+- Held versions of moves. The bot taps. The research lists the held versions
+  of Ultra Cannon, Piercing Blood, Blunt Cut, Earthquake and Granite Blast as
+  stronger or unblockable. None of that is used yet.
+- Other two-press moves. Only the four in the v88 table are handled. The wiki
+  says a second press during some wind-ups swaps the move for a weaker
+  variant, so the second press is not sent anywhere it is not known to help.
+- The right delay for each second press, until the bot has tried them.
+- Whether the server moves the Drone Strike aim mark in the caster's own
+  axes. The bot assumes so and reverses if the gap grows.
 - Real projectile speeds, until the bot has measured each one.
 - The research is second-hand and about 100 days old for most pages. The
   `research check:` lines are how errors in it will show.
@@ -268,9 +305,10 @@ What to look for in the next log:
 
 `tools/test_tactics.py` runs the code against mocked game objects: 76 checks
 on kinematics, prediction, lead, contact, chaining, travel facing, reversal
-damping and the arena, and 112 on knowledge: families, target states, beliefs,
+damping and the arena, and 129 on knowledge: families, target states, beliefs,
 seeding, the gate, probes, the recorder, timing regression, counters,
-guard-breaks, ground hits, held swings, the fourth hit and late cooldowns. It
+guard-breaks, ground hits, held swings, the fourth hit, late cooldowns and
+second presses. It
 needs Python with `lupa`:
 
 ```
