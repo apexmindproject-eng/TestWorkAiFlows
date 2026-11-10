@@ -1253,6 +1253,38 @@ Bot.AirCast, Bot.HoldUntil = nil, nil
 Life.vaults, Life.vaultBehind, Life.baits, Life.baitPaid, Life.reactJumps, Life.airCasts = 3, 2, 1, 1, 4, 5
 check("jump summary", tacJumpSummary() == " | jumping: vaults 3 (2 got behind), baits 1 (1 dropped the guard), jumped reactions 4, air casts 5", tacJumpSummary())
 
+-- v99: how the others jump
+reset(); Config.TacWatchJumps, Config.TacJumpVy, Config.ReactJump, Config.ReactJumpLearned = true, 16, true, true
+Tac.ejPending = {}; Tac.lastState = "ATTACK"
+local jumper = mkChar("jumper", 0, -6, 0, 1); jumper.hpv = 100       -- in front of us (we look down -Z)
+local function rec(vy, vx, vz) return { vel = Vector3.new(vx or 0, vy, vz or 0), at = CLOCK } end
+local r1 = rec(4); tacEnemyJump(jumper, r1, CLOCK); check("their jumps: walking is not a jump", Life.ejSeen == nil and #Tac.ejPending == 0)
+jumper.rag = true; r1 = rec(30); tacEnemyJump(jumper, r1, CLOCK); check("their jumps: thrown into the air is not a jump", #Tac.ejPending == 0); jumper.rag = nil
+r1 = rec(30); Tac.track[jumper] = r1; tacEnemyJump(jumper, r1, CLOCK); check("their jumps: seen", Life.ejSeen == 1 and #Tac.ejPending == 1 and r1.jumpAt == CLOCK)
+tacEnemyJump(jumper, r1, CLOCK + 0.1); check("their jumps: one jump is counted once", Life.ejSeen == 1)
+jumper.HRP.Position = Vector3.new(0, 0, 5); CLOCK = CLOCK + 1; LOG = {}; tacEnemyJumpResolve(CLOCK)
+check("their jumps: over us and behind", Life.ejOver == 1 and MEM.tactics.ej.over == 1 and #LOG == 1 and LOG[1]:find("jumped over us") ~= nil, LOG[1])
+check("their jumps: a hit right after is tied to it", tacEnemyJumpHit(jumper, CLOCK + 0.3):find("just jumped over us") ~= nil and Life.ejOverHit == 1 and Life.ejAirHit == 1)
+-- a move of ours in flight when they jump
+jumper.HRP.Position = Vector3.new(0, 0, -6)
+for i = 1, 5 do
+    CLOCK = CLOCK + 2; Life.lastUsed, Life.lastUsedAt = "Swift Kick", CLOCK - 0.2; jumper.hpv = 100
+    r1 = rec(30); tacEnemyJump(jumper, r1, CLOCK)
+    if i >= 5 then jumper.hpv = 90 end                       -- the fifth time it still lands
+    CLOCK = CLOCK + 1; tacEnemyJumpResolve(CLOCK)
+end
+check("their jumps: booked against the move that was in flight", MEM.tactics.jumpable.SwiftKick.n == 5 and MEM.tactics.jumpable.SwiftKick.miss == 4 and Life.ejDodge == 5 and Life.ejDodgeMiss == 4)
+check("their jumps: four misses in five makes it a move to jump over", tacJumpable("SwiftKick") == true and tacJumpable("Nothing") == false)
+memBestReaction = function() return "block" end; DangerPlan = { rush = "block" }
+check("their jumps: so we jump when it is used on us", tacReactPick(jumper, "SwiftKick", "rush") == "jump" and Life.ejUsed == 1)
+Bot.ReactLatched = nil; check("their jumps: other moves keep their reaction", tacReactPick(jumper, "OtherMove", "rush") == "block")
+Bot.ReactLatched = nil; Config.ReactJumpLearned = false; check("their jumps: off is off", tacReactPick(jumper, "SwiftKick", "rush") == "block"); Config.ReactJumpLearned = true
+-- leaving
+CLOCK = CLOCK + 3; Life.lastUsedAt = 0; jumper.HRP.Position = Vector3.new(0, 0, -20); r1 = rec(30, 0, -18); tacEnemyJump(jumper, r1, CLOCK)
+jumper.HRP.Position = Vector3.new(0, 0, -34); CLOCK = CLOCK + 1; tacEnemyJumpResolve(CLOCK); check("their jumps: jumping while leaving", Life.ejAway == 1)
+check("their jumps: the life line", tacEnemyJumpSummary():find("their jumps: 7 seen, 1 over us %(1 then hit us%), 5 with a move of ours in flight %(4 made it miss%)") ~= nil, tacEnemyJumpSummary())
+Config.TacWatchJumps = false; r1 = rec(30); tacEnemyJump(jumper, r1, CLOCK + 5); check("their jumps: watching off", Life.ejSeen == 7); Config.TacWatchJumps = true
+
 -- report lines do not error and say what is known
 reset()
 foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100

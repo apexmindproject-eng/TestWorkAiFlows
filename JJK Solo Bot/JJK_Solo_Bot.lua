@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v98"
+local BUILD_TAG = "JJK-SOLO-v99"
 
 local NL = string.char(10)
 
@@ -1060,6 +1060,14 @@ local Config = {
     ReactJump = true,           -- jumping is one of the reactions tried against rushes, beams, pulls and blasts, and kept where it works
     KnowAir = true,             -- moves that have an air version: jump first sometimes, keep whichever of ground and air deals more
     KnowAirTrials = 3,
+    -- v99. Nobody has written down which attacks a jump avoids, but every
+    -- player in the server shows it: when one of them jumps with a move of
+    -- ours in flight, either it still lands or it does not. Everybody has
+    -- the same movesets, so a move of ours that their jump makes miss is a
+    -- move we can jump over when it is used on us.
+    TacWatchJumps = true,       -- log how other players use jumping, and what it does to our moves
+    TacJumpVy = 16,             -- upward speed (studs/s) that counts as a jump
+    ReactJumpLearned = true,    -- jump over an enemy move that their jumps made miss 3 times in 5 or more
     KnowCloseDist = 9,          -- 14 before v96: the higher bar now applies only where a swing could be thrown instead
     -- Blocks work when they go up (94 of 143 accepted blocks took a hit), and
     -- the rules below kept them down for 119 of the hits that got in.
@@ -3132,6 +3140,8 @@ function memLifeStart()
     tacABStart()
     Life.vaults, Life.vaultBehind, Life.baits, Life.baitPaid, Life.reactJumps, Life.airCasts = 0, 0, 0, 0, 0, 0
     Bot.Vault, Bot.Bait, Bot.TurtleSince, Bot.AirCast = nil, nil, nil, nil
+    Life.ejSeen, Life.ejOver, Life.ejOverHit, Life.ejDodge, Life.ejDodgeMiss, Life.ejAirHit, Life.ejAway, Life.ejIn, Life.ejSpot, Life.ejUsed = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    Tac.ejPending = {}
     Life.pbRaised, Life.pbAccepted, Life.pbAbsorbed, Life.pbDelay, Life.pbSwingSkill = 0, 0, 0, 0, 0
     Life.stSec, Life.revPair = {}, {}
     Life.pathSeen, Life.staleFrames, Life.reactLatch = 0, 0, 0
@@ -3500,7 +3510,7 @@ function memLifeEnd()
     tacSessionLine()
     tacABEnd()
     Life.flushN, Life.flushMax = LOG.flushN or 0, LOG.flushMax or 0
-    tail = tail .. tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary() .. tacM1ReachSummary() .. tacProbeSummary() .. tacBlockRefSummary() .. tacJumpSummary()
+    tail = tail .. tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary() .. tacM1ReachSummary() .. tacProbeSummary() .. tacBlockRefSummary() .. tacJumpSummary() .. tacEnemyJumpSummary()
     debug(string.format(
         "LIFE END: %.0f dmg in %.0fs (%.1f dmg/s, %d moves, %.0f%% engaged, %d blocks, %.0fs stunned) | %s | stunned by: %s | ff: %d held (holds %d/%d, freed %d, sidesteps %d), %.0f dmg + %d stuns in ally lanes | refused %d (rolled back %d), burst %d/%d, kite %.0fs, retreat %.0fs, revs %d, shared %.0f, fps %.0f (worst %.0f ms) | avg %.0f best %.0f over %d lives | samples %d clean / %d shared / %d dirty | fair %.0f | react %d judged / %d crowd / %d retests",
         Life.dmg, dur, Life.dmg / math.max(1, dur), Life.moves,
@@ -6850,6 +6860,7 @@ function tacTrack(c, now)
         if r.rag and not rg then r.wokeAt = now end
         r.rag = rg
     end
+    tacEnemyJump(c, r, now)
     local dt = now - r.at
     if dt >= 0.03 then
         local v = (p - r.pos) / dt
@@ -6925,6 +6936,7 @@ function tacM1Tick()
     tacSelfTick(tick())
     tacDashOpenTick(tick())
     tacM1Resolve(tick())
+    tacEnemyJumpResolve(tick())
     if type(knowAirTick) == "function" then knowAirTick(tick()) end
     if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
     local r = MEM.tactics.m1
@@ -7876,7 +7888,7 @@ function tacOpener(who, key)
     debugEvery("opener", 0.7, string.format("hit taken: %s from %s studs, %s | we were %s (%s)%s%s",
         key, dist and string.format("%.0f", dist) or "?", side, doing, tostring(st),
         (now < (Bot.PreGuardRestUntil or 0) and not Bot.BlockActive) and " | a predicted block had just run out" or "",
-        tacGateText(now)))
+        tacGateText(now) .. tacEnemyJumpHit(who, now)))
 end
 
 function tacOpenerSummary()
@@ -8137,6 +8149,11 @@ function tacReactPick(t, move, kind)
     if not (L and L.t == t and L.move == move and (now - L.seen) < (Config.ReactLatchGap or 0.5)) then
         L = { t = t, move = move, at = now, pick = memBestReaction(move, fallback, kind) }
         if L.pick == "jump" and not Config.ReactJump then L.pick = "dodge" end
+        -- seen often enough in other players' jumps: this move goes under a jump
+        if Config.ReactJump and Config.ReactJumpLearned and L.pick ~= "jump" and tacJumpable(move) then
+            L.pick = "jump"
+            Life.ejUsed = (Life.ejUsed or 0) + 1
+        end
         Bot.ReactLatched = L
         Life.reactLatch = (Life.reactLatch or 0) + 1
         -- A dodge learned for a move had no direction of its own. It went
@@ -8733,6 +8750,109 @@ end
 function tacJumpSummary()
     return string.format(" | jumping: vaults %d (%d got behind), baits %d (%d dropped the guard), jumped reactions %d, air casts %d",
         Life.vaults or 0, Life.vaultBehind or 0, Life.baits or 0, Life.baitPaid or 0, Life.reactJumps or 0, Life.airCasts or 0)
+end
+
+-- ------------------------------------------------------------------ how the others jump (v99)
+Tac.ejPending = {}
+
+-- Called for every tracked fighter each frame, with its track record.
+function tacEnemyJump(c, r, now)
+    if not Config.TacWatchJumps or not r then return end
+    if r.vel.Y < (Config.TacJumpVy or 16) or (now - (r.jumpAt or 0)) < 0.8 then return end
+    if isRagdolled(c) or isStunned(c) then return end        -- thrown into the air, not jumping
+    local h, ch = getHRP(), getHRP(c)
+    if not (h and ch) then return end
+    r.jumpAt = now
+    local to = Vector3.new(ch.Position.X - h.Position.X, 0, ch.Position.Z - h.Position.Z)
+    local d = to.Magnitude
+    if d > 60 then return end
+    local look = h.CFrame.LookVector
+    local front = d > 0.1 and (to / d):Dot(Vector3.new(look.X, 0, look.Z)) >= 0
+    local away = d > 0.1 and Vector3.new(r.vel.X, 0, r.vel.Z):Dot(to / d) or 0
+    local castAge, swingAge = now - (Life.lastUsedAt or 0), now - (Tac.m1StepAt or 0)
+    table.insert(Tac.ejPending, { c = c, at = now, d = d, front = front, away = away, hp = getHP(c),
+        ours = (castAge < 0.7 and Life.lastUsed) or ((swingAge < 0.4 and Bot.M1Active) and "a basic swing") or nil,
+        isTarget = (c == Bot.Target) })
+    Life.ejSeen = (Life.ejSeen or 0) + 1
+end
+
+function tacEnemyJumpResolve(now)
+    local list = Tac.ejPending
+    for i = #list, 1, -1 do
+        local p = list[i]
+        if now - p.at >= 0.9 then
+            table.remove(list, i)
+            local c = p.c
+            local h, ch = getHRP(), c.Parent and getHRP(c) or nil
+            if h and ch then
+                local to = Vector3.new(ch.Position.X - h.Position.X, 0, ch.Position.Z - h.Position.Z)
+                local d = to.Magnitude
+                local look = h.CFrame.LookVector
+                local behindNow = d > 0.1 and (to / d):Dot(Vector3.new(look.X, 0, look.Z)) < -0.2
+                local what
+                if p.ours and p.d <= 30 then
+                    -- a move of ours was in flight: did the jump make it miss?
+                    local landed = ((p.hp or 0) - (getHP(c) or 0)) > 0.5
+                    what = "dodge"
+                    Life.ejDodge = (Life.ejDodge or 0) + 1
+                    if not landed then Life.ejDodgeMiss = (Life.ejDodgeMiss or 0) + 1 end
+                    if p.ours ~= "a basic swing" then
+                        if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
+                        if type(MEM.tactics.jumpable) ~= "table" then MEM.tactics.jumpable = {} end
+                        local key = senseMoveKey(p.ours)
+                        local j = MEM.tactics.jumpable[key]
+                        if type(j) ~= "table" then j = { n = 0, miss = 0 }; MEM.tactics.jumpable[key] = j end
+                        j.n = j.n + 1
+                        if not landed then j.miss = j.miss + 1 end
+                    end
+                    debugEvery("ej:dodge:" .. tostring(p.ours), 1.5, string.format("their jump: %s jumped with our %s in flight - it %s", tostring(c.Name), tostring(p.ours), landed and "still landed" or "missed"))
+                elseif p.front and p.d <= 10 and behindNow and d <= 12 then
+                    what = "over"
+                    Life.ejOver = (Life.ejOver or 0) + 1
+                    Tac.ejOverAt, Tac.ejOverBy = now, c
+                    debugEvery("ej:over", 1.5, string.format("their jump: %s jumped over us from %.0f studs and is behind us (we were %s)", tostring(c.Name), p.d, tostring(Tac.lastState or Bot.State)))
+                elseif p.away > 6 and p.d > 10 then
+                    what = "away"
+                    Life.ejAway = (Life.ejAway or 0) + 1
+                    debugEvery("ej:away", 3, string.format("their jump: %s jumped while leaving, %.0f studs off and %.0f studs after", tostring(c.Name), p.d, d))
+                elseif p.away < -6 and p.d > 10 then
+                    what = "in"
+                    Life.ejIn = (Life.ejIn or 0) + 1
+                else
+                    what = "spot"
+                    Life.ejSpot = (Life.ejSpot or 0) + 1
+                end
+                if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
+                if type(MEM.tactics.ej) ~= "table" then MEM.tactics.ej = {} end
+                MEM.tactics.ej[what] = (MEM.tactics.ej[what] or 0) + 1
+            end
+        end
+    end
+end
+
+-- A hit that stunned us: was the attacker in the air, and had they just jumped over us?
+function tacEnemyJumpHit(who, now)
+    local r = who and Tac.track[who]
+    if not (Config.TacWatchJumps and r and r.jumpAt) then return "" end
+    if now - r.jumpAt > 1.3 then return "" end
+    Life.ejAirHit = (Life.ejAirHit or 0) + 1
+    if Tac.ejOverBy == who and now - (Tac.ejOverAt or 0) < 1.5 then
+        Life.ejOverHit = (Life.ejOverHit or 0) + 1
+        return " | they had just jumped over us"
+    end
+    return string.format(" | they jumped %.1f s before", now - r.jumpAt)
+end
+
+-- Has watching the others shown that a jump makes this move miss?
+function tacJumpable(moveKey)
+    local j = type(MEM.tactics) == "table" and type(MEM.tactics.jumpable) == "table" and MEM.tactics.jumpable[moveKey] or nil
+    return type(j) == "table" and j.n >= 5 and j.miss / j.n >= 0.6
+end
+
+function tacEnemyJumpSummary()
+    return string.format(" | their jumps: %d seen, %d over us (%d then hit us), %d with a move of ours in flight (%d made it miss), %d hit us from the air, %d leaving, %d coming in, %d on the spot",
+        Life.ejSeen or 0, Life.ejOver or 0, Life.ejOverHit or 0, Life.ejDodge or 0, Life.ejDodgeMiss or 0,
+        Life.ejAirHit or 0, Life.ejAway or 0, Life.ejIn or 0, Life.ejSpot or 0)
 end
 
 -- ------------------------------------------------------------------ openers (v90)
@@ -20743,7 +20863,7 @@ do
     end
 end
 
-announce("The Eye HUD on v98 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v99 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 

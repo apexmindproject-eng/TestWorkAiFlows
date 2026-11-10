@@ -154,6 +154,15 @@ def report(r):
     for a, b, c, d, e, f in re.findall(r'jumping: vaults (\d+) \((\d+) got behind\), baits (\d+) \((\d+) dropped the guard\), jumped reactions (\d+), air casts (\d+)', open(r['path'], encoding='utf-8', errors='replace').read()):
         for k, v in zip(('vaults', 'got behind', 'baits', 'guard dropped', 'jumped reactions', 'air casts'), (a, b, c, d, e, f)): jm[k] += int(v)
     if jm: print('\nJumping\n  ' + ', '.join('%s %d' % (k, jm[k]) for k in ('vaults', 'got behind', 'baits', 'guard dropped', 'jumped reactions', 'air casts')))
+    ej = collections.Counter()
+    for g in re.findall(r'their jumps: (\d+) seen, (\d+) over us \((\d+) then hit us\), (\d+) with a move of ours in flight \((\d+) made it miss\), (\d+) hit us from the air, (\d+) leaving, (\d+) coming in, (\d+) on the spot', open(r['path'], encoding='utf-8', errors='replace').read()):
+        for k, v in zip(('seen', 'over us', 'then hit us', 'with our move in flight', 'made it miss', 'hit us from the air', 'leaving', 'coming in', 'on the spot'), g): ej[k] += int(v)
+    if ej:
+        print('\nHow the others jumped\n  ' + ', '.join('%s %d' % (k, ej[k]) for k in ('seen', 'over us', 'then hit us', 'with our move in flight', 'made it miss', 'hit us from the air', 'leaving', 'coming in', 'on the spot')))
+        mv = collections.defaultdict(lambda: [0, 0])
+        for name, res in re.findall(r'jumped with our (.+?) in flight - it (still landed|missed)', open(r['path'], encoding='utf-8', errors='replace').read()):
+            mv[name][0] += 1; mv[name][1] += (res == 'missed')
+        for name, (a, b) in sorted(mv.items(), key=lambda kv: -kv[1][0])[:12]: print('    %-22s jumped %d times, missed %d' % (name[:22], a, b))
     exp = re.findall(r'EXPERIMENT: [^\n]*', open(r['path'], encoding='utf-8', errors='replace').read())
     if exp: print('\nThe bot\'s own experiment (latest)\n  ' + exp[-1].replace(' | ', '\n  '))
     ref = collections.Counter()

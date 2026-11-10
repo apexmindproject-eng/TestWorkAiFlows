@@ -1,4 +1,4 @@
-# Tactics layer (v85 to v98)
+# Tactics layer (v85 to v99)
 
 The decision core changed in v85. This file says why, what the new rules are,
 and how to tell from a log whether they work.
@@ -700,6 +700,41 @@ Sources: the game wiki's Controls and Mechanics and character pages, NamuWiki, a
 
 The experiment from v97 keeps running. Both of its arms have these changes.
 
+## v99: watching how the others jump
+
+No source lists which attacks a jump avoids. Every player in the server
+shows it, though, and everybody has the same movesets. So the bot now watches.
+
+A jump is an enemy rising at 16 studs a second or more while not stunned or
+thrown. Each one is booked a second later as one of these:
+
+| What their jump was | How it is recognised | What is kept |
+|---|---|---|
+| Over us | They were in front, within 10 studs, and are now behind us | Count, and whether they hit us right after |
+| With a move of ours in flight | We had cast within 0.7 s, or swung within 0.4 s | Whether our move still landed, per move |
+| Leaving | Moving away from us, more than 10 studs off | Count, and how far they got |
+| Coming in | Moving toward us from more than 10 studs | Count |
+| On the spot | None of the above | Count |
+
+And every hit that stuns us notes whether the attacker had jumped in the
+1.3 s before it.
+
+What the bot does with it: a move of ours that their jumps made miss at least
+3 times in 5, over 5 or more jumps, is a move it jumps over when an enemy uses
+it. Switch: `ReactJumpLearned`. The table is kept in the memory file.
+
+New lines:
+
+```
+their jump: Name jumped over us from 6 studs and is behind us (we were ATTACK)
+their jump: Name jumped with our Swift Kick in flight - it missed
+hit taken: Todo:Melee1 from 5 studs, behind | we were ... | they had just jumped over us
+| their jumps: 31 seen, 4 over us (3 then hit us), 9 with a move of ours in flight (6 made it miss), 5 hit us from the air, 6 leaving, 3 coming in, 9 on the spot
+```
+
+`tools/analyze_log.py` prints the totals and, per move of ours, how often a
+jump made it miss. Switch for all of it: `TacWatchJumps`.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
@@ -736,7 +771,7 @@ The experiment from v97 keeps running. Both of its arms have these changes.
 
 `tools/test_tactics.py` runs the code against mocked game objects: 76 checks
 on kinematics, prediction, lead, contact, chaining, travel facing, reversal
-damping and the arena, and 365 on knowledge and fight sense: families, target states, beliefs,
+damping and the arena, and 379 on knowledge and fight sense: families, target states, beliefs,
 seeding, the gate, probes, the recorder, timing regression, counters,
 guard-breaks, ground hits, held swings, the fourth hit, late cooldowns,
 second presses, the hit ledger, getting up, awakening, domains, held
