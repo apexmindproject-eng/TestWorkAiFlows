@@ -1189,6 +1189,23 @@ check("v96: a rush from 13 studs is allowed again", knowAllows(entry("Sacrilege"
 check("v96: in swing reach the higher bar still holds", knowAllows(entry("Sacrilege"), foe, 6, "neutral") == false)
 Config.KnowProbe = true
 
+-- v97: the bot's own experiment
+reset(); Config.ABTest = true; Tac.abArm = nil; Bot.Kills = 0
+tacABStart(); check("experiment: the first life takes one arm", Life.abArm == "A" and Config.TacSpacing == false and Config.PunishGuardLock == 99)
+Life.dmg, Life.taken, Life.startAt = 80, 100, CLOCK - 100; Bot.Kills = 1; LOG = {}; tacABEnd()
+check("experiment: the life is booked to its arm", MEM.tactics.ab.A.lives == 1 and MEM.tactics.ab.A.kills == 1 and MEM.tactics.ab.A.dmg == 80)
+check("experiment: both arms are reported", #LOG == 1 and LOG[1]:find("EXPERIMENT: A v93 rules: 1 lives, 0.80 dealt") ~= nil and LOG[1]:find("B v96 rules: 0 lives") ~= nil, LOG[1])
+tacABStart(); check("experiment: the next life takes the other", Life.abArm == "B" and Config.TacSpacing == true and Config.PunishGuardLock == 0.6)
+Life.dmg, Life.taken, Life.startAt = 60, 100, CLOCK - 50; tacABEnd()
+tacABStart(); check("experiment: level again, the one not played last", Life.abArm == "A")
+Config.ABTest = false; tacABStart(); check("experiment: off leaves the current rules in force", Life.abArm == nil and Config.TacSpacing == true)
+Config.ABTest = true
+-- why a block was not taken
+reset(); Life.pbRef = {}
+tacBlockRefused({ swing = 0.2, cast = 5, rel = 5, stun = false }); tacBlockRefused({ swing = 0.2, cast = 0.4, rel = 5, stun = false })
+tacBlockRefused({ swing = 3, cast = 5, rel = 5, stun = false })
+check("refused blocks: sorted by what we were doing", tacBlockRefSummary() == " | blocks not taken: none of these 1, within 0.45 s of a swing 1, within 1 s of a cast 1", tacBlockRefSummary())
+
 -- report lines do not error and say what is known
 reset()
 foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100

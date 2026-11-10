@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v96"
+local BUILD_TAG = "JJK-SOLO-v97"
 
 local NL = string.char(10)
 
@@ -1039,6 +1039,13 @@ local Config = {
     -- biggest row was mostly not hits.
     TacSelfStun = true,         -- a stun that starts right after our own cast, with no damage taken, is our own move
     TacSelfStunWindow = 0.5,
+    -- v97. Four builds since v93 and damage dealt for each 1 taken has gone
+    -- 0.79, 0.73, 0.69, 0.61, on 13 to 19 lives each: too few to tell a real
+    -- change from the luck of who was in the server. So the bot now runs the
+    -- comparison itself: lives alternate between the v93 rules and the rules
+    -- added since, in the same sessions against the same players, and the
+    -- results of each are kept in the memory file.
+    ABTest = true,
     KnowCloseDist = 9,          -- 14 before v96: the higher bar now applies only where a swing could be thrown instead
     -- Blocks work when they go up (94 of 143 accepted blocks took a hit), and
     -- the rules below kept them down for 119 of the hits that got in.
@@ -3108,6 +3115,7 @@ function memLifeStart()
     Life.dashOpen, Life.dashOpenHit = 0, 0
     Life.castFaced, Life.castTurned = 0, 0
     tacLifeReset()
+    tacABStart()
     Life.pbRaised, Life.pbAccepted, Life.pbAbsorbed, Life.pbDelay, Life.pbSwingSkill = 0, 0, 0, 0, 0
     Life.stSec, Life.revPair = {}, {}
     Life.pathSeen, Life.staleFrames, Life.reactLatch = 0, 0, 0
@@ -3474,8 +3482,9 @@ function memLifeEnd()
     tail = tail .. " | discounted " .. tostring(Life.discounted or "no")
     knowLifeReport()
     tacSessionLine()
+    tacABEnd()
     Life.flushN, Life.flushMax = LOG.flushN or 0, LOG.flushMax or 0
-    tail = tail .. tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary() .. tacM1ReachSummary() .. tacProbeSummary()
+    tail = tail .. tacLifeSummary() .. knowLifeSummary() .. tacOpenerSummary() .. tacOpenSummary() .. tacM1ReachSummary() .. tacProbeSummary() .. tacBlockRefSummary()
     debug(string.format(
         "LIFE END: %.0f dmg in %.0fs (%.1f dmg/s, %d moves, %.0f%% engaged, %d blocks, %.0fs stunned) | %s | stunned by: %s | ff: %d held (holds %d/%d, freed %d, sidesteps %d), %.0f dmg + %d stuns in ally lanes | refused %d (rolled back %d), burst %d/%d, kite %.0fs, retreat %.0fs, revs %d, shared %.0f, fps %.0f (worst %.0f ms) | avg %.0f best %.0f over %d lives | samples %d clean / %d shared / %d dirty | fair %.0f | react %d judged / %d crowd / %d retests",
         Life.dmg, dur, Life.dmg / math.max(1, dur), Life.moves,
@@ -8209,6 +8218,8 @@ function tacProbeBlockUp(now)
     if not Config.TacBlockProbe then return end
     Life.pbRaised = (Life.pbRaised or 0) + 1
     Bot.ProbeBlockAt = now
+    Bot.ProbeBlockCtx = { swing = now - (Tac.m1StepAt or 0), cast = now - (Life.lastUsedAt or 0),
+                          rel = now - (Bot.BlockReleasedAt or 0), stun = (isStunned() or isRagdolled()) and true or false }
 end
 
 function tacProbeAbsorbed()
@@ -8254,6 +8265,7 @@ function tacProbeTick(dt)
             Life.pbDelay = (Life.pbDelay or 0) + (now - Bot.ProbeBlockAt)
             Bot.ProbeBlockAt = nil
         elseif now - Bot.ProbeBlockAt > 0.2 then
+            tacBlockRefused(Bot.ProbeBlockCtx)
             Bot.ProbeBlockAt = nil
         end
     end
@@ -8497,6 +8509,82 @@ end
 -- Hit during a move of our own: from here on it is an enemy's stun.
 function tacSelfStunBroken()
     return (Bot.FrameDmgIn or 0) > 0 or isRagdolled()
+end
+
+-- ------------------------------------------------------------------ the bot's own experiment (v97)
+-- Arm A plays by the v93 values of every rule changed in v94 to v96, arm B
+-- by the current ones. Everything else is the same in both.
+Know.AB = {
+    A = { name = "v93 rules", set = { GuardWhenLow = false, PunishGuardLock = 99, DefendDropRest = 3, DefendCapRest = 0.3,
+            TacSpacing = false, KnowMinPClose = 0, TacM1Lead = 0.2, KnowCounterMinP = 0.2, TacWakeBlock = false } },
+    B = { name = "v96 rules", set = { GuardWhenLow = true, PunishGuardLock = 0.6, DefendDropRest = 1, DefendCapRest = 0.15,
+            TacSpacing = true, KnowMinPClose = 0.45, TacM1Lead = 0.1, KnowCounterMinP = 0.5, TacWakeBlock = true } },
+}
+
+function tacABApply(arm)
+    for k, v in pairs(Know.AB[arm].set) do Config[k] = v end
+    Tac.abArm = arm
+end
+
+function tacABStart()
+    Life.pbRef = {}
+    if not Config.ABTest then
+        if Tac.abArm and Tac.abArm ~= "B" then tacABApply("B") end
+        Life.abArm = nil
+        return
+    end
+    if type(MEM.tactics) ~= "table" then MEM.tactics = {} end
+    if type(MEM.tactics.ab) ~= "table" then MEM.tactics.ab = {} end
+    local ab = MEM.tactics.ab
+    for _, a in ipairs({ "A", "B" }) do
+        if type(ab[a]) ~= "table" then ab[a] = { lives = 0, dmg = 0, taken = 0, dur = 0, kills = 0 } end
+    end
+    -- whichever has had fewer lives; level, the one not played last
+    local arm = (ab.A.lives < ab.B.lives) and "A" or ((ab.B.lives < ab.A.lives) and "B" or ((Tac.abArm == "A") and "B" or "A"))
+    tacABApply(arm)
+    Life.abArm, Life.abKills0 = arm, Bot.Kills or 0
+    debug(string.format("experiment: this life plays the %s (so far A %d lives, B %d lives)", Know.AB[arm].name, ab.A.lives, ab.B.lives))
+end
+
+function tacABEnd()
+    local arm = Life.abArm
+    local ab = type(MEM.tactics) == "table" and MEM.tactics.ab or nil
+    if not arm or type(ab) ~= "table" or type(ab[arm]) ~= "table" then return end
+    local r = ab[arm]
+    r.lives = r.lives + 1
+    r.dmg = r.dmg + (Life.dmg or 0)
+    r.taken = r.taken + (Life.taken or 0)
+    r.dur = r.dur + (Life.startAt and (tick() - Life.startAt) or 0)
+    r.kills = r.kills + math.max(0, (Bot.Kills or 0) - (Life.abKills0 or 0))
+    Life.abArm = nil
+    local parts = {}
+    for _, a in ipairs({ "A", "B" }) do
+        local x = ab[a]
+        parts[#parts + 1] = string.format("%s %s: %d lives, %.2f dealt for each 1 taken, %.2f kills a life, %.0f s a life",
+            a, Know.AB[a].name, x.lives, x.dmg / math.max(1, x.taken), x.kills / math.max(1, x.lives), x.dur / math.max(1, x.lives))
+    end
+    debug("EXPERIMENT: " .. table.concat(parts, " | "))
+end
+
+-- Why a block was not taken by the server: what we were doing when we asked.
+function tacBlockRefused(ctx)
+    if type(ctx) ~= "table" then return end
+    local why = "none of these"
+    if ctx.stun then why = "stunned"
+    elseif ctx.cast < 1.0 then why = "within 1 s of a cast"
+    elseif ctx.swing < 0.45 then why = "within 0.45 s of a swing"
+    elseif ctx.rel < 0.5 then why = "within 0.5 s of the last block" end
+    if type(Life.pbRef) ~= "table" then Life.pbRef = {} end
+    Life.pbRef[why] = (Life.pbRef[why] or 0) + 1
+end
+
+function tacBlockRefSummary()
+    local rows = {}
+    for k, v in pairs(type(Life.pbRef) == "table" and Life.pbRef or {}) do rows[#rows + 1] = { k = k, v = v } end
+    table.sort(rows, function(a, b) if a.v == b.v then return a.k < b.k end return a.v > b.v end)
+    local parts = {}
+    for _, r in ipairs(rows) do parts[#parts + 1] = string.format("%s %d", r.k, r.v) end
+    return " | blocks not taken: " .. ((#parts > 0) and table.concat(parts, ", ") or "none")
 end
 
 -- ------------------------------------------------------------------ openers (v90)
@@ -20483,7 +20571,7 @@ do
     end
 end
 
-announce("The Eye HUD on v96 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v97 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 

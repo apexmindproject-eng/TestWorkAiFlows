@@ -150,6 +150,16 @@ def report(r):
     if r['know']:
         print('\nMoves (last KNOW line each)')
         for name in sorted(r['know'])[:60]: print('  %-22s %s' % (name[:22], r['know'][name][:210]))
+    exp = re.findall(r'EXPERIMENT: [^\n]*', open(r['path'], encoding='utf-8', errors='replace').read())
+    if exp: print('\nThe bot\'s own experiment (latest)\n  ' + exp[-1].replace(' | ', '\n  '))
+    ref = collections.Counter()
+    for seg in re.findall(r'blocks not taken: ([^|\n]*)', open(r['path'], encoding='utf-8', errors='replace').read()):
+        for part in seg.split(','):
+            pm = re.match(r'\s*(.+?) (\d+)\s*$', part)
+            if pm: ref[pm.group(1)] += int(pm.group(2))
+    if ref:
+        print('\nBlocks the server did not take, by what we were doing')
+        for k, v in ref.most_common(): print('  %4d  %s' % (v, k))
     for title, lst in (('Research checks', r['checks']), ('Probe results', r['probes']), ('Second-press hooks', r['hooks'][-1:])):
         if lst:
             print('\n%s' % title)

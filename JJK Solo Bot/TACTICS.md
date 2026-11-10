@@ -1,4 +1,4 @@
-# Tactics layer (v85 to v96)
+# Tactics layer (v85 to v97)
 
 The decision core changed in v85. This file says why, what the new rules are,
 and how to tell from a log whether they work.
@@ -597,6 +597,70 @@ Kept from v94 and v95: the guard at low health and in a punish window, the
 shorter rests, spacing, the counter bar, the block on getting up. None of
 them depends on the bad row.
 
+## v97: real numbers, and an experiment the bot runs on itself
+
+The first v96 log, 16 lives and 29 minutes, is the first with the corrected
+stun count.
+
+| Measure | v96 |
+|---|---|
+| Kills and deaths | 4 and 16 |
+| Damage dealt for each 1 taken | 0.61 |
+| Time stunned by enemies | 30% |
+| Time in our own move animations | 16% |
+| Stun events that were our own moves | 207 of 288 |
+| Blocks raised, accepted by the server | 289, 186 |
+
+What we were doing when a real hit got in, now that own moves are out of it:
+
+| Doing | Share of 188 |
+|---|---|
+| Closing in | 29% |
+| Behind a raised block, hit from the front | 27% |
+| After a cast | 24% |
+| Just got up | 6% |
+| Hit from behind | 6% |
+
+Two things follow.
+
+First, a third of our blocks are not accepted by the server, and "hit
+through a raised block" is the second biggest way in. They are probably the
+same thing: the bot believes it is blocking and the server never raised the
+block. v97 records what we were doing each time a block was not taken:
+within 0.45 s of a swing, within 1 s of a cast, within 0.5 s of the last
+block, stunned, or none of these.
+
+Second, the results since v93 have not improved.
+
+| Build | Lives | Damage dealt for each 1 taken | Kills per life |
+|---|---|---|---|
+| v93 | 13 | 0.79 | 0.62 |
+| v94 | 17 | 0.73 | 0.29 |
+| v95 | 19 | 0.69 | 0.53 |
+| v96 | 16 | 0.61 | 0.25 |
+
+That may be a real decline caused by the v94 to v96 rule changes. It may be
+who was in the server. Thirteen to nineteen lives cannot tell those apart,
+and changing several rules every round on samples that size was not sound.
+
+So v97 changes no rule. Instead the bot runs the comparison itself. Lives
+alternate between two arms, in the same sessions against the same players:
+
+| Arm | Rules |
+|---|---|
+| A, v93 rules | No guard under 25% health, guard off for the whole punish window, 3 s and 0.3 s rests, no spacing step, no higher bar for raw casts up close, counters at the 20% bar, no block on getting up |
+| B, v96 rules | The current values of all of those |
+
+Each life is booked to its arm in the memory file, and after every life the
+log prints both:
+
+```
+EXPERIMENT: A v93 rules: 9 lives, 0.80 dealt for each 1 taken, 0.56 kills a life, 121 s a life | B v96 rules: 9 lives, 0.64 dealt for each 1 taken, 0.33 kills a life, 104 s a life
+```
+
+It carries over between sessions. About 20 lives an arm is enough to act on.
+Switch: `ABTest`. With it off, the current rules apply to every life.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
@@ -629,7 +693,7 @@ them depends on the bad row.
 
 `tools/test_tactics.py` runs the code against mocked game objects: 76 checks
 on kinematics, prediction, lead, contact, chaining, travel facing, reversal
-damping and the arena, and 336 on knowledge and fight sense: families, target states, beliefs,
+damping and the arena, and 343 on knowledge and fight sense: families, target states, beliefs,
 seeding, the gate, probes, the recorder, timing regression, counters,
 guard-breaks, ground hits, held swings, the fourth hit, late cooldowns,
 second presses, the hit ledger, getting up, awakening, domains, held
