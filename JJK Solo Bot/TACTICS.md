@@ -1,4 +1,4 @@
-# Tactics layer (v85 to v94)
+# Tactics layer (v85 to v95)
 
 The decision core changed in v85. This file says why, what the new rules are,
 and how to tell from a log whether they work.
@@ -508,6 +508,51 @@ What v94 changes because of it:
 The question the reviewers could not settle is answered: the game does not
 mark us as busy during our own swings, so the guard is not blind while we attack.
 
+## v95: the first v94 log
+
+17 lives, 29 minutes.
+
+| Measure | v86 | v93 | v94 |
+|---|---|---|---|
+| Kills and deaths | 4 and 10 | 8 and 13 | 5 and 17 |
+| Damage per second | 0.90 | 1.25 | 1.10 |
+| Damage dealt for each 1 taken | n/a | 0.79 | 0.73 |
+| Time stunned | 43% | 44% | 44% |
+| Basic swings per minute | 9.9 | 10.5 | 12.3 |
+| Chained casts per minute | 0.3 | 0.7 | 1.0 |
+| Dash punches landed | n/a | 42% | 51% |
+| Blocks accepted by the server | n/a | 62% | 70% |
+
+v93 and v94 are level with each other within what 13 and 17 lives can show,
+both clearly ahead of v86, and both still losing. Time stunned has not moved
+in five builds.
+
+What the career totals now say (829 swings, 800 casts):
+
+| Kind of attack | Landed | Damage when it lands |
+|---|---|---|
+| Raw cast | 34% of 676 | 6.7 |
+| Chained cast | 57% of 61 | 7.3 |
+| Punish cast | 31% of 62 | 6.0 |
+| Counter | 39% of 28 | 6.1 |
+| Basic swing | 45% of 829 | 2.8 |
+| Last hit of the string, falling | 44 thrown | +1.0 net each |
+| Last hit, rising | 17 thrown | -3.7 net each |
+
+A raw cast is worth 2.3 damage and takes about a second. Three basic swings
+in that second are worth about 4 and start a string. So up close the swing
+is the better opener, and v95 holds raw casts to a higher bar there.
+
+| Change | Evidence | Switch |
+|---|---|---|
+| A move that carries us to the target counts as "close" from any distance, and the bar there is 45% | Sacrilege: 0 of 5 thrown raw, 10 of 10 chained | `KnowContactClose`, `KnowMinPClose` |
+| A counter is thrown only if it has worked half the time | Counters landed 11 of 28. A block absorbs two hits in three. Eye Catching, at 7 of 11, stays | `KnowCounterMinP` |
+| No special inside 14 studs of a target that can answer | 27 hits followed 71 specials | `SpecialSafeDist` |
+| Getting up beside an enemy, the bot blocks first | 119 career hits landed in the moment after getting up, and v94 showed there is no immunity then | `TacWakeBlock` |
+
+Reacting to enemy skills took 282 s of 1,720 in v94: backing away 104 s,
+dodging 87 s, blocking 47 s, grabbed 28 s, holding 16 s. Left alone for now.
+
 ## What is not known
 
 - Whether a skill cast between two basic attacks is always accepted. If the
@@ -540,7 +585,7 @@ mark us as busy during our own swings, so the guard is not blind while we attack
 
 `tools/test_tactics.py` runs the code against mocked game objects: 76 checks
 on kinematics, prediction, lead, contact, chaining, travel facing, reversal
-damping and the arena, and 313 on knowledge and fight sense: families, target states, beliefs,
+damping and the arena, and 325 on knowledge and fight sense: families, target states, beliefs,
 seeding, the gate, probes, the recorder, timing regression, counters,
 guard-breaks, ground hits, held swings, the fourth hit, late cooldowns,
 second presses, the hit ledger, getting up, awakening, domains, held

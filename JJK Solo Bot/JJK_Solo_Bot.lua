@@ -153,7 +153,7 @@ if type(JJK_ENV.JJK_AUTOFIGHT_STOP) == "function" then
 end
 
 
-local BUILD_TAG = "JJK-SOLO-v94"
+local BUILD_TAG = "JJK-SOLO-v95"
 
 local NL = string.char(10)
 
@@ -1020,7 +1020,17 @@ local Config = {
     -- 155 of 263 hits that got in came within 1.2 s of a cast of ours: 269
     -- raw casts, 96 landed, and nearly every miss was punished. Up close a
     -- raw cast now needs a better chance than at range.
-    KnowMinPClose = 0.4,        -- chance a raw cast needs inside KnowCloseDist of a target that can answer
+    KnowMinPClose = 0.45,       -- chance a raw cast needs inside KnowCloseDist of a target that can answer
+    -- v95, from the career totals after the v94 log: 676 raw casts landed 34%
+    -- for 6.7 damage, so a raw cast is worth 2.3 damage and takes about a
+    -- second; three basic swings in that second are worth 4 and start a
+    -- string. A move that carries us to the target is "close" whatever the
+    -- distance it was thrown from (Sacrilege: 0 of 5 raw, 10 of 10 chained).
+    KnowContactClose = true,
+    KnowCounterMinP = 0.5,      -- a counter is thrown only if it works half the time; a block absorbs two hits in three (counters: 11 of 28)
+    SpecialSafeDist = 14,       -- no special inside this distance of a target that can answer (27 hits followed 71 specials)
+    TacWakeBlock = true,        -- getting up beside an enemy: block first (119 career hits landed as we got up)
+    TacWakeBlockFor = 0.45,
     KnowCloseDist = 14,
     -- Blocks work when they go up (94 of 143 accepted blocks took a hit), and
     -- the rules below kept them down for 119 of the hits that got in.
@@ -7335,7 +7345,8 @@ function knowAllows(entry, t, d2d, ctx)
     local p, n, settled = knowChance(entry.name, state, kind, f)
     local minP = Config.KnowMinP or 0.2
     if ctx ~= "confirm" and (state == "free" or state == "swing")
-       and (d2d or 99) <= (Config.KnowCloseDist or 0) then
+       and ((d2d or 99) <= (Config.KnowCloseDist or 0)
+            or (Config.KnowContactClose and (kind == "melee" or kind == "rush" or kind == "grab" or kind == "aoe_self"))) then
         minP = math.max(minP, Config.KnowMinPClose or 0)
     end
     if p < minP then
@@ -7830,7 +7841,10 @@ end
 --           do not swing; expect theirs, block it and take the turn.
 function tacSelfTick(now)
     local rg = isRagdolled()
-    if Tac.selfRag and not rg then Tac.selfWokeAt, Tac.selfWakeUsed = now, false end
+    if Tac.selfRag and not rg then
+        Tac.selfWokeAt, Tac.selfWakeUsed = now, false
+        tacWakeBlock(now)
+    end
     Tac.selfRag = rg
     local st = Bot.State
     if st and st ~= "CCED" and st ~= "DEAD" then Tac.lastState = st end
@@ -8420,6 +8434,34 @@ end
 -- A swing from well outside the good reach meets air and still spends the string.
 function tacTooFar(d2d)
     return Config.TacSpacing and (d2d or 0) > tacM1Good() + 3
+end
+
+-- ------------------------------------------------------------------ getting up beside an enemy (v95)
+-- There is no immunity on getting up (v94 showed that), and 119 of the hits
+-- in the career ledger landed in the moment after it. So the opposite of
+-- the old wake-up rule: if somebody is beside us as we get up, the first
+-- thing we do is block. This reuses the predicted guard: it opens the same
+-- window, and the guard decision keeps the block up for it.
+function tacWakeBlock(now)
+    if not Config.TacWakeBlock or not Config.UseBlock then return false end
+    local h, me = getHRP(), getChar()
+    if not h then return false end
+    local best, bestD = nil, 10
+    for _, c in ipairs(Bot.HitCandidates or {}) do
+        local ch = c ~= me and c.Parent and getHRP(c) or nil
+        if ch and isAlive(c) and not isStunned(c) and not isRagdolled(c) and not isAllyName(c.Name) then
+            local d = Vector3.new(ch.Position.X - h.Position.X, 0, ch.Position.Z - h.Position.Z).Magnitude
+            if d < bestD and math.abs(ch.Position.Y - h.Position.Y) <= 8 then best, bestD = c, d end
+        end
+    end
+    if not best then return false end
+    local hold = Config.TacWakeBlockFor or 0.45
+    Bot.DefendVs, Bot.DefendVsSince, Bot.DefendVsUntil, Bot.DefendVsSwinging = best, now, now + hold, false
+    Bot.PreGuardUntil, Bot.PreGuardAt, Bot.PreGuardVs = now + hold, now, best
+    Bot.PreGuardRestUntil = now + hold + 0.5
+    Life.wakeBlock = (Life.wakeBlock or 0) + 1
+    debugEvery("wakeblock", 1.5, string.format("wake-up: getting up %.0f studs from %s, blocking first", bestD, tostring(best.Name)))
+    return true
 end
 
 -- ------------------------------------------------------------------ openers (v90)
@@ -13671,7 +13713,7 @@ function knowTryCounter(dv, now, pre)
         if kind == "counter" and isSkillReady(e.service)
            and (not pre or ((f and f.cw) or 0.5) >= 0.6)
            and not (Bot.Refused and (now - (Bot.Refused[e.service] or 0)) < (Config.CastRefusalHold or 2.5))
-           and knowChance(e.name, "swing", kind, f) >= (Config.KnowMinP or 0.2) then
+           and knowChance(e.name, "swing", kind, f) >= (Config.KnowCounterMinP or Config.KnowMinP or 0.2) then
             Bot.CastCtx, Bot.CastCtxAt, Bot.KnowCastVs = "counter", now, dv
             if useSkill(e.service) then
                 Bot.KnowCounterUntil = now + math.max((f and f.cw) or 0.6, 0.4)
@@ -13766,6 +13808,8 @@ function trySpecial(t, d2d)
     if rule.kind == "counter" then return false end       -- thrown by the guard, into a swing
     if rule.safe and (d2d or 0) < rule.safe then return false end
     if rule.reach and (d2d or 999) > rule.reach then return false end
+    -- up close a special is a second spent not swinging and not blocking
+    if (d2d or 99) < (Config.SpecialSafeDist or 0) and t and not (isStunned(t) or isRagdolled(t)) then return false end
 
     local key = "SPECIAL:" .. tostring(rule.name)
     local paroled = false
@@ -20404,7 +20448,7 @@ do
     end
 end
 
-announce("The Eye HUD on v94 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
+announce("The Eye HUD on v95 - tap the eye for the menu, RightCtrl/F5 toggles, Insert opens the menu, RightShift releases the mark")
 
 
 

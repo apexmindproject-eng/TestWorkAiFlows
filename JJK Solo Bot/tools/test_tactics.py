@@ -1143,6 +1143,33 @@ MEM.facts["Twofold Kick"] = nil; foe.stun = true; Know.stT = nil
 check("close: a chained cast is not held to it", knowAllows(entry("Twofold Kick"), foe, 6, "confirm") == true)
 Config.KnowProbe = true
 
+-- v95
+reset(); Config.KnowMinPClose, Config.KnowCloseDist, Config.KnowContactClose, Config.KnowProbe = 0.45, 14, true, false
+foe = mkChar("foe", 0, -18, 0, 1); foe.hpv = 100
+MoveRules["Sacrilege"] = { min = 0, max = 20, prio = 4 }
+check("contact: a rush thrown raw from 18 studs still ends in their reach", knowAllows(entry("Sacrilege"), foe, 18, "neutral") == false)
+check("contact: a shot from 18 studs does not", knowAllows(entry("Reversal Red"), foe, 18, "neutral") == true)
+foe.stun = true; Know.stT = nil; check("contact: the same rush chained is fine", knowAllows(entry("Sacrilege"), foe, 6, "confirm") == true)
+Config.KnowProbe = true
+reset(); Config.KnowCounterMinP = 0.5
+foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100; foe.swing = true; USABLE = { entry("Manji Kick") }
+check("counter: thrown while unproven", knowTryCounter(foe, CLOCK, false) == true)
+reset(); foe.swing = true; USABLE = { entry("Manji Kick") }; MEM.facts["Manji Kick"] = { n = 7, s = { swing = { n = 7, h = 1, r = 7 } } }
+check("counter: not once it has been shown to fail (the block is better)", knowTryCounter(foe, CLOCK, false) == false)
+MEM.facts["Manji Kick"] = { n = 11, s = { swing = { n = 11, h = 7, r = 11 } } }
+check("counter: kept when it works", knowTryCounter(foe, CLOCK, false) == true)
+reset(); Config.TacWakeBlock, Config.TacWakeBlockFor, Config.UseBlock = true, 0.45, true
+local beside, away2 = mkChar("beside", 0, -6, 0, 1), mkChar("away", 0, -40, 0, 1)
+Bot.HitCandidates = { away2 }; check("wake block: nobody beside us, nothing", tacWakeBlock(CLOCK) == false)
+Bot.HitCandidates = { away2, beside }
+check("wake block: somebody beside us, the guard window opens on them",
+    tacWakeBlock(CLOCK) == true and Bot.PreGuardVs == beside and Bot.PreGuardUntil > CLOCK and Life.wakeBlock == 1)
+check("wake block: the guard decision keeps it", tacIncoming() == true and Bot.DefendVs == beside)
+beside.stun = true; Bot.PreGuardUntil = 0; check("wake block: not for somebody who cannot act", tacWakeBlock(CLOCK) == false); beside.stun = nil
+Config.TacWakeBlock = false; check("wake block: off is off", tacWakeBlock(CLOCK) == false); Config.TacWakeBlock = true
+ME.rag = true; tacSelfTick(CLOCK); ME.rag = nil; Bot.PreGuardUntil = 0; CLOCK = CLOCK + 0.5; tacSelfTick(CLOCK)
+check("wake block: fires on getting up", Bot.PreGuardVs == beside and Bot.PreGuardUntil > CLOCK)
+
 -- report lines do not error and say what is known
 reset()
 foe = mkChar("foe", 0, -6, 0, 1); foe.hpv = 100
